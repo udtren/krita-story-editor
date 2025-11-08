@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Service
+ServiceTypes=Krita/PythonPlugin
+X-KDE-Library=story_editor_agent
+X-Python-2-Compatible=false
+X-Krita-Manual=manual.html
+Name=Story Editor Agent
