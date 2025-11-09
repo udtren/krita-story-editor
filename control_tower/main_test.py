@@ -46,7 +46,7 @@ class ControlTower(QMainWindow):
         layout.addWidget(self.status_label)
 
         # Connect button
-        self.connect_btn = QPushButton("Connect to Krita Docker")
+        self.connect_btn = QPushButton("Connect to Story Editor Agent")
         self.connect_btn.clicked.connect(self.connect_to_docker)
         self.connect_btn.setFont(get_button_font())
         self.connect_btn.setMinimumHeight(BUTTON_HEIGHT)
@@ -54,7 +54,7 @@ class ControlTower(QMainWindow):
         layout.addWidget(self.connect_btn)
 
         # Open Story Editor
-        self.show_story_editor_btn = QPushButton("Open Story Editor")
+        self.show_story_editor_btn = QPushButton("Open/Refresh Story Editor")
         self.show_story_editor_btn.clicked.connect(self.open_text_editor)
         self.show_story_editor_btn.setFont(get_button_font())
         self.show_story_editor_btn.setMinimumHeight(BUTTON_HEIGHT)
@@ -63,12 +63,12 @@ class ControlTower(QMainWindow):
         layout.addWidget(self.show_story_editor_btn)
 
         # Read KRA offline button
-        self.read_kra_btn = QPushButton("Read .kra File (Offline)")
-        self.read_kra_btn.clicked.connect(self.test_read_kra_offline)
-        self.read_kra_btn.setFont(get_button_font())
-        self.read_kra_btn.setMinimumHeight(BUTTON_HEIGHT)
-        self.read_kra_btn.setMinimumWidth(BUTTON_MIN_WIDTH)
-        layout.addWidget(self.read_kra_btn)
+        # self.read_kra_btn = QPushButton("Read .kra File (Offline)")
+        # self.read_kra_btn.clicked.connect(self.test_read_kra_offline)
+        # self.read_kra_btn.setFont(get_button_font())
+        # self.read_kra_btn.setMinimumHeight(BUTTON_HEIGHT)
+        # self.read_kra_btn.setMinimumWidth(BUTTON_MIN_WIDTH)
+        # layout.addWidget(self.read_kra_btn)
 
         # Log output
         self.log_output = QTextEdit()
@@ -76,7 +76,8 @@ class ControlTower(QMainWindow):
         self.log_output.setFont(get_log_font())
         layout.addWidget(self.log_output)
 
-        self.log("Application started. Click 'Connect to Krita Docker' to begin.")
+        self.log(
+            "Application started. Click 'Connect to Story Editor Agent' to begin.")
 
     def log(self, message):
         """Add a message to the log output"""
@@ -153,17 +154,6 @@ class ControlTower(QMainWindow):
                 self._waiting_for_svg = None
         except json.JSONDecodeError as e:
             self.log(f"⚠️ Failed to parse JSON: {e}")
-
-    def test_get_document_name(self):
-        """Test the get_document_name action"""
-        self.log("\n--- Testing get_document_name ---")
-        self.send_request('get_document_name')
-
-    def test_get_layer_text(self):
-        """Test the get_layer_text action"""
-        self.log("\n--- Testing get_layer_text ---")
-        self.log("Retrieving text from all vector layers...")
-        self.send_request('get_layer_text')
 
     def open_text_editor(self):
         """Open the text editor window"""

@@ -62,20 +62,22 @@ class StoryEditorAgentDocker(QDockWidget):
 
             case 'add_text_to_new_layer':
                 doc = Krita.instance().activeDocument()
-                single_update = request.get('single_update', [])
+                new_texts = request.get('new_texts', [])
+                for new_text in new_texts:
+                    svg_data = new_text.get('svg_data', '')
 
-                if not doc:
-                    response = {'success': False,
-                                'error': 'No active document'}
-                else:
-                    try:
-                        # Update text using shape API
-                        from .utils import new_text_via_shapes
-                        result = new_text_via_shapes(doc, single_update)
-                        response = {'success': True, 'result': result}
-                    except Exception as e:
-                        response = {'success': False, 'error': str(e)}
-                client.write(json.dumps(response).encode('utf-8'))
+                    if not doc:
+                        response = {'success': False,
+                                    'error': 'No active document'}
+                    else:
+                        try:
+                            # Update text using shape API
+                            from .utils import new_text_via_shapes
+                            result = new_text_via_shapes(doc, svg_data)
+                            response = {'success': True}
+                        except Exception as e:
+                            response = {'success': False, 'error': str(e)}
+                    client.write(json.dumps(response).encode('utf-8'))
 
             case _:
                 # Unknown action
