@@ -2,7 +2,7 @@ from krita import *
 from PyQt5.QtNetwork import QLocalServer, QLocalSocket
 from PyQt5.QtCore import QByteArray
 import json
-from .utils import get_all_vector_text, get_all_svg_data
+from .utils import get_all_svg_data
 
 
 class StoryEditorAgentDocker(QDockWidget):
@@ -43,21 +43,6 @@ class StoryEditorAgentDocker(QDockWidget):
                         response = {'success': False, 'error': str(e)}
                 client.write(json.dumps(response).encode('utf-8'))
 
-            case 'get_layer_text':
-                doc = Krita.instance().activeDocument()
-
-                if not doc:
-                    response = {'success': False,
-                                'error': 'No active document'}
-                else:
-                    try:
-                        # Get all text from vector layers
-                        text_data = get_all_vector_text()
-                        response = {'success': True, 'text_layers': text_data}
-                    except Exception as e:
-                        response = {'success': False, 'error': str(e)}
-                client.write(json.dumps(response).encode('utf-8'))
-
             case 'update_layer_text':
                 doc = Krita.instance().activeDocument()
                 updates = request.get('updates', [])
@@ -71,6 +56,23 @@ class StoryEditorAgentDocker(QDockWidget):
                         from .utils import update_text_via_shapes
                         result = update_text_via_shapes(doc, updates)
                         response = {'success': True, 'updated_count': result}
+                    except Exception as e:
+                        response = {'success': False, 'error': str(e)}
+                client.write(json.dumps(response).encode('utf-8'))
+
+            case 'add_text_to_new_layer':
+                doc = Krita.instance().activeDocument()
+                single_update = request.get('single_update', [])
+
+                if not doc:
+                    response = {'success': False,
+                                'error': 'No active document'}
+                else:
+                    try:
+                        # Update text using shape API
+                        from .utils import new_text_via_shapes
+                        result = new_text_via_shapes(doc, single_update)
+                        response = {'success': True, 'result': result}
                     except Exception as e:
                         response = {'success': False, 'error': str(e)}
                 client.write(json.dumps(response).encode('utf-8'))

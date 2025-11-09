@@ -1,9 +1,18 @@
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QTextEdit, QLabel
+from PyQt5.QtSvg import QSvgWidget
+from PyQt5.QtCore import QByteArray
 import xml.etree.ElementTree as ET
 import re
+from configs.story_editor import (
+    get_text_editor_font,
+    get_tspan_editor_stylesheet,
+    get_layer_header_stylesheet,
+    TEXT_EDITOR_MIN_HEIGHT,
+    TEXT_EDITOR_MAX_HEIGHT
+)
 
 
-class TextEditorWindow:
+class StoryEditorWindow:
     """Handles the text editor window functionality"""
 
     def __init__(self, parent, socket_handler):
@@ -84,7 +93,7 @@ class TextEditorWindow:
 
         # Create new window
         self.text_editor_window = QWidget()
-        self.text_editor_window.setWindowTitle("Text Editor (SVG-based)")
+        self.text_editor_window.setWindowTitle("Story Editor")
         self.text_editor_window.resize(800, 500)
 
         # Main layout
@@ -100,16 +109,8 @@ class TextEditorWindow:
 
         top_bar.addStretch()
 
-        # Close button
-        close_btn = QPushButton("X")
-        close_btn.setMaximumWidth(30)
-        close_btn.setMaximumHeight(30)
-        close_btn.clicked.connect(self.text_editor_window.close)
-        top_bar.addWidget(close_btn)
-        main_layout.addLayout(top_bar)
-
         # VBoxLayout for all layers
-        layers_layout = QVBoxLayout()
+        doc_level_layers_layout = QVBoxLayout()
 
         # For each layer
         for layer_data in self.svg_data:
@@ -126,23 +127,33 @@ class TextEditorWindow:
                 continue
 
             # Layer label
-            layer_label = QLabel(f"Layer: {layer_name}/{layer_id}")
-            layer_label.setStyleSheet(
-                "font-weight: bold; font-size: 12px; margin-top: 10px;")
-            layers_layout.addWidget(layer_label)
+            layer_label = QLabel(f"📄 Layer: {layer_name}/{layer_id}")
+            layer_label.setStyleSheet(get_layer_header_stylesheet())
+            doc_level_layers_layout.addWidget(layer_label)
 
             # Add QTextEdit for each text element
             for elem_idx, text_elem in enumerate(text_elements):
+                svg_section_level_layout = QHBoxLayout()
                 # QTextEdit for editing
                 text_edit = QTextEdit()
                 text_edit.setPlainText(text_elem['text_content'])
-                text_edit.setMaximumHeight(300)
+                text_edit.setFont(get_text_editor_font())
+                text_edit.setStyleSheet(get_tspan_editor_stylesheet())
+                text_edit.setMaximumHeight(TEXT_EDITOR_MAX_HEIGHT)
 
                 # Auto-adjust height based on content
                 doc_height = text_edit.document().size().height()
-                text_edit.setMinimumHeight(min(int(doc_height) + 10, 300))
+                text_edit.setMinimumHeight(
+                    min(max(int(doc_height) + 10, TEXT_EDITOR_MIN_HEIGHT), TEXT_EDITOR_MAX_HEIGHT))
 
-                layers_layout.addWidget(text_edit)
+                svg_section_level_layout.addWidget(text_edit)
+
+                # Create SVG preview wrapped in a complete SVG document
+                original_svg_widget = QTextEdit()
+                original_svg_widget.setPlainText(text_elem['raw_svg'])
+                original_svg_widget.setReadOnly(True)
+                original_svg_widget.setFont(get_text_editor_font())
+                svg_section_level_layout.addWidget(original_svg_widget)
 
                 # Store reference with metadata
                 self.text_edit_widgets.append({
@@ -156,7 +167,9 @@ class TextEditorWindow:
                     'original_text': text_elem['text_content']
                 })
 
-        main_layout.addLayout(layers_layout)
+                doc_level_layers_layout.addLayout(svg_section_level_layout)
+
+        main_layout.addLayout(doc_level_layers_layout)
         main_layout.addStretch()
 
         # Show the window

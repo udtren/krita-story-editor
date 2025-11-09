@@ -63,11 +63,6 @@ def update_text_via_shapes(doc, updates):
                 for update in layer_updates:
                     shape_index = update.get('shape_index', 0)
                     new_text = update.get('new_text')
-                    layer_name = update.get('layer_name', 'unknown')
-
-                    write_log(
-                        f"[DEBUG] Updating shape {shape_index} in layer {layer_name}")
-                    write_log(f"[DEBUG] New text: {new_text}")
 
                     # Get the shape ID by index
                     shapes = target_layer.shapes()

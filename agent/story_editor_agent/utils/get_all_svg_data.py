@@ -1,4 +1,5 @@
 import zipfile
+import json
 from krita import Krita
 from ..utils.logs import write_log
 from .extract_text_from_svg import extract_text_from_svg
@@ -33,6 +34,8 @@ def get_all_svg_data():
                         'layer_id': str(layer.uniqueId()),
                         'svg': svg_content
                     })
+
+        write_log(json.dumps(svg_data))
         return svg_data
 
     except Exception as e:

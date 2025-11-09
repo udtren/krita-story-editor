@@ -12,7 +12,7 @@ from configs.main_window import (
     get_log_font
 )
 from utils.kra_reader import extract_text_from_kra
-from story_editor import TextEditorWindow
+from story_editor import StoryEditorWindow
 import json
 import sys
 
@@ -24,7 +24,7 @@ class ControlTower(QMainWindow):
         self.resize(WINDOW_WIDTH, WINDOW_HEIGHT)
 
         # Initialize text editor window handler
-        self.text_editor_handler = TextEditorWindow(self, self)
+        self.text_editor_handler = StoryEditorWindow(self, self)
 
         # Set up socket
         self.socket = QLocalSocket(self)

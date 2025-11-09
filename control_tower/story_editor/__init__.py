@@ -1,4 +1,3 @@
-from .text_editor_window import TextEditorWindow
-from .svg_tree_editor import SvgTreeEditor
+from .editor_window import StoryEditorWindow
 
-__all__ = ['TextEditorWindow', 'SvgTreeEditor']
+__all__ = ['StoryEditorWindow']

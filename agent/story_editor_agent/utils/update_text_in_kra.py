@@ -150,9 +150,6 @@ def update_svg_text(svg_content, new_text):
         Updated SVG content or None if failed
     """
     try:
-        write_log(f"[DEBUG] Original SVG length: {len(svg_content)}")
-        write_log(f"[DEBUG] New text: {new_text}")
-
         # Escape special XML characters in the new text
         new_text_escaped = (new_text
                             .replace('&', '&amp;')
@@ -191,8 +188,6 @@ def update_svg_text(svg_content, new_text):
             new_content +
             svg_content[text_end:]
         )
-
-        write_log(f"[DEBUG] Updated SVG length: {len(updated_svg)}")
         return updated_svg
 
     except Exception as e:

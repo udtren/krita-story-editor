@@ -12,7 +12,7 @@ from configs.main_window import (
     get_log_font
 )
 from utils.kra_reader import extract_text_from_kra
-from story_editor import TextEditorWindow, SvgTreeEditor
+from story_editor import StoryEditorWindow
 import json
 import sys
 
@@ -24,13 +24,10 @@ class ControlTower(QMainWindow):
         self.resize(WINDOW_WIDTH, WINDOW_HEIGHT)
 
         # Initialize text editor window handler
-        self.text_editor_handler = TextEditorWindow(self, self)
-
-        # Initialize SVG tree editor handler
-        self.svg_editor_handler = SvgTreeEditor(self, self)
+        self.text_editor_handler = StoryEditorWindow(self, self)
 
         # Track which editor is waiting for SVG data
-        self._waiting_for_svg = None  # 'text_editor' or 'svg_tree_editor'
+        self._waiting_for_svg = None  # 'text_editor'
 
         # Set up socket
         self.socket = QLocalSocket(self)
@@ -56,23 +53,14 @@ class ControlTower(QMainWindow):
         self.connect_btn.setMinimumWidth(BUTTON_MIN_WIDTH)
         layout.addWidget(self.connect_btn)
 
-        # Get svg data button (opens SVG tree editor)
-        self.get_svg_data_btn = QPushButton("Open SVG Tree Editor")
-        self.get_svg_data_btn.clicked.connect(self.open_svg_tree_editor)
-        self.get_svg_data_btn.setFont(get_button_font())
-        self.get_svg_data_btn.setMinimumHeight(BUTTON_HEIGHT)
-        self.get_svg_data_btn.setMinimumWidth(BUTTON_MIN_WIDTH)
-        self.get_svg_data_btn.setEnabled(False)
-        layout.addWidget(self.get_svg_data_btn)
-
-        # Show text editor button
-        self.show_text_editor_btn = QPushButton("Show Text Editor")
-        self.show_text_editor_btn.clicked.connect(self.open_text_editor)
-        self.show_text_editor_btn.setFont(get_button_font())
-        self.show_text_editor_btn.setMinimumHeight(BUTTON_HEIGHT)
-        self.show_text_editor_btn.setMinimumWidth(BUTTON_MIN_WIDTH)
-        self.show_text_editor_btn.setEnabled(False)
-        layout.addWidget(self.show_text_editor_btn)
+        # Open Story Editor
+        self.show_story_editor_btn = QPushButton("Open Story Editor")
+        self.show_story_editor_btn.clicked.connect(self.open_text_editor)
+        self.show_story_editor_btn.setFont(get_button_font())
+        self.show_story_editor_btn.setMinimumHeight(BUTTON_HEIGHT)
+        self.show_story_editor_btn.setMinimumWidth(BUTTON_MIN_WIDTH)
+        self.show_story_editor_btn.setEnabled(False)
+        layout.addWidget(self.show_story_editor_btn)
 
         # Read KRA offline button
         self.read_kra_btn = QPushButton("Read .kra File (Offline)")
@@ -116,8 +104,8 @@ class ControlTower(QMainWindow):
         self.status_label.setText("Status: Connected")
         self.status_label.setStyleSheet("color: green;")
         self.connect_btn.setEnabled(False)
-        self.get_svg_data_btn.setEnabled(True)
-        self.show_text_editor_btn.setEnabled(True)
+
+        self.show_story_editor_btn.setEnabled(True)
 
     def on_disconnected(self):
         """Called when disconnected"""
@@ -125,8 +113,8 @@ class ControlTower(QMainWindow):
         self.status_label.setText("Status: Disconnected")
         self.status_label.setStyleSheet("color: red;")
         self.connect_btn.setEnabled(True)
-        self.get_svg_data_btn.setEnabled(False)
-        self.show_text_editor_btn.setEnabled(False)
+
+        self.show_story_editor_btn.setEnabled(False)
 
     def on_error(self, error):
         """Called when socket error occurs"""
@@ -155,13 +143,12 @@ class ControlTower(QMainWindow):
 
             # Store SVG data if it's a get_all_svg_data response
             if 'svg_data' in response and response.get('success'):
-                self.log(f"✅ Received SVG data for {len(response['svg_data'])} layer(s)")
+                self.log(
+                    f"✅ Received SVG data for {len(response['svg_data'])} layer(s)")
 
                 # Route to the appropriate handler based on which one is waiting
                 if self._waiting_for_svg == 'text_editor':
                     self.text_editor_handler.set_svg_data(response['svg_data'])
-                elif self._waiting_for_svg == 'svg_tree_editor':
-                    self.svg_editor_handler.set_svg_data(response['svg_data'])
 
                 self._waiting_for_svg = None
         except json.JSONDecodeError as e:
@@ -182,11 +169,6 @@ class ControlTower(QMainWindow):
         """Open the text editor window"""
         self._waiting_for_svg = 'text_editor'
         self.text_editor_handler.show_text_editor()
-
-    def open_svg_tree_editor(self):
-        """Open the SVG tree editor window"""
-        self._waiting_for_svg = 'svg_tree_editor'
-        self.svg_editor_handler.show_svg_editor()
 
     def test_get_svg_data(self):
         """Test the get_svg_data action"""
