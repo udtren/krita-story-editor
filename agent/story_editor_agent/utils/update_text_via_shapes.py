@@ -24,9 +24,6 @@ def update_text_via_shapes(doc, updates):
             write_log("[ERROR] No active document")
             return 0
 
-        write_log(f"[DEBUG] Updating text via shapes API")
-        write_log(f"[DEBUG] Number of updates: {len(updates)}")
-
         # Group updates by layer_id
         updates_by_layer = {}
         for update in updates:
@@ -40,25 +37,26 @@ def update_text_via_shapes(doc, updates):
 
         # Process each layer
         for layer_id, layer_updates in updates_by_layer.items():
-            write_log(f"[DEBUG] Processing layer ID: {layer_id} with {len(layer_updates)} update(s)")
-
             # Find the matching vector layer by uniqueId
             target_layer = None
             for layer in root.childNodes():
                 if str(layer.type()) == "vectorlayer":
                     if str(layer.uniqueId()) == layer_id:
                         target_layer = layer
-                        write_log(f"[DEBUG] Found matching layer: {layer.name()}")
+                        write_log(
+                            f"[DEBUG] Found matching layer: {layer.name()}")
                         break
 
             if not target_layer:
-                write_log(f"[ERROR] Could not find vector layer with ID: {layer_id}")
+                write_log(
+                    f"[ERROR] Could not find vector layer with ID: {layer_id}")
                 continue
 
             try:
                 # Get the complete layer SVG
                 layer_svg = target_layer.toSvg()
-                write_log(f"[DEBUG] Original layer SVG length: {len(layer_svg)}")
+                write_log(
+                    f"[DEBUG] Original layer SVG length: {len(layer_svg)}")
 
                 # Apply all updates to this layer's SVG
                 modified_svg = layer_svg
@@ -67,13 +65,15 @@ def update_text_via_shapes(doc, updates):
                     new_text = update.get('new_text')
                     layer_name = update.get('layer_name', 'unknown')
 
-                    write_log(f"[DEBUG] Updating shape {shape_index} in layer {layer_name}")
+                    write_log(
+                        f"[DEBUG] Updating shape {shape_index} in layer {layer_name}")
                     write_log(f"[DEBUG] New text: {new_text}")
 
                     # Get the shape ID by index
                     shapes = target_layer.shapes()
                     if shape_index >= len(shapes):
-                        write_log(f"[ERROR] Shape index {shape_index} out of range")
+                        write_log(
+                            f"[ERROR] Shape index {shape_index} out of range")
                         continue
 
                     shape_id = shapes[shape_index].name()
@@ -84,21 +84,26 @@ def update_text_via_shapes(doc, updates):
                     match = re.search(pattern, modified_svg, re.DOTALL)
 
                     if not match:
-                        write_log(f"[ERROR] Could not find shape {shape_id} in SVG")
+                        write_log(
+                            f"[ERROR] Could not find shape {shape_id} in SVG")
                         continue
 
                     old_text_element = match.group(0)
-                    write_log(f"[DEBUG] Found text element:\n{old_text_element}")
+                    write_log(
+                        f"[DEBUG] Found text element:\n{old_text_element}")
 
                     # Update the text content
-                    new_text_element = update_svg_text(old_text_element, new_text)
+                    new_text_element = update_svg_text(
+                        old_text_element, new_text)
 
                     if not new_text_element:
-                        write_log(f"[ERROR] Failed to update text for shape {shape_id}")
+                        write_log(
+                            f"[ERROR] Failed to update text for shape {shape_id}")
                         continue
 
                     # Replace in the SVG
-                    modified_svg = modified_svg.replace(old_text_element, new_text_element)
+                    modified_svg = modified_svg.replace(
+                        old_text_element, new_text_element)
                     write_log(f"[DEBUG] Updated text element in SVG")
 
                 # Now update the entire layer
@@ -112,13 +117,16 @@ def update_text_via_shapes(doc, updates):
                 result = target_layer.addShapesFromSvg(modified_svg)
 
                 if result and len(result) > 0:
-                    write_log(f"[DEBUG] Successfully updated layer with {len(result)} shape(s)")
+                    write_log(
+                        f"[DEBUG] Successfully updated layer with {len(result)} shape(s)")
                     updated_count += 1
                 else:
-                    write_log(f"[ERROR] addShapesFromSvg returned empty list for layer {layer_id}")
+                    write_log(
+                        f"[ERROR] addShapesFromSvg returned empty list for layer {layer_id}")
 
             except Exception as layer_error:
-                write_log(f"[ERROR] Failed to update layer {layer_id}: {layer_error}")
+                write_log(
+                    f"[ERROR] Failed to update layer {layer_id}: {layer_error}")
                 import traceback
                 write_log(traceback.format_exc())
 

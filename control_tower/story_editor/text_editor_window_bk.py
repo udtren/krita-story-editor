@@ -71,8 +71,7 @@ class TextEditorWindow:
     def create_text_editor_window(self):
         """Create the text editor window with the received SVG data"""
         if not self.svg_data:
-            self.socket_handler.log(
-                "⚠️ No SVG data available. Make sure the request succeeded.")
+            self.socket_handler.log("⚠️ No SVG data available. Make sure the request succeeded.")
             return
 
         # Close existing window if it exists
@@ -113,8 +112,6 @@ class TextEditorWindow:
 
         # For each layer
         for layer_data in self.svg_data:
-            document_name = layer_data.get('document_name', 'unknown')
-            document_path = layer_data.get('document_path', 'unknown')
             layer_name = layer_data.get('layer_name', 'unknown')
             layer_id = layer_data.get('layer_id', 'unknown')
             svg_content = layer_data.get('svg', '')
@@ -126,29 +123,25 @@ class TextEditorWindow:
                 continue
 
             # Layer label
-            layer_label = QLabel(f"Layer: {layer_name}/{layer_id}")
-            layer_label.setStyleSheet(
-                "font-weight: bold; font-size: 12px; margin-top: 10px;")
+            layer_label = QLabel(f"Layer: {layer_name}")
+            layer_label.setStyleSheet("font-weight: bold; font-size: 14px; margin-top: 10px;")
             layers_layout.addWidget(layer_label)
 
             # Add QTextEdit for each text element
             for elem_idx, text_elem in enumerate(text_elements):
+                # Label for this text element
+                elem_label = QLabel(f"  Text Element {elem_idx + 1}:")
+                layers_layout.addWidget(elem_label)
+
                 # QTextEdit for editing
                 text_edit = QTextEdit()
                 text_edit.setPlainText(text_elem['text_content'])
-                text_edit.setMaximumHeight(300)
-
-                # Auto-adjust height based on content
-                doc_height = text_edit.document().size().height()
-                text_edit.setMinimumHeight(min(int(doc_height) + 10, 300))
-
+                text_edit.setMinimumHeight(80)
                 layers_layout.addWidget(text_edit)
 
                 # Store reference with metadata
                 self.text_edit_widgets.append({
                     'widget': text_edit,
-                    'document_name': document_name,
-                    'document_path': document_path,
                     'layer_name': layer_name,
                     'layer_id': layer_id,
                     'shape_index': elem_idx,
@@ -162,8 +155,7 @@ class TextEditorWindow:
         # Show the window
         self.text_editor_window.show()
         total_texts = len(self.text_edit_widgets)
-        self.socket_handler.log(
-            f"✅ Text editor opened with {total_texts} text element(s) from {len(self.svg_data)} layer(s)")
+        self.socket_handler.log(f"✅ Text editor opened with {total_texts} text element(s) from {len(self.svg_data)} layer(s)")
 
     def update_all_texts(self):
         """Send update requests for all modified texts"""
@@ -176,8 +168,6 @@ class TextEditorWindow:
             # Only update if text has changed
             if current_text != item['original_text']:
                 updates.append({
-                    'document_name': item['document_name'],
-                    'document_path': item['document_path'],
                     'layer_name': item['layer_name'],
                     'layer_id': item['layer_id'],
                     'shape_index': item['shape_index'],

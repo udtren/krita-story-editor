@@ -8,6 +8,8 @@ def get_all_svg_data():
     """Extract text content from all vector layers using Krita API"""
     try:
         doc = Krita.instance().activeDocument()
+        doc_path = doc.fileName() if doc else "krita_file_not_saved"
+        doc_name = doc.name() if doc else "krita_file_not_saved"
 
         if not doc:
             write_log("[ERROR] No active document")
@@ -25,6 +27,8 @@ def get_all_svg_data():
 
                 if svg_content:
                     svg_data.append({
+                        'document_name': doc_name,
+                        'document_path': doc_path,
                         'layer_name': layer.name(),
                         'layer_id': str(layer.uniqueId()),
                         'svg': svg_content
