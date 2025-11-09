@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(nul)",
+      "Bash(dir /b \"c:\\Users\\udtren\\Project\\krita-story-editor\\agent\\story_editor_agent\\functions\")"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

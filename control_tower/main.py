@@ -1,16 +1,18 @@
-from PyQt5.QtWidgets import QApplication, QMainWindow, QPushButton, QVBoxLayout, QWidget, QTextEdit, QLabel
+from PyQt5.QtWidgets import QApplication, QMainWindow, QPushButton, QVBoxLayout, QWidget, QTextEdit, QLabel, QInputDialog, QFileDialog
 from PyQt5.QtNetwork import QLocalSocket
 from PyQt5.QtCore import QTimer
 from configs.main_window import (
-    setup_dark_palette, 
-    WINDOW_WIDTH, 
-    WINDOW_HEIGHT, 
+    setup_dark_palette,
+    WINDOW_WIDTH,
+    WINDOW_HEIGHT,
     WINDOW_TITLE,
     BUTTON_HEIGHT,
     BUTTON_MIN_WIDTH,
     get_button_font,
     get_log_font
 )
+from utils.kra_reader import extract_text_from_kra
+from story_editor import TextEditorWindow
 import json
 import sys
 
@@ -44,22 +46,33 @@ class ControlTower(QMainWindow):
         self.connect_btn.setMinimumHeight(BUTTON_HEIGHT)
         self.connect_btn.setMinimumWidth(BUTTON_MIN_WIDTH)
         layout.addWidget(self.connect_btn)
+
+        # Show text editor button
+        self.show_text_editor_btn = QPushButton("Show Text Editor")
+        self.show_text_editor_btn.clicked.connect(self.text_editor_handler.show_text_editor)
+        self.show_text_editor_btn.setFont(get_button_font())
+        self.show_text_editor_btn.setMinimumHeight(BUTTON_HEIGHT)
+        self.show_text_editor_btn.setMinimumWidth(BUTTON_MIN_WIDTH)
+        self.show_text_editor_btn.setEnabled(False)
+        layout.addWidget(self.show_text_editor_btn)
         
-        # Test button
-        self.test_btn = QPushButton("Test: Get Document Name")
-        self.test_btn.clicked.connect(self.test_get_document_name)
-        self.test_btn.setFont(get_button_font())
-        self.test_btn.setMinimumHeight(BUTTON_HEIGHT)
-        self.test_btn.setMinimumWidth(BUTTON_MIN_WIDTH)
-        self.test_btn.setEnabled(False)
-        layout.addWidget(self.test_btn)
+        # Read KRA offline button
+        self.read_kra_btn = QPushButton("Read .kra File (Offline)")
+        self.read_kra_btn.clicked.connect(self.test_read_kra_offline)
+        self.read_kra_btn.setFont(get_button_font())
+        self.read_kra_btn.setMinimumHeight(BUTTON_HEIGHT)
+        self.read_kra_btn.setMinimumWidth(BUTTON_MIN_WIDTH)
+        layout.addWidget(self.read_kra_btn)
         
         # Log output
         self.log_output = QTextEdit()
         self.log_output.setReadOnly(True)
         self.log_output.setFont(get_log_font())
         layout.addWidget(self.log_output)
-        
+
+        # Initialize text editor window handler
+        self.text_editor_handler = TextEditorWindow(self, self)
+
         self.log("Application started. Click 'Connect to Krita Docker' to begin.")
     
     def log(self, message):
@@ -89,6 +102,10 @@ class ControlTower(QMainWindow):
         self.status_label.setStyleSheet("color: green;")
         self.connect_btn.setEnabled(False)
         self.test_btn.setEnabled(True)
+        self.get_docs_btn.setEnabled(True)
+        self.get_text_btn.setEnabled(True)
+        self.get_layer_text_btn.setEnabled(True)
+        self.show_text_editor_btn.setEnabled(True)
     
     def on_disconnected(self):
         """Called when disconnected"""
@@ -97,6 +114,10 @@ class ControlTower(QMainWindow):
         self.status_label.setStyleSheet("color: red;")
         self.connect_btn.setEnabled(True)
         self.test_btn.setEnabled(False)
+        self.get_docs_btn.setEnabled(False)
+        self.get_text_btn.setEnabled(False)
+        self.get_layer_text_btn.setEnabled(False)
+        self.show_text_editor_btn.setEnabled(False)
     
     def on_error(self, error):
         """Called when socket error occurs"""
@@ -115,17 +136,52 @@ class ControlTower(QMainWindow):
         """Handle data received from the Krita docker"""
         data = self.socket.readAll().data().decode('utf-8')
         self.log(f"📥 Received: {data}")
-        
+
         try:
             response = json.loads(data)
             self.log(f"✅ Parsed response: {response}")
+
+            # Store text data if it's a get_layer_text response
+            if 'text_layers' in response and response.get('success'):
+                self.text_editor_handler.set_text_data(response['text_layers'])
         except json.JSONDecodeError as e:
             self.log(f"⚠️ Failed to parse JSON: {e}")
     
-    def test_get_document_name(self):
-        """Test the get_document_name action"""
-        self.log("\n--- Testing get_document_name ---")
-        self.send_request('get_document_name')
+    def test_get_layer_text(self):
+        """Test the get_layer_text action"""
+        self.log("\n--- Testing get_layer_text ---")
+        self.log("Retrieving text from all vector layers...")
+        self.send_request('get_layer_text')
+    
+    def test_read_kra_offline(self):
+        """Read text from a .kra file without connecting to Krita"""
+        self.log("\n--- Testing offline .kra reading ---")
+
+        # Open file dialog to select .kra file
+        file_path, _ = QFileDialog.getOpenFileName(
+            self,
+            "Select .kra File",
+            "",
+            "Krita Files (*.kra);;All Files (*)"
+        )
+
+        if not file_path:
+            self.log("❌ No file selected")
+            return
+
+        self.log(f"Reading file: {file_path}")
+
+        try:
+            text_layers = extract_text_from_kra(file_path)
+
+            if text_layers:
+                self.log(f"✅ Found {len(text_layers)} layer(s) with text")
+                self.log(f"📥 Result: {json.dumps(text_layers, indent=2, ensure_ascii=False)}")
+            else:
+                self.log("⚠️ No text layers found in file")
+
+        except Exception as e:
+            self.log(f"❌ Error reading .kra file: {e}")
 
 
 def main():
