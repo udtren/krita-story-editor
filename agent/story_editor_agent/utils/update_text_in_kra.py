@@ -87,10 +87,13 @@ def update_text_in_kra(doc, updates):
                         arcname = os.path.relpath(file_path, temp_dir)
                         kra_zip.write(file_path, arcname)
 
-            write_log(f"[DEBUG] Successfully created new .kra file with {updated_count} updates")
+            write_log(
+                f"[DEBUG] Successfully created new .kra file with {updated_count} updates")
 
-            # Force reload the document in Krita
             try:
+                #######################################################
+                # Reload Document
+                #######################################################
                 write_log("[INFO] Reloading document in Krita...")
 
                 # Save current document name for reopening
@@ -105,7 +108,7 @@ def update_text_in_kra(doc, updates):
                 new_doc = krita_app.openDocument(kra_path)
 
                 if new_doc:
-                    # IMPORTANT: Add the document to the active window to make it visible
+                    # Add the document to the active window to make it visible
                     active_window = krita_app.activeWindow()
                     if active_window:
                         # Add the document to all views in the active window
@@ -114,9 +117,11 @@ def update_text_in_kra(doc, updates):
 
                     # Set as active document
                     krita_app.setActiveDocument(new_doc)
-                    write_log(f"[INFO] ✅ Document reloaded and displayed successfully: {doc_name}")
+                    write_log(
+                        f"[INFO] ✅ Document reloaded and displayed successfully: {doc_name}")
                 else:
                     write_log("[ERROR] Failed to reopen document")
+                #######################################################
 
             except Exception as reload_error:
                 write_log(f"[ERROR] Failed to reload document: {reload_error}")
@@ -150,11 +155,11 @@ def update_svg_text(svg_content, new_text):
 
         # Escape special XML characters in the new text
         new_text_escaped = (new_text
-                           .replace('&', '&amp;')
-                           .replace('<', '&lt;')
-                           .replace('>', '&gt;')
-                           .replace('"', '&quot;')
-                           .replace("'", '&apos;'))
+                            .replace('&', '&amp;')
+                            .replace('<', '&lt;')
+                            .replace('>', '&gt;')
+                            .replace('"', '&quot;')
+                            .replace("'", '&apos;'))
 
         # Find the text element and replace its content
         # Pattern matches: <text ...>CONTENT</text>

@@ -1,5 +1,6 @@
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QTextEdit, QLabel
-from PyQt5.QtCore import QTimer
+import xml.etree.ElementTree as ET
+import re
 
 
 class TextEditorWindow:
@@ -15,28 +16,62 @@ class TextEditorWindow:
         """
         self.parent = parent
         self.socket_handler = socket_handler
-        self.text_data = None
+        self.svg_data = None
         self.text_editor_window = None
         self.text_edit_widgets = []  # Store references to text edit widgets with metadata
 
     def show_text_editor(self):
-        """Show text editor window with text from Krita document"""
+        """Show text editor window with SVG data from Krita document"""
         self.socket_handler.log("\n--- Opening Text Editor ---")
 
-        # First, request the text data
-        self.socket_handler.send_request('get_layer_text')
+        # Clear any existing data
+        self.svg_data = None
 
-        # Wait a bit for response, then create the window
-        QTimer.singleShot(500, self.create_text_editor_window)
+        # Request the SVG data (not text data)
+        # The window will be created when set_svg_data() is called with the response
+        self.socket_handler.send_request('get_all_svg_data')
 
-    def set_text_data(self, text_data):
-        """Store the received text data"""
-        self.text_data = text_data
+    def set_svg_data(self, svg_data):
+        """Store the received SVG data and create the editor window"""
+        self.svg_data = svg_data
+        # Automatically create the window when data is received
+        self.create_text_editor_window()
+
+    def extract_text_elements_from_svg(self, svg_content):
+        """Extract all <text> elements from SVG content"""
+        text_elements = []
+
+        # Use regex to find all <text> elements
+        pattern = r'<text[^>]*>.*?</text>'
+        matches = re.findall(pattern, svg_content, re.DOTALL)
+
+        for match in matches:
+            # Extract just the text content for editing
+            text_content = self.extract_text_content(match)
+            text_elements.append({
+                'raw_svg': match,
+                'text_content': text_content
+            })
+
+        return text_elements
+
+    def extract_text_content(self, text_element_svg):
+        """Extract plain text content from a <text> SVG element"""
+        try:
+            # Parse the text element
+            elem = ET.fromstring(text_element_svg)
+            # Get all text content (including from tspan elements)
+            text_content = ''.join(elem.itertext())
+            return text_content
+        except:
+            # Fallback: use regex to strip tags
+            text = re.sub(r'<[^>]+>', '', text_element_svg)
+            return text.strip()
 
     def create_text_editor_window(self):
-        """Create the text editor window with the received text data"""
-        if not self.text_data:
-            self.socket_handler.log("⚠️ No text data available. Make sure the request succeeded.")
+        """Create the text editor window with the received SVG data"""
+        if not self.svg_data:
+            self.socket_handler.log("⚠️ No SVG data available. Make sure the request succeeded.")
             return
 
         # Close existing window if it exists
@@ -48,8 +83,8 @@ class TextEditorWindow:
 
         # Create new window
         self.text_editor_window = QWidget()
-        self.text_editor_window.setWindowTitle("Text Editor")
-        self.text_editor_window.resize(600, 400)
+        self.text_editor_window.setWindowTitle("Text Editor (SVG-based)")
+        self.text_editor_window.resize(800, 500)
 
         # Main layout
         main_layout = QVBoxLayout(self.text_editor_window)
@@ -72,55 +107,55 @@ class TextEditorWindow:
         top_bar.addWidget(close_btn)
         main_layout.addLayout(top_bar)
 
-        # VBoxLayout_1 for all documents
-        documents_layout = QVBoxLayout()
+        # VBoxLayout for all layers
+        layers_layout = QVBoxLayout()
 
-        # For each text layer (treating each as a document for this test)
-        for layer_idx, layer in enumerate(self.text_data):
-            # VBoxLayout_2 for each document
-            doc_layout = QVBoxLayout()
+        # For each layer
+        for layer_data in self.svg_data:
+            layer_name = layer_data.get('layer_name', 'unknown')
+            layer_id = layer_data.get('layer_id', 'unknown')
+            svg_content = layer_data.get('svg', '')
 
-            # Add label for layer info
-            layer_path = layer.get('path', 'unknown')
-            layer_label = QLabel(f"Layer: {layer.get('layer_folder', 'unknown')} ({layer_path})")
-            doc_layout.addWidget(layer_label)
+            # Extract text elements from SVG
+            text_elements = self.extract_text_elements_from_svg(svg_content)
 
-            # Get text elements
-            text_elements = layer.get('text_elements', [])
+            if not text_elements:
+                continue
+
+            # Layer label
+            layer_label = QLabel(f"Layer: {layer_name}")
+            layer_label.setStyleSheet("font-weight: bold; font-size: 14px; margin-top: 10px;")
+            layers_layout.addWidget(layer_label)
 
             # Add QTextEdit for each text element
             for elem_idx, text_elem in enumerate(text_elements):
+                # Label for this text element
+                elem_label = QLabel(f"  Text Element {elem_idx + 1}:")
+                layers_layout.addWidget(elem_label)
+
+                # QTextEdit for editing
                 text_edit = QTextEdit()
-
-                # Extract the text content and HTML
-                if isinstance(text_elem, dict):
-                    text_content = text_elem.get('text', '')
-                    original_html = text_elem.get('html', '')
-                else:
-                    text_content = str(text_elem)
-                    original_html = ''
-
-                text_edit.setPlainText(text_content)
-                text_edit.setMinimumHeight(100)
-                doc_layout.addWidget(text_edit)
+                text_edit.setPlainText(text_elem['text_content'])
+                text_edit.setMinimumHeight(80)
+                layers_layout.addWidget(text_edit)
 
                 # Store reference with metadata
                 self.text_edit_widgets.append({
                     'widget': text_edit,
-                    'layer_path': layer_path,
-                    'layer_folder': layer.get('layer_folder', 'unknown'),
-                    'element_index': elem_idx,
-                    'original_text': text_content,
-                    'original_html': original_html
+                    'layer_name': layer_name,
+                    'layer_id': layer_id,
+                    'shape_index': elem_idx,
+                    'original_svg': text_elem['raw_svg'],
+                    'original_text': text_elem['text_content']
                 })
 
-            documents_layout.addLayout(doc_layout)
-
-        main_layout.addLayout(documents_layout)
+        main_layout.addLayout(layers_layout)
+        main_layout.addStretch()
 
         # Show the window
         self.text_editor_window.show()
-        self.socket_handler.log(f"✅ Text editor opened with {len(self.text_data)} text layer(s)")
+        total_texts = len(self.text_edit_widgets)
+        self.socket_handler.log(f"✅ Text editor opened with {total_texts} text element(s) from {len(self.svg_data)} layer(s)")
 
     def update_all_texts(self):
         """Send update requests for all modified texts"""
@@ -133,11 +168,10 @@ class TextEditorWindow:
             # Only update if text has changed
             if current_text != item['original_text']:
                 updates.append({
-                    'layer_path': item['layer_path'],
-                    'layer_folder': item['layer_folder'],
-                    'element_index': item['element_index'],
-                    'new_text': current_text,
-                    'original_html': item['original_html']
+                    'layer_name': item['layer_name'],
+                    'layer_id': item['layer_id'],
+                    'shape_index': item['shape_index'],
+                    'new_text': current_text
                 })
 
         if not updates:

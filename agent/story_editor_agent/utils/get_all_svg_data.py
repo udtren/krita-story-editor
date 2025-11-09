@@ -4,7 +4,7 @@ from ..utils.logs import write_log
 from .extract_text_from_svg import extract_text_from_svg
 
 
-def get_all_vector_text():
+def get_all_svg_data():
     """Extract text content from all vector layers using Krita API"""
     try:
         doc = Krita.instance().activeDocument()
@@ -15,27 +15,21 @@ def get_all_vector_text():
 
         write_log(f"[DEBUG] Document: {doc.name()}")
 
-        text_layers = []
+        svg_data = []
         root = doc.rootNode()
 
         # Iterate through all child nodes
         for layer in root.childNodes():
             if str(layer.type()) == "vectorlayer":
-                write_log(
-                    f"[DEBUG] Found vector layer: {layer.name()} (ID: {layer.uniqueId()})")
-
-                # Collect text from all shapes
-                text_elements = []
                 svg_content = layer.toSvg()
-                text = extract_text_from_svg(svg_content)
 
-                if text:
-                    text_layers.append({
+                if svg_content:
+                    svg_data.append({
                         'layer_name': layer.name(),
                         'layer_id': str(layer.uniqueId()),
-                        'text_elements': text_elements
+                        'svg': svg_content
                     })
-        return text_layers
+        return svg_data
 
     except Exception as e:
         write_log(f"Error extracting vector text: {e}")

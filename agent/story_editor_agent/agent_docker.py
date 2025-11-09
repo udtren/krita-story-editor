@@ -2,7 +2,7 @@ from krita import *
 from PyQt5.QtNetwork import QLocalServer, QLocalSocket
 from PyQt5.QtCore import QByteArray
 import json
-from .utils import get_all_vector_text, update_vector_text
+from .utils import get_all_vector_text, get_all_svg_data
 
 
 class StoryEditorAgentDocker(QDockWidget):
@@ -28,9 +28,23 @@ class StoryEditorAgentDocker(QDockWidget):
 
         # Process request and interact with Krita
         match request['action']:
+            case 'get_all_svg_data':
+                doc = Krita.instance().activeDocument()
+
+                if not doc:
+                    response = {'success': False,
+                                'error': 'No active document'}
+                else:
+                    try:
+                        # Get all text from vector layers
+                        svg_data = get_all_svg_data()
+                        response = {'success': True, 'svg_data': svg_data}
+                    except Exception as e:
+                        response = {'success': False, 'error': str(e)}
+                client.write(json.dumps(response).encode('utf-8'))
+
             case 'get_layer_text':
                 doc = Krita.instance().activeDocument()
-                layer_name = request.get('layer_name')
 
                 if not doc:
                     response = {'success': False,
@@ -53,9 +67,9 @@ class StoryEditorAgentDocker(QDockWidget):
                                 'error': 'No active document'}
                 else:
                     try:
-                        # Update text in the .kra file
-                        from .utils import update_text_in_kra
-                        result = update_text_in_kra(doc, updates)
+                        # Update text using shape API
+                        from .utils import update_text_via_shapes
+                        result = update_text_via_shapes(doc, updates)
                         response = {'success': True, 'updated_count': result}
                     except Exception as e:
                         response = {'success': False, 'error': str(e)}
