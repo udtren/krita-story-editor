@@ -50,42 +50,6 @@ class ControlTower(QMainWindow):
         self.connect_btn.setMinimumWidth(BUTTON_MIN_WIDTH)
         layout.addWidget(self.connect_btn)
 
-        # Test button
-        self.test_btn = QPushButton("Test: Get Document Name")
-        self.test_btn.clicked.connect(self.test_get_document_name)
-        self.test_btn.setFont(get_button_font())
-        self.test_btn.setMinimumHeight(BUTTON_HEIGHT)
-        self.test_btn.setMinimumWidth(BUTTON_MIN_WIDTH)
-        self.test_btn.setEnabled(False)
-        layout.addWidget(self.test_btn)
-
-        # Get all documents button
-        self.get_docs_btn = QPushButton("Get All Documents Info")
-        self.get_docs_btn.clicked.connect(self.test_get_all_documents)
-        self.get_docs_btn.setFont(get_button_font())
-        self.get_docs_btn.setMinimumHeight(BUTTON_HEIGHT)
-        self.get_docs_btn.setMinimumWidth(BUTTON_MIN_WIDTH)
-        self.get_docs_btn.setEnabled(False)
-        layout.addWidget(self.get_docs_btn)
-
-        # Get text layers button
-        self.get_text_btn = QPushButton("Get Text Layers")
-        self.get_text_btn.clicked.connect(self.test_get_text_layers)
-        self.get_text_btn.setFont(get_button_font())
-        self.get_text_btn.setMinimumHeight(BUTTON_HEIGHT)
-        self.get_text_btn.setMinimumWidth(BUTTON_MIN_WIDTH)
-        self.get_text_btn.setEnabled(False)
-        layout.addWidget(self.get_text_btn)
-
-        # Get layer text button
-        self.get_layer_text_btn = QPushButton("Get Layer Text")
-        self.get_layer_text_btn.clicked.connect(self.test_get_layer_text)
-        self.get_layer_text_btn.setFont(get_button_font())
-        self.get_layer_text_btn.setMinimumHeight(BUTTON_HEIGHT)
-        self.get_layer_text_btn.setMinimumWidth(BUTTON_MIN_WIDTH)
-        self.get_layer_text_btn.setEnabled(False)
-        layout.addWidget(self.get_layer_text_btn)
-
         # Show text editor button
         self.show_text_editor_btn = QPushButton("Show Text Editor")
         self.show_text_editor_btn.clicked.connect(
@@ -138,10 +102,6 @@ class ControlTower(QMainWindow):
         self.status_label.setText("Status: Connected")
         self.status_label.setStyleSheet("color: green;")
         self.connect_btn.setEnabled(False)
-        self.test_btn.setEnabled(True)
-        self.get_docs_btn.setEnabled(True)
-        self.get_text_btn.setEnabled(True)
-        self.get_layer_text_btn.setEnabled(True)
         self.show_text_editor_btn.setEnabled(True)
 
     def on_disconnected(self):
@@ -150,10 +110,6 @@ class ControlTower(QMainWindow):
         self.status_label.setText("Status: Disconnected")
         self.status_label.setStyleSheet("color: red;")
         self.connect_btn.setEnabled(True)
-        self.test_btn.setEnabled(False)
-        self.get_docs_btn.setEnabled(False)
-        self.get_text_btn.setEnabled(False)
-        self.get_layer_text_btn.setEnabled(False)
         self.show_text_editor_btn.setEnabled(False)
 
     def on_error(self, error):
@@ -188,16 +144,6 @@ class ControlTower(QMainWindow):
         """Test the get_document_name action"""
         self.log("\n--- Testing get_document_name ---")
         self.send_request('get_document_name')
-
-    def test_get_all_documents(self):
-        """Test the get_all_documents action"""
-        self.log("\n--- Testing get_all_documents ---")
-        self.send_request('get_all_documents')
-
-    def test_get_text_layers(self):
-        """Test the get_text_layers action"""
-        self.log("\n--- Testing get_text_layers ---")
-        self.send_request('get_text_layers')
 
     def test_get_layer_text(self):
         """Test the get_layer_text action"""

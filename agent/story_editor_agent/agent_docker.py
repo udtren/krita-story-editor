@@ -75,6 +75,22 @@ class StoryEditorAgentDocker(QDockWidget):
                         response = {'success': False, 'error': str(e)}
                 client.write(json.dumps(response).encode('utf-8'))
 
+            case 'update_layer_text':
+                doc = Krita.instance().activeDocument()
+                updates = request.get('updates', [])
+
+                if not doc:
+                    response = {'success': False, 'error': 'No active document'}
+                else:
+                    try:
+                        # Update text in the .kra file
+                        from .utils import update_text_in_kra
+                        result = update_text_in_kra(doc, updates)
+                        response = {'success': True, 'updated_count': result}
+                    except Exception as e:
+                        response = {'success': False, 'error': str(e)}
+                client.write(json.dumps(response).encode('utf-8'))
+
             case _:
                 # Unknown action
                 response = {'success': False, 'error': f"Unknown action: {request['action']}"}
