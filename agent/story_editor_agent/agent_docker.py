@@ -2,7 +2,7 @@ from krita import *
 from PyQt5.QtNetwork import QLocalServer, QLocalSocket
 from PyQt5.QtCore import QByteArray
 import json
-from .utils import find_text_layers, get_all_vector_text, update_vector_text
+from .utils import get_all_vector_text, update_vector_text
 
 
 class StoryEditorAgentDocker(QDockWidget):
@@ -28,44 +28,13 @@ class StoryEditorAgentDocker(QDockWidget):
 
         # Process request and interact with Krita
         match request['action']:
-            case 'get_document_name':
-                doc = Krita.instance().activeDocument()
-                response = {'name': doc.name() if doc else None}
-                client.write(json.dumps(response).encode('utf-8'))
-
-            case 'get_all_documents':
-                documents = Krita.instance().documents()
-                doc_info = []
-                for doc in documents:
-                    info = {
-                        'name': doc.name(),
-                        'fileName': doc.fileName(),
-                        'width': doc.width(),
-                        'height': doc.height(),
-                        'resolution': doc.resolution(),
-                        'colorDepth': doc.colorDepth(),
-                        'colorModel': doc.colorModel()
-                    }
-                    doc_info.append(info)
-                response = {'documents': doc_info, 'count': len(doc_info)}
-                client.write(json.dumps(response).encode('utf-8'))
-
-            case 'get_text_layers':
-                doc = Krita.instance().activeDocument()
-                if not doc:
-                    response = {'error': 'No active document', 'layers': []}
-                else:
-                    text_layers = []
-                    find_text_layers(doc.rootNode(), text_layers)
-                    response = {'layers': text_layers, 'count': len(text_layers)}
-                client.write(json.dumps(response).encode('utf-8'))
-
             case 'get_layer_text':
                 doc = Krita.instance().activeDocument()
                 layer_name = request.get('layer_name')
 
                 if not doc:
-                    response = {'success': False, 'error': 'No active document'}
+                    response = {'success': False,
+                                'error': 'No active document'}
                 else:
                     try:
                         # Get all text from vector layers
@@ -80,7 +49,8 @@ class StoryEditorAgentDocker(QDockWidget):
                 updates = request.get('updates', [])
 
                 if not doc:
-                    response = {'success': False, 'error': 'No active document'}
+                    response = {'success': False,
+                                'error': 'No active document'}
                 else:
                     try:
                         # Update text in the .kra file
@@ -93,7 +63,8 @@ class StoryEditorAgentDocker(QDockWidget):
 
             case _:
                 # Unknown action
-                response = {'success': False, 'error': f"Unknown action: {request['action']}"}
+                response = {'success': False,
+                            'error': f"Unknown action: {request['action']}"}
                 client.write(json.dumps(response).encode('utf-8'))
 
 
