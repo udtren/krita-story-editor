@@ -78,6 +78,7 @@ class StoryEditorWindow:
 
         # Use regex to find all <text> elements
         pattern = r'<text[^>]*>.*?</text>'
+        # 1VectorLayerに複数のShapeがある場合は各<text>list_of_update_target
         matches = re.findall(pattern, svg_content, re.DOTALL)
 
         for match in matches:
@@ -386,15 +387,17 @@ If you want multiple paragraphs within different text elements, separate them wi
             self.socket_handler.log(
                 f"\n--- Updating texts in document: {doc_name} ---")
 
-            list_of_update_target = update_all_texts(
+            result = update_all_texts(
                 doc_name=doc_name,
                 text_edit_widgets=doc_state['text_edit_widgets'],
                 socket_handler=self.socket_handler
             )
+            if result.get('success'):
+                merged_requests.append(result.get('requests'))
 
-            for target in list_of_update_target:
-                merged_requests.append(target)
-
-        if merged_requests:
-            self.socket_handler.send_request(
-                'text_update_request', merged_requests=merged_requests)
+        self.socket_handler.send_request(
+            'text_update_request', merged_requests=merged_requests)
+        self.socket_handler.log(
+            f"✅ Sent update request for document: {doc_name}")
+        # self.socket_handler.log(
+        #     f"merged_requests: {merged_requests}")

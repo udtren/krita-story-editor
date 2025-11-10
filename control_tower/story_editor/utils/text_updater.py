@@ -13,12 +13,13 @@ def update_all_texts(doc_name, text_edit_widgets, socket_handler):
     Send update requests for all modified texts and add new texts
 
     Args:
-        text_edit_widgets: List of dictionaries containing widget references and metadata
+        doc_name: Kritaドキュメント名
+        text_edit_widgets: 既存テキスト更新と新規テキスト追加の両方を含むウィジェットのリスト
         socket_handler: Object with send_request and log methods
     """
     socket_handler.log("\n--- Updating texts in Krita ---")
 
-    response = []
+    response = []  # Final response list to hold all updates and new texts
     updates = []
     updates_with_doc_info = {
         'document_name': doc_name,
@@ -31,15 +32,16 @@ def update_all_texts(doc_name, text_edit_widgets, socket_handler):
     }
 
     for item in text_edit_widgets:
+        # Widget内のテキストを取得
         current_text = item['widget'].toPlainText()
 
-        # Split by double linebreaks
-        text_segments = split_text_by_double_linebreak(current_text)
+        # ダブル改行でテキストを分割
+        text_segments: list[str] = split_text_by_double_linebreak(current_text)
 
+        # 新規テキスト追加の場合
         if item.get('is_new'):
-            # This is a new text element
             if text_segments:  # Only add if we have segments
-                # Get selected template from combo box
+                # テンプレート選択
                 template_combo = item.get('template_combo')
                 if template_combo:
                     template_path = template_combo.currentData()
@@ -59,7 +61,7 @@ def update_all_texts(doc_name, text_edit_widgets, socket_handler):
                 # Generate random UUID for shape ID
                 shape_id_base = f"shape{uuid.uuid4().hex[:4]}"
 
-                # Create a new text element for each segment
+                # リスト型テキストセグメントごとにSVG要素を生成
                 for index, segment in enumerate(text_segments):
                     shape_id = f"{shape_id_base}_{index}"
 
@@ -76,11 +78,10 @@ def update_all_texts(doc_name, text_edit_widgets, socket_handler):
                 # Generate full SVG data
                 svg_data = generate_full_svg_data(text_elements)
                 new_texts.append({
-                    'svg_data': svg_data,
-                    'text_content': segment
+                    'svg_data': svg_data
                 })
         else:
-            # Existing text - only update if changed
+            # 既存テキスト - 変更があった場合のみ更新
             if current_text != item['original_text']:
                 if text_segments:
                     # Escape special characters for existing text updates
@@ -93,24 +94,31 @@ def update_all_texts(doc_name, text_edit_widgets, socket_handler):
                         'new_text': escaped_segment
                     })
 
-    # First, update existing texts
-    if updates:
+    '''
+    既存テキスト更新と新規テキスト追加、もし両方がある場合は、同時にこの関数に渡されるため、
+    戻り値は両者を結合したリストとして返す必要がある。
+    '''
+    if len(updates) > 0:
         response.append({
             "text_edit_type": "existing_texts_updated",
             "data": updates_with_doc_info
         })
 
     # Then, add new texts
-    if new_texts:
+    if len(new_texts) > 0:
         response.append({
             "text_edit_type": "new_texts_added",
             "data": new_texts_with_doc_info
         })
 
-    if not updates and not new_texts:
+    if len(updates) == 0 and len(new_texts) == 0:
         socket_handler.log("⚠️ No changes detected")
+        return {'success': False, 'error': 'No changes detected'}
     else:
-        return response
+        return {'success': True, 'requests': {
+            'document_name': doc_name,
+            'requests': response
+        }}
 
 
 def split_text_by_double_linebreak(text):

@@ -147,8 +147,9 @@ class ControlTower(QMainWindow):
             response = json.loads(data)
 
             # Only log non-SVG responses (SVG data is too large)
-            if 'svg_data' not in response and 'all_docs_svg_data' not in response:
-                self.log(f"✅ Parsed response: {response}")
+            if 'text_update_request_result' in response and response.get('success'):
+                self.log(
+                    f"✅ Text Update Request Finishied: {response['text_update_request_result']}")
 
             if 'all_docs_svg_data' in response and response.get('success'):
                 self.log(
@@ -159,6 +160,9 @@ class ControlTower(QMainWindow):
                     self.text_editor_handler.set_svg_data(
                         response['all_docs_svg_data'])
                 self._waiting_for_svg = None
+
+            if 'svg_data' not in response and 'all_docs_svg_data' not in response:
+                self.log(f"✅ Parsed response: {response}")
 
         except json.JSONDecodeError as e:
             self.log(f"⚠️ Failed to parse JSON: {e}")

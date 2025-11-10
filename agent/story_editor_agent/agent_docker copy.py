@@ -6,7 +6,7 @@ from PyQt5.QtWidgets import QWidget, QVBoxLayout, QPushButton, QTextEdit, QDialo
 import json
 import io
 import sys
-from .utils import get_all_svg_data, new_text_via_shapes
+from .utils import get_all_svg_data
 from .utils.get_svg_from_activenode import get_svg_from_activenode
 from .utils import update_text_via_shapes
 from .configs.story_editor_agent import (
@@ -119,45 +119,72 @@ class StoryEditorAgentDocker(QDockWidget):
                         'merged_requests', {})
                     response_body = {}
                     for doc in opened_docs:
-                        for doc_data in merged_requests:
-                            if doc.name() == doc_data.get('document_name'):
+                        for item in merged_requests:
+                            text_edit_type = item.get('text_edit_type', None)
 
-                                for single_layer_data in doc_data.get('requests', []):
+                            if text_edit_type == 'existing_texts_updated':
+                                '''updates_with_doc_info = {
+                                    'document_name': doc_name,
+                                    'updates': updates
+                                }'''
+                                updates_with_doc_info = item['data']
 
-                                    text_edit_type = single_layer_data.get(
-                                        'text_edit_type', None)
+                                # Update text using shape API
 
-                                    if text_edit_type == 'existing_texts_updated':
-                                        '''updates_with_doc_info = {
-                                            'document_name': doc_name,
-                                            'updates': updates
-                                        }'''
-                                        updates_with_doc_info = single_layer_data['data']
+                                if doc.name() == updates_with_doc_info.get('document_name'):
 
-                                        update_text_via_shapes(
-                                            doc, updates_with_doc_info.get('updates'))
+                                    result = update_text_via_shapes(
+                                        doc, updates_with_doc_info.get('updates'))
+                                    response_body[doc.name(
+                                    )]["update_count"] += result
+                                    break  # Exit loop once document is found and updated
 
-                                    elif text_edit_type == "new_texts_added":
-                                        '''new_texts_with_doc_info = {
-                                            'document_name': doc_name,
-                                            'new_texts': new_texts
-                                        }'''
-                                        new_texts_with_doc_info = single_layer_data['data']
+                            if text_edit_type == "new_texts_added":
+                                '''new_texts_with_doc_info = {
+                                    'document_name': doc_name,
+                                    'new_texts': new_texts
+                                }'''
+                                new_texts_with_doc_info = item['data']
 
-                                        for new_text in new_texts_with_doc_info.get('new_texts', []):
-                                            svg_data = new_text.get(
-                                                'svg_data', '')
+                                if doc.name() == new_texts_with_doc_info.get('document_name'):
 
-                                            new_text_via_shapes(
+                                    for new_text in new_texts_with_doc_info.get('new_texts', []):
+                                        svg_data = new_text.get('svg_data', '')
+
+                                        if not doc:
+                                            response = {'success': False,
+                                                        'error': 'No active document'}
+                                            break
+                                        else:
+                                            from .utils import new_text_via_shapes
+                                            result = new_text_via_shapes(
                                                 doc, svg_data)
-
+                                            response_body[doc.name(
+                                            )]["update_count"] += result
+                                    break
                     response = {'success': True,
-                                'text_update_request_result': "Text update applied successfully"}
+                                'text_update_request_result': response_body}
                     client.write(json.dumps(response).encode('utf-8'))
                 except Exception as e:
                     response = {'success': False,
                                 'text_update_request_result': str(e)}
                     client.write(json.dumps(response).encode('utf-8'))
+
+                    # case 'get_all_svg_data':
+                    #     doc = Krita.instance().activeDocument()
+
+                    #     if not doc:
+                    #         response = {'success': False,
+                    #                     'error': 'No active document'}
+                    #     else:
+                    #         try:
+                    #             # Get all text from vector layers
+                    #             response_data = get_all_svg_data(doc)
+                    #             response = {'success': True,
+                    #                         'svg_data': response_data['svg_data']}
+                    #         except Exception as e:
+                    #             response = {'success': False, 'error': str(e)}
+                    #     client.write(json.dumps(response).encode('utf-8'))
 
             case 'get_all_docs_svg_data':
                 opened_docs = Krita.instance().documents()
