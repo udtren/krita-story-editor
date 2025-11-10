@@ -16,7 +16,7 @@ from configs.story_editor import (
     STORY_EDITOR_WINDOW_HEIGHT
 )
 from story_editor.utils.text_updater import update_all_texts
-from story_editor.utils.svg_parser import parse_krita_svg
+from story_editor.utils.svg_parser import parse_krita_svg, extract_elements_from_svg
 
 
 class StoryEditorWindow:
@@ -183,7 +183,7 @@ class StoryEditorWindow:
                     f"parsed_svg_data: {parsed_svg_data}")
 
                 # Extract text elements from SVG
-                text_elements = self.extract_elements_from_svg(
+                text_elements = extract_elements_from_svg(
                     svg_content)
 
                 if not text_elements:
@@ -377,25 +377,25 @@ If you want multiple paragraphs within different text elements, separate them wi
         # Automatically create the window when data is received
         self.create_text_editor_window()
 
-    def extract_elements_from_svg(self, svg_content):
-        """Extract all <text> elements from SVG content"""
-        text_elements = []
+    # def extract_elements_from_svg(self, svg_content):
+    #     """Extract all <text> elements from SVG content"""
+    #     text_elements = []
 
-        # Use regex to find all <text> elements
-        pattern = r'<text[^>]*>.*?</text>'
-        # 1VectorLayerに複数のShapeがある場合は各<text>list_of_update_target
-        matches = re.findall(pattern, svg_content, re.DOTALL)
+    #     # Use regex to find all <text> elements
+    #     pattern = r'<text[^>]*>.*?</text>'
+    #     # 1VectorLayerに複数のShapeがある場合は各<text>list_of_update_target
+    #     matches = re.findall(pattern, svg_content, re.DOTALL)
 
-        for raw_svg in matches:
-            elem = ET.fromstring(raw_svg)
+    #     for raw_svg in matches:
+    #         elem = ET.fromstring(raw_svg)
 
-            text_content = ''.join(elem.itertext())
-            element_id = elem.get('id', '')
+    #         text_content = ''.join(elem.itertext())
+    #         element_id = elem.get('id', '')
 
-            text_elements.append({
-                'raw_svg': raw_svg,
-                'element_id': element_id,
-                'text_content': text_content
-            })
+    #         text_elements.append({
+    #             'raw_svg': raw_svg,
+    #             'element_id': element_id,
+    #             'text_content': text_content
+    #         })
 
-        return text_elements
+    #     return text_elements
