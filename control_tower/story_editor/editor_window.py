@@ -13,6 +13,7 @@ from configs.story_editor import (
     TEXT_EDITOR_MIN_HEIGHT,
     TEXT_EDITOR_MAX_HEIGHT
 )
+from story_editor.utils.text_updater import update_all_texts
 
 
 class StoryEditorWindow:
@@ -142,6 +143,7 @@ class StoryEditorWindow:
                 # QTextEdit for editing
                 text_edit = QTextEdit()
                 text_edit.setPlainText(text_elem['text_content'])
+                text_edit.setAcceptRichText(False)
                 text_edit.setFont(get_text_editor_font())
                 text_edit.setStyleSheet(get_tspan_editor_stylesheet())
                 text_edit.setMaximumHeight(TEXT_EDITOR_MAX_HEIGHT)
@@ -181,13 +183,19 @@ class StoryEditorWindow:
         """Add a new empty text editor widget for creating new text"""
         # Default template path
         default_template = 'svg_templates/default_1.xml'
+        placeholder_text = '''Enter new text here.
+
+
+If you want multiple paragraphs within different text elements, separate them with double line breaks.'''
 
         # Create new layout for this text element
         svg_section_level_layout = QHBoxLayout()
 
         # Create the text editor
         text_edit = QTextEdit()
-        text_edit.setPlainText("")  # Empty by default
+        text_edit.setPlainText("")
+        text_edit.setPlaceholderText(placeholder_text)
+        text_edit.setAcceptRichText(False)
         text_edit.setFont(get_text_editor_font())
         text_edit.setStyleSheet(get_tspan_editor_stylesheet())
         text_edit.setMaximumHeight(TEXT_EDITOR_MAX_HEIGHT)
@@ -198,6 +206,7 @@ class StoryEditorWindow:
         # Create template selector combo box
         choose_template_combo = QComboBox()
         choose_template_combo.setMinimumWidth(200)
+        choose_template_combo.setMaximumWidth(400)
 
         # Find all XML files in svg_templates directory
         template_dir = 'svg_templates'
@@ -241,70 +250,4 @@ class StoryEditorWindow:
 
     def update_all_texts(self):
         """Send update requests for all modified texts and add new texts"""
-        self.socket_handler.log("\n--- Updating texts in Krita ---")
-
-        updates = []
-        new_texts = []
-
-        for item in self.text_edit_widgets:
-            current_text = item['widget'].toPlainText()
-
-            if item.get('is_new'):
-                # This is a new text element
-                if current_text.strip():  # Only add if not empty
-                    # Get selected template from combo box
-                    template_combo = item.get('template_combo')
-                    if template_combo:
-                        template_path = template_combo.currentData()
-                        try:
-                            with open(template_path, 'r', encoding='utf-8') as f:
-                                template_svg = f.read()
-                        except Exception as e:
-                            self.socket_handler.log(
-                                f"❌ Error loading template {template_path}: {e}")
-                            continue
-                    else:
-                        self.socket_handler.log(
-                            "⚠️ No template combo found, skipping")
-                        continue
-
-                    # Generate random UUID for shape ID
-                    shape_id = f"shape{uuid.uuid4().hex[:8]}"
-
-                    # Replace placeholders in template
-                    svg_data = template_svg.replace(
-                        'TEXT_TO_REPLACE', current_text)
-                    svg_data = svg_data.replace('SHAPE_ID', shape_id)
-
-                    new_texts.append({
-                        'svg_data': svg_data,
-                        'text_content': current_text
-                    })
-            else:
-                # Existing text - only update if changed
-                if current_text != item['original_text']:
-                    updates.append({
-                        'document_name': item['document_name'],
-                        'document_path': item['document_path'],
-                        'layer_name': item['layer_name'],
-                        'layer_id': item['layer_id'],
-                        'shape_index': item['shape_index'],
-                        'new_text': current_text
-                    })
-
-        # First, update existing texts
-        if updates:
-            self.socket_handler.log(
-                f"📝 Sending {len(updates)} text update(s)...")
-            self.socket_handler.send_request(
-                'update_layer_text', updates=updates)
-
-        # Then, add new texts
-        if new_texts:
-            self.socket_handler.log(
-                f"🆕 Adding {len(new_texts)} new text(s) to new layer(s)...")
-            self.socket_handler.send_request(
-                'add_text_to_new_layer', new_texts=new_texts)
-
-        if not updates and not new_texts:
-            self.socket_handler.log("⚠️ No changes detected")
+        update_all_texts(self.text_edit_widgets, self.socket_handler)
