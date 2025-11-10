@@ -380,36 +380,21 @@ If you want multiple paragraphs within different text elements, separate them wi
     def update_all_texts(self):
         """Send update requests for all modified texts and add new texts"""
 
-        # Convert to list for sequential processing
-        self.pending_doc_updates = list(self.all_docs_text_state.items())
-        self.current_update_index = 0
+        merged_requests = []
 
-        # Start processing documents one by one
-        self.process_next_document_update()
+        for doc_name, doc_state in self.all_docs_text_state.items():
+            self.socket_handler.log(
+                f"\n--- Updating texts in document: {doc_name} ---")
 
-    def process_next_document_update(self):
-        """Process updates for the next document in the queue"""
-        if self.current_update_index >= len(self.pending_doc_updates):
-            # All documents processed
-            self.socket_handler.log("✅ All documents processed")
-            return
+            list_of_update_target = update_all_texts(
+                doc_name=doc_name,
+                text_edit_widgets=doc_state['text_edit_widgets'],
+                socket_handler=self.socket_handler
+            )
 
-        # Get current document data
-        doc_name, doc_state = self.pending_doc_updates[self.current_update_index]
+            for target in list_of_update_target:
+                merged_requests.append(target)
 
-        self.socket_handler.log(
-            f"📝 Processing document {self.current_update_index + 1}/{len(self.pending_doc_updates)}: {doc_name}")
-
-        # Process this document
-        update_all_texts(
-            doc_name=doc_name,
-            text_edit_widgets=doc_state['text_edit_widgets'],
-            socket_handler=self.socket_handler
-        )
-
-        # Move to next document
-        self.current_update_index += 1
-
-        # Schedule next document update after a delay (100ms)
-        # This ensures the socket has time to process the previous request
-        QTimer.singleShot(100, self.process_next_document_update)
+        if merged_requests:
+            self.socket_handler.send_request(
+                'text_update_request', merged_requests=merged_requests)

@@ -150,17 +150,6 @@ class ControlTower(QMainWindow):
             if 'svg_data' not in response and 'all_docs_svg_data' not in response:
                 self.log(f"✅ Parsed response: {response}")
 
-            # Store SVG data if it's a get_all_svg_data response
-            # if 'svg_data' in response and response.get('success'):
-            #     self.log(
-            #         f"✅ Received SVG data for {len(response['svg_data'])} layer(s)")
-
-            #     # Route to the appropriate handler based on which one is waiting
-            #     if self._waiting_for_svg == 'text_editor':
-            #         self.text_editor_handler.set_svg_data(response['svg_data'])
-
-            #     self._waiting_for_svg = None
-
             if 'all_docs_svg_data' in response and response.get('success'):
                 self.log(
                     f"✅ Received SVG data for all open documents")

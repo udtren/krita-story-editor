@@ -18,7 +18,6 @@ def update_all_texts(doc_name, text_edit_widgets, socket_handler):
     """
     socket_handler.log("\n--- Updating texts in Krita ---")
 
-    response = []
     updates = []
     updates_with_doc_info = {
         'document_name': doc_name,
@@ -95,22 +94,20 @@ def update_all_texts(doc_name, text_edit_widgets, socket_handler):
 
     # First, update existing texts
     if updates:
-        response.append({
-            "text_edit_type": "existing_texts_updated",
-            "data": updates_with_doc_info
-        })
+        socket_handler.log(
+            f"📝 Sending {len(updates)} text update(s)...")
+        socket_handler.send_request(
+            'update_all_docs_layer_text', updates_with_doc_info=updates_with_doc_info)
 
     # Then, add new texts
     if new_texts:
-        response.append({
-            "text_edit_type": "new_texts_added",
-            "data": new_texts_with_doc_info
-        })
+        socket_handler.log(
+            f"🆕 Adding {len(new_texts)} new text(s) to new layer(s)...")
+        socket_handler.send_request(
+            'add_text_to_new_layer', new_texts_with_doc_info=new_texts_with_doc_info)
 
     if not updates and not new_texts:
         socket_handler.log("⚠️ No changes detected")
-    else:
-        return response
 
 
 def split_text_by_double_linebreak(text):
