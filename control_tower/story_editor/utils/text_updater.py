@@ -59,11 +59,11 @@ def update_all_texts(doc_name, text_edit_widgets, socket_handler):
 
                 text_elements = []
                 # Generate random UUID for shape ID
-                shape_id_base = f"shape{uuid.uuid4().hex[:4]}"
+                shape_id_base = f"shape"
 
                 # リスト型テキストセグメントごとにSVG要素を生成
                 for index, segment in enumerate(text_segments):
-                    shape_id = f"{shape_id_base}_{index}"
+                    shape_id = f"{shape_id_base}{index}"
 
                     # Escape special characters to prevent breaking SVG structure
                     escaped_segment = escape_text_for_svg(segment)
@@ -83,7 +83,7 @@ def update_all_texts(doc_name, text_edit_widgets, socket_handler):
         else:
             # 既存テキスト - 変更があった場合のみ更新
             if current_text != item['original_text']:
-                if text_segments:
+                if current_text != '':
                     # Escape special characters for existing text updates
                     escaped_segment = escape_text_for_svg(current_text)
 
@@ -91,7 +91,16 @@ def update_all_texts(doc_name, text_edit_widgets, socket_handler):
                         'layer_name': item['layer_name'],
                         'layer_id': item['layer_id'],
                         'shape_index': item['shape_index'],
-                        'new_text': escaped_segment
+                        'new_text': escaped_segment,
+                        'remove_shape': False
+                    })
+                else:
+                    updates.append({
+                        'layer_name': item['layer_name'],
+                        'layer_id': item['layer_id'],
+                        'shape_index': item['shape_index'],
+                        'new_text': '',
+                        'remove_shape': True
                     })
 
     '''

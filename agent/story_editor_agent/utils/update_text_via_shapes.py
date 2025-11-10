@@ -2,9 +2,10 @@ from krita import Krita
 from .logs import write_log
 from .update_text_in_kra import update_svg_text
 import re
+import json
 
 
-def update_text_via_shapes(doc, updates):
+def update_text_via_shapes(doc, updates, client=None):
     """
     Update text content in vector layers using Krita's shape API
 
@@ -110,6 +111,35 @@ def update_text_via_shapes(doc, updates):
                 write_log(f"[DEBUG] Modified SVG length: {len(modified_svg)}")
 
                 result = target_layer.addShapesFromSvg(modified_svg)
+
+                # ########################################
+                # # Handle shape removal
+                shapes = target_layer.shapes()
+                for shape in shapes:
+                    for update in layer_updates:
+                        if shape.name() == f"shape{update.get('shape_index')}" and update.get('remove_shape') == True:
+                            shape.remove()
+                            if client:
+                                progress_message = {
+                                    'type': 'shape_removal',
+                                    'message': f"{shape.name()} removed successfully"
+                                }
+                                client.write(json.dumps(
+                                    progress_message).encode('utf-8'))
+                                client.flush()  # Ensure message is sent immediately
+                # if update.get('remove_shape') == True:
+                #     shapes[shape_index].remove()
+                #     # Send progress update to client if available
+                #     if client:
+                #         progress_message = {
+                #             'type': 'progress',
+                #             'message': f"Text shape {shape_id} removed successfully"
+                #         }
+                #         client.write(json.dumps(
+                #             progress_message).encode('utf-8'))
+                #         client.flush()  # Ensure message is sent immediately
+                #     continue
+                ########################################
 
                 if result and len(result) > 0:
                     write_log(

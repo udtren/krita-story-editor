@@ -150,6 +150,7 @@ class ControlTower(QMainWindow):
             if 'text_update_request_result' in response and response.get('success'):
                 self.log(
                     f"✅ Text Update Request Finishied: {response['text_update_request_result']}")
+                self.text_editor_handler.refresh_data()
 
             if 'all_docs_svg_data' in response and response.get('success'):
                 self.log(

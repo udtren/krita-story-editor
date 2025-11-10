@@ -135,7 +135,7 @@ class StoryEditorAgentDocker(QDockWidget):
                                         updates_with_doc_info = single_layer_data['data']
 
                                         update_text_via_shapes(
-                                            doc, updates_with_doc_info.get('updates'))
+                                            doc, updates_with_doc_info.get('updates'), client)
 
                                     elif text_edit_type == "new_texts_added":
                                         '''new_texts_with_doc_info = {
