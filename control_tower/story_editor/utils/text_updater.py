@@ -73,11 +73,9 @@ def update_all_texts(text_edit_widgets, socket_handler):
         else:
             # Existing text - only update if changed
             if current_text != item['original_text']:
-                # For existing texts, you might want different logic
-                # Option 1: Update with first segment only
                 if text_segments:
-                    # Escape special characters for existing text updates too
-                    escaped_segment = escape_text_for_svg(text_segments[0])
+                    # Escape special characters for existing text updates
+                    escaped_segment = escape_text_for_svg(current_text)
 
                     updates.append({
                         'document_name': item['document_name'],
@@ -85,13 +83,8 @@ def update_all_texts(text_edit_widgets, socket_handler):
                         'layer_name': item['layer_name'],
                         'layer_id': item['layer_id'],
                         'shape_index': item['shape_index'],
-                        'new_text': escaped_segment  # Use escaped first segment
+                        'new_text': escaped_segment
                     })
-
-                    # Option 2: Create new texts for additional segments
-                    if len(text_segments) > 1:
-                        socket_handler.log(
-                            f"⚠️ Found {len(text_segments)-1} additional segment(s), consider splitting into new texts")
 
     # First, update existing texts
     if updates:

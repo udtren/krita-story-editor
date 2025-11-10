@@ -119,7 +119,7 @@ class StoryEditorAgentDocker(QDockWidget):
                 else:
                     try:
                         # Get all text from vector layers
-                        svg_data = get_all_svg_data()
+                        svg_data = get_all_svg_data(doc)
                         response = {'success': True, 'svg_data': svg_data}
                     except Exception as e:
                         response = {'success': False, 'error': str(e)}

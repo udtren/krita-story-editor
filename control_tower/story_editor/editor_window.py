@@ -215,7 +215,6 @@ If you want multiple paragraphs within different text elements, separate them wi
         text_edit = QTextEdit()
         text_edit.setPlainText("")
         text_edit.setPlaceholderText(placeholder_text)
-        text_edit.setAcceptRichText(False)
         text_edit.setFont(get_text_editor_font())
         text_edit.setStyleSheet(get_tspan_editor_stylesheet())
         text_edit.setMaximumHeight(TEXT_EDITOR_MAX_HEIGHT)
