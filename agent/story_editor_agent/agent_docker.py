@@ -1,3 +1,4 @@
+from .utils.logs import write_log
 from krita import *
 from PyQt5.QtNetwork import QLocalServer, QLocalSocket
 from PyQt5.QtCore import QByteArray
@@ -101,12 +102,36 @@ class StoryEditorAgentDocker(QDockWidget):
 
     def handle_connection(self):
         client = self.server.nextPendingConnection()
+        # Initialize a buffer for this client to handle partial messages
+        client.message_buffer = ""
         client.readyRead.connect(lambda: self.handle_message(client))
         self.clients.append(client)
 
     def handle_message(self, client):
-        data = client.readAll().data().decode('utf-8')
-        request = json.loads(data)
+        # Read all available data and append to buffer
+        new_data = client.readAll().data().decode('utf-8')
+        client.message_buffer += new_data
+
+        # Try to parse and process all complete JSON messages in the buffer
+        while client.message_buffer:
+            try:
+                # Try to decode a JSON object from the start of the buffer
+                decoder = json.JSONDecoder()
+                request, idx = decoder.raw_decode(client.message_buffer)
+
+                # Remove the parsed message from the buffer
+                client.message_buffer = client.message_buffer[idx:].lstrip()
+
+                # Process this request
+                self.process_request(client, request)
+
+            except json.JSONDecodeError:
+                # Not enough data for a complete JSON message yet
+                # Wait for more data to arrive
+                break
+
+    def process_request(self, client, request):
+        """Process a single request and send response"""
 
         # Process request and interact with Krita
         match request['action']:
@@ -119,47 +144,109 @@ class StoryEditorAgentDocker(QDockWidget):
                 else:
                     try:
                         # Get all text from vector layers
-                        svg_data = get_all_svg_data(doc)
-                        response = {'success': True, 'svg_data': svg_data}
+                        response_data = get_all_svg_data(doc)
+                        response = {'success': True,
+                                    'svg_data': response_data['svg_data']}
                     except Exception as e:
                         response = {'success': False, 'error': str(e)}
                 client.write(json.dumps(response).encode('utf-8'))
 
-            case 'update_layer_text':
-                doc = Krita.instance().activeDocument()
-                updates = request.get('updates', [])
+            case 'get_all_docs_svg_data':
+                opened_docs = Krita.instance().documents()
+                all_svg_data = []
 
-                if not doc:
+                if not opened_docs:
                     response = {'success': False,
-                                'error': 'No active document'}
+                                'error': 'No single active document'}
                 else:
+                    try:
+                        for doc in opened_docs:
+                            response_data = get_all_svg_data(doc)
+                            all_svg_data.append(response_data)
+                        response = {'success': True,
+                                    'all_docs_svg_data': all_svg_data}
+                    except Exception as e:
+                        response = {'success': False, 'error': str(e)}
+                client.write(json.dumps(response).encode('utf-8'))
+
+            # case 'update_layer_text':
+            #     doc = Krita.instance().activeDocument()
+            #     updates = request.get('updates', [])
+
+            #     if not doc:
+            #         response = {'success': False,
+            #                     'error': 'No active document'}
+            #     else:
+            #         try:
+            #             # Update text using shape API
+            #             from .utils import update_text_via_shapes
+            #             result = update_text_via_shapes(doc, updates)
+            #             response = {'success': True, 'updated_count': result}
+            #         except Exception as e:
+            #             response = {'success': False, 'error': str(e)}
+            #     client.write(json.dumps(response).encode('utf-8'))
+
+            case 'update_all_docs_layer_text':
+                opened_docs = Krita.instance().documents()
+                updates_with_doc_info = request.get(
+                    'updates_with_doc_info', {})
+
+                if not updates_with_doc_info:
+                    response = {'success': False,
+                                'error': 'No update target document'}
+                else:
+                    response = {'success': False,
+                                'error': 'Document not found'}
                     try:
                         # Update text using shape API
                         from .utils import update_text_via_shapes
-                        result = update_text_via_shapes(doc, updates)
-                        response = {'success': True, 'updated_count': result}
+                        for doc in opened_docs:
+                            if doc.name() == updates_with_doc_info.get('document_name'):
+
+                                result = update_text_via_shapes(
+                                    doc, updates_with_doc_info.get('updates'))
+                                response = {'success': True,
+                                            'updated_count': result}
+                                break  # Exit loop once document is found and updated
                     except Exception as e:
                         response = {'success': False, 'error': str(e)}
                 client.write(json.dumps(response).encode('utf-8'))
 
             case 'add_text_to_new_layer':
-                doc = Krita.instance().activeDocument()
-                new_texts = request.get('new_texts', [])
-                for new_text in new_texts:
-                    svg_data = new_text.get('svg_data', '')
+                opened_docs = Krita.instance().documents()
+                new_texts_with_doc_info = request.get(
+                    'new_texts_with_doc_info', {})
+                write_log(
+                    f"[DEBUG] Received new_texts_with_doc_info: {new_texts_with_doc_info}")
 
-                    if not doc:
-                        response = {'success': False,
-                                    'error': 'No active document'}
-                    else:
-                        try:
-                            # Update text using shape API
-                            from .utils import new_text_via_shapes
-                            result = new_text_via_shapes(doc, svg_data)
+                response = {'success': False, 'error': 'Document not found'}
+                for doc in opened_docs:
+                    if doc.name() == new_texts_with_doc_info.get('document_name'):
+                        all_success = True
+                        for new_text in new_texts_with_doc_info.get('new_texts', []):
+                            svg_data = new_text.get('svg_data', '')
+
+                            if not doc:
+                                response = {'success': False,
+                                            'error': 'No active document'}
+                                all_success = False
+                                break
+                            else:
+                                try:
+                                    # Update text using shape API
+                                    from .utils import new_text_via_shapes
+                                    result = new_text_via_shapes(doc, svg_data)
+                                except Exception as e:
+                                    response = {
+                                        'success': False, 'error': str(e)}
+                                    all_success = False
+                                    break
+
+                        if all_success:
                             response = {'success': True}
-                        except Exception as e:
-                            response = {'success': False, 'error': str(e)}
-                    client.write(json.dumps(response).encode('utf-8'))
+                        break  # Exit loop once document is found
+
+                client.write(json.dumps(response).encode('utf-8'))
 
             case _:
                 # Unknown action

@@ -18,6 +18,11 @@ def get_all_svg_data(doc):
         write_log(f"[DEBUG] Document: {doc.name()}")
 
         svg_data = []
+        response_data = {
+            'document_name': doc_name,
+            'document_path': doc_path,
+            'svg_data': svg_data
+        }
         root = doc.rootNode()
 
         # Iterate through all child nodes
@@ -27,15 +32,13 @@ def get_all_svg_data(doc):
 
                 if svg_content:
                     svg_data.append({
-                        'document_name': doc_name,
-                        'document_path': doc_path,
                         'layer_name': layer.name(),
                         'layer_id': str(layer.uniqueId()),
                         'svg': svg_content
                     })
 
         write_log(json.dumps(svg_data))
-        return svg_data
+        return response_data
 
     except Exception as e:
         write_log(f"Error extracting vector text: {e}")

@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QTextEdit, QLabel, QComboBox
 from PyQt5.QtSvg import QSvgWidget
-from PyQt5.QtCore import QByteArray
+from PyQt5.QtCore import QByteArray, QTimer
 import xml.etree.ElementTree as ET
 import re
 import uuid
@@ -28,19 +28,35 @@ class StoryEditorWindow:
         Args:
             parent: The parent widget (main window)
             socket_handler: Object with send_request and log methods
+
+        get_all_svg_data response data structure:
+        [
+            {
+                'document_name': 'Example.kra',
+                'document_path': '/path/to/Example.kra',
+                'svg_data': [{
+                        'layer_name': 'Layer 1',
+                        'layer_id': '...',
+                        'svg': '<svg>...</svg>'}
+                        , ...]
+            },
+            ...
+        ]
         """
         self.parent = parent
         self.socket_handler = socket_handler
-        self.svg_data = None
+        self.all_docs_svg_data = None
         self.text_editor_window = None
         self.text_edit_widgets = []  # Store references to text edit widgets with metadata
+        self.doc_layouts = {}  # Store document layouts {doc_name: layout}
+        self.active_doc_name = None  # Track which document is active for new text
 
     def show_text_editor(self):
         """Show text editor window with SVG data from Krita document"""
         self.socket_handler.log("\n--- Opening Text Editor ---")
 
         # Clear any existing data
-        self.svg_data = None
+        self.all_docs_svg_data = None
 
         # Set the waiting flag on the parent (main window)
         if hasattr(self.parent, '_waiting_for_svg'):
@@ -48,11 +64,11 @@ class StoryEditorWindow:
 
         # Request the SVG data (not text data)
         # The window will be created when set_svg_data() is called with the response
-        self.socket_handler.send_request('get_all_svg_data')
+        self.socket_handler.send_request('get_all_docs_svg_data')
 
-    def set_svg_data(self, svg_data):
+    def set_svg_data(self, all_docs_svg_data):
         """Store the received SVG data and create the editor window"""
-        self.svg_data = svg_data
+        self.all_docs_svg_data = all_docs_svg_data
         # Automatically create the window when data is received
         self.create_text_editor_window()
 
@@ -89,7 +105,7 @@ class StoryEditorWindow:
 
     def create_text_editor_window(self):
         """Create the text editor window with the received SVG data"""
-        if not self.svg_data:
+        if not self.all_docs_svg_data:
             self.socket_handler.log(
                 "⚠️ No SVG data available. Make sure the request succeeded.")
             return
@@ -101,7 +117,18 @@ class StoryEditorWindow:
             self.text_editor_window.close()
 
         # Clear previous widget references
+            '''all_docs_text_state data structure:
+        all_docs_text_state[document_name] = {
+                        'document_name': 'Example.kra',
+                        'document_path': '/path/to/Example.kra',
+                        'has_text_changes':False,
+                        'text_edit_widgets':[]
+                        }
+        '''
+        self.all_docs_text_state = {}
         self.text_edit_widgets = []
+        self.doc_layouts = {}
+        self.active_doc_name = None
 
         # Create new window
         self.text_editor_window = QWidget()
@@ -141,66 +168,142 @@ class StoryEditorWindow:
         main_layout.addLayout(top_bar)
 
         # VBoxLayout for all layers
-        self.doc_level_layers_layout = QVBoxLayout()
+        for doc_data in self.all_docs_svg_data:
+            doc_name = doc_data.get('document_name', 'unknown')
+            doc_path = doc_data.get('document_path', 'unknown')
+            self.svg_data = doc_data.get('svg_data', [])
 
-        # For each layer
-        for layer_data in self.svg_data:
-            document_name = layer_data.get('document_name', 'unknown')
-            document_path = layer_data.get('document_path', 'unknown')
-            layer_name = layer_data.get('layer_name', 'unknown')
-            layer_id = layer_data.get('layer_id', 'unknown')
-            svg_content = layer_data.get('svg', '')
+            self.all_docs_text_state[doc_name] = {
+                'document_name': doc_name,
+                'document_path': doc_path,
+                'has_text_changes': False,
+                'text_edit_widgets': []
+            }
 
-            # Extract text elements from SVG
-            text_elements = self.extract_text_elements_from_svg(svg_content)
+            # Document header with clickable button to activate
+            doc_header_layout = QHBoxLayout()
 
-            if not text_elements:
-                continue
+            # Activate button for this document
+            activate_btn = QPushButton(f"📄 {doc_name}")
+            activate_btn.setCheckable(True)
+            activate_btn.setToolTip(
+                f"Click to activate this document for adding new text\nPath: {doc_path}")
+            activate_btn.clicked.connect(
+                lambda checked, name=doc_name, btn=activate_btn: self.activate_document(name, btn))
+            activate_btn.setStyleSheet("""
+                QPushButton {
+                    text-align: left;
+                    padding: 8px;
+                    font-weight: bold;
+                }
+                QPushButton:checked {
+                    background-color: #4A9EFF;
+                    color: white;
+                }
+            """)
+            doc_header_layout.addWidget(activate_btn)
+            doc_header_layout.addStretch()
+            main_layout.addLayout(doc_header_layout)
 
-            # Add QTextEdit for each text element
-            for elem_idx, text_elem in enumerate(text_elements):
-                svg_section_level_layout = QHBoxLayout()
-                # QTextEdit for editing
-                text_edit = QTextEdit()
-                text_edit.setPlainText(text_elem['text_content'])
-                text_edit.setAcceptRichText(False)
-                text_edit.setFont(get_text_editor_font())
-                text_edit.setStyleSheet(get_tspan_editor_stylesheet())
-                text_edit.setMaximumHeight(TEXT_EDITOR_MAX_HEIGHT)
+            # Store button reference for later activation
+            if not hasattr(self, 'doc_buttons'):
+                self.doc_buttons = {}
+            self.doc_buttons[doc_name] = activate_btn
 
-                # Auto-adjust height based on content
-                doc_height = text_edit.document().size().height()
-                text_edit.setMinimumHeight(
-                    min(max(int(doc_height) + 10, TEXT_EDITOR_MIN_HEIGHT), TEXT_EDITOR_MAX_HEIGHT))
+            # each document has its own QVBoxLayout
+            doc_level_layers_layout = QVBoxLayout()
 
-                svg_section_level_layout.addWidget(text_edit)
+            # Store the layout for this document
+            self.doc_layouts[doc_name] = doc_level_layers_layout
 
-                # Store reference with metadata
-                self.text_edit_widgets.append({
-                    'widget': text_edit,
-                    'document_name': document_name,
-                    'document_path': document_path,
-                    'layer_name': layer_name,
-                    'layer_id': layer_id,
-                    'shape_index': elem_idx,
-                    'original_svg': text_elem['raw_svg'],
-                    'original_text': text_elem['text_content']
-                })
+            # Set first document as active by default
+            if self.active_doc_name is None:
+                self.active_doc_name = doc_name
+                activate_btn.setChecked(True)
 
-                self.doc_level_layers_layout.addLayout(
-                    svg_section_level_layout)
+            # For each layer
+            for layer_data in self.svg_data:
+                layer_name = layer_data.get('layer_name', 'unknown')
+                layer_id = layer_data.get('layer_id', 'unknown')
+                svg_content = layer_data.get('svg', '')
 
-        main_layout.addLayout(self.doc_level_layers_layout)
+                # Extract text elements from SVG
+                text_elements = self.extract_text_elements_from_svg(
+                    svg_content)
+
+                if not text_elements:
+                    continue
+
+                # Add QTextEdit for each text element
+                for elem_idx, text_elem in enumerate(text_elements):
+                    svg_section_level_layout = QHBoxLayout()
+                    # QTextEdit for editing
+                    text_edit = QTextEdit()
+                    text_edit.setPlainText(text_elem['text_content'])
+                    text_edit.setAcceptRichText(False)
+                    text_edit.setFont(get_text_editor_font())
+                    text_edit.setStyleSheet(get_tspan_editor_stylesheet())
+                    text_edit.setMaximumHeight(TEXT_EDITOR_MAX_HEIGHT)
+
+                    # Auto-adjust height based on content
+                    doc_height = text_edit.document().size().height()
+                    text_edit.setMinimumHeight(
+                        min(max(int(doc_height) + 10, TEXT_EDITOR_MIN_HEIGHT), TEXT_EDITOR_MAX_HEIGHT))
+
+                    svg_section_level_layout.addWidget(text_edit)
+
+                    # Store reference with metadata
+                    self.all_docs_text_state[doc_name]['text_edit_widgets'].append({
+                        'widget': text_edit,
+                        'document_name': doc_name,
+                        'document_path': doc_path,
+                        'layer_name': layer_name,
+                        'layer_id': layer_id,
+                        'shape_index': elem_idx,
+                        'original_svg': text_elem['raw_svg'],
+                        'original_text': text_elem['text_content']
+                    })
+
+                    doc_level_layers_layout.addLayout(
+                        svg_section_level_layout)
+
+            # Add each document layout to main layout (AFTER all layers processed)
+            main_layout.addLayout(doc_level_layers_layout)
+
         main_layout.addStretch()
 
         # Show the window
         self.text_editor_window.show()
-        total_texts = len(self.text_edit_widgets)
+
+        # Count total text widgets across all documents
+        total_texts = sum(len(doc_state['text_edit_widgets'])
+                          for doc_state in self.all_docs_text_state.values())
         self.socket_handler.log(
-            f"✅ Text editor opened with {total_texts} text element(s) from {len(self.svg_data)} layer(s)")
+            f"✅ Text editor opened with {total_texts} text element(s) from {len(self.all_docs_svg_data)} document(s)")
+
+    def activate_document(self, doc_name, clicked_btn):
+        """Activate a document for adding new text"""
+        # Uncheck all other buttons
+        if hasattr(self, 'doc_buttons'):
+            for name, btn in self.doc_buttons.items():
+                if name != doc_name:
+                    btn.setChecked(False)
+
+        # Set active document
+        self.active_doc_name = doc_name
+        self.socket_handler.log(f"📄 Activated document: {doc_name}")
 
     def add_new_text_widget(self):
         """Add a new empty text editor widget for creating new text"""
+        # Check if a document is active
+        if not self.active_doc_name or self.active_doc_name not in self.doc_layouts:
+            self.socket_handler.log(
+                "⚠️ No active document. Please click on a document name to activate it first.")
+            return
+
+        # Get the active document's layout
+        active_layout = self.doc_layouts[self.active_doc_name]
+
         # Default template path
         default_template = 'svg_templates/default_1.xml'
         placeholder_text = '''Enter new text here.
@@ -253,19 +356,20 @@ If you want multiple paragraphs within different text elements, separate them wi
 
         svg_section_level_layout.addWidget(choose_template_combo)
 
-        # Add to layout
-        self.doc_level_layers_layout.addLayout(svg_section_level_layout)
+        # Add to the ACTIVE document's layout
+        active_layout.addLayout(svg_section_level_layout)
 
         # Store reference with metadata marking it as new
-        self.text_edit_widgets.append({
+        self.all_docs_text_state[self.active_doc_name]['text_edit_widgets'].append({
             'widget': text_edit,
             'is_new': True,  # Flag to identify new text
+            'document_name': self.active_doc_name,  # Store which document this belongs to
             'template_combo': choose_template_combo,  # Store reference to combo box
             'original_text': ''
         })
 
         self.socket_handler.log(
-            f"✅ Added new text widget with {choose_template_combo.count()} template(s)")
+            f"✅ Added new text widget to '{self.active_doc_name}' with {choose_template_combo.count()} template(s)")
 
     def refresh_data(self):
         """Refresh the editor window with latest data from Krita"""
@@ -275,4 +379,37 @@ If you want multiple paragraphs within different text elements, separate them wi
 
     def update_all_texts(self):
         """Send update requests for all modified texts and add new texts"""
-        update_all_texts(self.text_edit_widgets, self.socket_handler)
+
+        # Convert to list for sequential processing
+        self.pending_doc_updates = list(self.all_docs_text_state.items())
+        self.current_update_index = 0
+
+        # Start processing documents one by one
+        self.process_next_document_update()
+
+    def process_next_document_update(self):
+        """Process updates for the next document in the queue"""
+        if self.current_update_index >= len(self.pending_doc_updates):
+            # All documents processed
+            self.socket_handler.log("✅ All documents processed")
+            return
+
+        # Get current document data
+        doc_name, doc_state = self.pending_doc_updates[self.current_update_index]
+
+        self.socket_handler.log(
+            f"📝 Processing document {self.current_update_index + 1}/{len(self.pending_doc_updates)}: {doc_name}")
+
+        # Process this document
+        update_all_texts(
+            doc_name=doc_name,
+            text_edit_widgets=doc_state['text_edit_widgets'],
+            socket_handler=self.socket_handler
+        )
+
+        # Move to next document
+        self.current_update_index += 1
+
+        # Schedule next document update after a delay (100ms)
+        # This ensures the socket has time to process the previous request
+        QTimer.singleShot(100, self.process_next_document_update)

@@ -62,6 +62,14 @@ class ControlTower(QMainWindow):
         self.show_story_editor_btn.setEnabled(False)
         layout.addWidget(self.show_story_editor_btn)
 
+        # Test button
+        self.test_btn = QPushButton("TEST")
+        self.test_btn.clicked.connect(self.test_get_all_docs_svg_data)
+        self.test_btn.setFont(get_button_font())
+        self.test_btn.setMinimumHeight(BUTTON_HEIGHT)
+        self.test_btn.setMinimumWidth(BUTTON_MIN_WIDTH)
+        layout.addWidget(self.test_btn)
+
         # Read KRA offline button
         # self.read_kra_btn = QPushButton("Read .kra File (Offline)")
         # self.read_kra_btn.clicked.connect(self.test_read_kra_offline)
@@ -139,19 +147,30 @@ class ControlTower(QMainWindow):
             response = json.loads(data)
 
             # Only log non-SVG responses (SVG data is too large)
-            if 'svg_data' not in response:
+            if 'svg_data' not in response and 'all_docs_svg_data' not in response:
                 self.log(f"✅ Parsed response: {response}")
 
             # Store SVG data if it's a get_all_svg_data response
-            if 'svg_data' in response and response.get('success'):
+            # if 'svg_data' in response and response.get('success'):
+            #     self.log(
+            #         f"✅ Received SVG data for {len(response['svg_data'])} layer(s)")
+
+            #     # Route to the appropriate handler based on which one is waiting
+            #     if self._waiting_for_svg == 'text_editor':
+            #         self.text_editor_handler.set_svg_data(response['svg_data'])
+
+            #     self._waiting_for_svg = None
+
+            if 'all_docs_svg_data' in response and response.get('success'):
                 self.log(
-                    f"✅ Received SVG data for {len(response['svg_data'])} layer(s)")
+                    f"✅ Received SVG data for all open documents")
 
                 # Route to the appropriate handler based on which one is waiting
                 if self._waiting_for_svg == 'text_editor':
-                    self.text_editor_handler.set_svg_data(response['svg_data'])
-
+                    self.text_editor_handler.set_svg_data(
+                        response['all_docs_svg_data'])
                 self._waiting_for_svg = None
+
         except json.JSONDecodeError as e:
             self.log(f"⚠️ Failed to parse JSON: {e}")
 
@@ -165,6 +184,13 @@ class ControlTower(QMainWindow):
         self.log("\n--- Testing get_svg_data ---")
         self.log("Retrieving SVG data from all vector layers...")
         self.send_request('get_all_svg_data')
+
+    def test_get_all_docs_svg_data(self):
+        """Test the get_all_docs_svg_data action"""
+        self.log("\n--- Testing get_all_docs_svg_data ---")
+        self.log(
+            "Retrieving SVG data from all vector layers in all open documents...")
+        self.send_request('get_all_docs_svg_data')
 
     def test_read_kra_offline(self):
         """Read text from a .kra file without connecting to Krita"""

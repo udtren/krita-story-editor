@@ -8,7 +8,7 @@ import html
 from .svg_generator import generate_full_svg_data
 
 
-def update_all_texts(doc_name, text_edit_widgets, socket_handler):
+def update_all_texts(text_edit_widgets, socket_handler):
     """
     Send update requests for all modified texts and add new texts
 
@@ -19,15 +19,7 @@ def update_all_texts(doc_name, text_edit_widgets, socket_handler):
     socket_handler.log("\n--- Updating texts in Krita ---")
 
     updates = []
-    updates_with_doc_info = {
-        'document_name': doc_name,
-        'updates': updates
-    }
     new_texts = []
-    new_texts_with_doc_info = {
-        'document_name': doc_name,
-        'new_texts': new_texts
-    }
 
     for item in text_edit_widgets:
         current_text = item['widget'].toPlainText()
@@ -97,14 +89,14 @@ def update_all_texts(doc_name, text_edit_widgets, socket_handler):
         socket_handler.log(
             f"📝 Sending {len(updates)} text update(s)...")
         socket_handler.send_request(
-            'update_all_docs_layer_text', updates_with_doc_info=updates_with_doc_info)
+            'update_layer_text', updates=updates)
 
     # Then, add new texts
     if new_texts:
         socket_handler.log(
             f"🆕 Adding {len(new_texts)} new text(s) to new layer(s)...")
         socket_handler.send_request(
-            'add_text_to_new_layer', new_texts_with_doc_info=new_texts_with_doc_info)
+            'add_text_to_new_layer', new_texts=new_texts)
 
     if not updates and not new_texts:
         socket_handler.log("⚠️ No changes detected")
