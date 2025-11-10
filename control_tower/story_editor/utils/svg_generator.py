@@ -22,3 +22,30 @@ def generate_full_svg_data(text_elements: list[str]) -> str:
     full_svg_content += svg_closing_tag
 
     return full_svg_content
+
+
+def extract_elements_from_svg(svg_content):
+    root = ET.fromstring(svg_content)
+    result = []
+
+    # Define namespace map (important for finding elements with namespaces)
+    namespaces = {
+        'svg': 'http://www.w3.org/2000/svg',
+        'krita': 'http://krita.org/namespaces/svg/krita'
+    }
+    text_elements = root.findall('.//svg:text', namespaces)
+
+    for text_elem in text_elements:
+        element_id = text_elem.get('id')
+        text_content = text_elem.text or ''
+
+        result.append({
+            'raw_svg': svg_content,
+            'element_id': element_id,
+            'text_content': text_content
+        })
+    return result
+
+
+def update_existing_svg_data():
+    pass

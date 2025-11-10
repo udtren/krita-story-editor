@@ -16,6 +16,7 @@ from configs.story_editor import (
     STORY_EDITOR_WINDOW_HEIGHT
 )
 from story_editor.utils.text_updater import update_all_texts
+from story_editor.utils.svg_parser import parse_krita_svg
 
 
 class StoryEditorWindow:
@@ -50,59 +51,6 @@ class StoryEditorWindow:
         self.text_edit_widgets = []  # Store references to text edit widgets with metadata
         self.doc_layouts = {}  # Store document layouts {doc_name: layout}
         self.active_doc_name = None  # Track which document is active for new text
-
-    def show_text_editor(self):
-        """Show text editor window with SVG data from Krita document"""
-        self.socket_handler.log("\n--- Opening Text Editor ---")
-
-        # Clear any existing data
-        self.all_docs_svg_data = None
-
-        # Set the waiting flag on the parent (main window)
-        if hasattr(self.parent, '_waiting_for_svg'):
-            self.parent._waiting_for_svg = 'text_editor'
-
-        # Request the SVG data (not text data)
-        # The window will be created when set_svg_data() is called with the response
-        self.socket_handler.send_request('get_all_docs_svg_data')
-
-    def set_svg_data(self, all_docs_svg_data):
-        """Store the received SVG data and create the editor window"""
-        self.all_docs_svg_data = all_docs_svg_data
-        # Automatically create the window when data is received
-        self.create_text_editor_window()
-
-    def extract_text_elements_from_svg(self, svg_content):
-        """Extract all <text> elements from SVG content"""
-        text_elements = []
-
-        # Use regex to find all <text> elements
-        pattern = r'<text[^>]*>.*?</text>'
-        # 1VectorLayerに複数のShapeがある場合は各<text>list_of_update_target
-        matches = re.findall(pattern, svg_content, re.DOTALL)
-
-        for match in matches:
-            # Extract just the text content for editing
-            text_content = self.extract_text_content(match)
-            text_elements.append({
-                'raw_svg': match,
-                'text_content': text_content
-            })
-
-        return text_elements
-
-    def extract_text_content(self, text_element_svg):
-        """Extract plain text content from a <text> SVG element"""
-        try:
-            # Parse the text element
-            elem = ET.fromstring(text_element_svg)
-            # Get all text content (including from tspan elements)
-            text_content = ''.join(elem.itertext())
-            return text_content
-        except:
-            # Fallback: use regex to strip tags
-            text = re.sub(r'<[^>]+>', '', text_element_svg)
-            return text.strip()
 
     def create_text_editor_window(self):
         """Create the text editor window with the received SVG data"""
@@ -228,8 +176,14 @@ class StoryEditorWindow:
                 layer_id = layer_data.get('layer_id', 'unknown')
                 svg_content = layer_data.get('svg', '')
 
+                parsed_svg_data = parse_krita_svg(
+                    doc_name, doc_path, layer_id, svg_content)
+
+                self.socket_handler.log(
+                    f"parsed_svg_data: {parsed_svg_data}")
+
                 # Extract text elements from SVG
-                text_elements = self.extract_text_elements_from_svg(
+                text_elements = self.extract_elements_from_svg(
                     svg_content)
 
                 if not text_elements:
@@ -401,3 +355,47 @@ If you want multiple paragraphs within different text elements, separate them wi
             f"✅ Sent update request for document: {doc_name}")
         # self.socket_handler.log(
         #     f"merged_requests: {merged_requests}")
+
+    def show_text_editor(self):
+        """Show text editor window with SVG data from Krita document"""
+        self.socket_handler.log("\n--- Opening Text Editor ---")
+
+        # Clear any existing data
+        self.all_docs_svg_data = None
+
+        # Set the waiting flag on the parent (main window)
+        if hasattr(self.parent, '_waiting_for_svg'):
+            self.parent._waiting_for_svg = 'text_editor'
+
+        # Request the SVG data (not text data)
+        # The window will be created when set_svg_data() is called with the response
+        self.socket_handler.send_request('get_all_docs_svg_data')
+
+    def set_svg_data(self, all_docs_svg_data):
+        """Store the received SVG data and create the editor window"""
+        self.all_docs_svg_data = all_docs_svg_data
+        # Automatically create the window when data is received
+        self.create_text_editor_window()
+
+    def extract_elements_from_svg(self, svg_content):
+        """Extract all <text> elements from SVG content"""
+        text_elements = []
+
+        # Use regex to find all <text> elements
+        pattern = r'<text[^>]*>.*?</text>'
+        # 1VectorLayerに複数のShapeがある場合は各<text>list_of_update_target
+        matches = re.findall(pattern, svg_content, re.DOTALL)
+
+        for raw_svg in matches:
+            elem = ET.fromstring(raw_svg)
+
+            text_content = ''.join(elem.itertext())
+            element_id = elem.get('id', '')
+
+            text_elements.append({
+                'raw_svg': raw_svg,
+                'element_id': element_id,
+                'text_content': text_content
+            })
+
+        return text_elements
