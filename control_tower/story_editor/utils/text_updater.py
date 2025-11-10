@@ -5,7 +5,7 @@ Handles updating existing texts and adding new texts to Krita
 
 import uuid
 import html
-from .svg_generator import generate_full_svg_data
+from .svg_generator import generate_full_svg_data, create_layer_groups
 
 
 def update_all_texts(doc_name, text_edit_widgets, socket_handler):
@@ -23,7 +23,7 @@ def update_all_texts(doc_name, text_edit_widgets, socket_handler):
     updates = []
     updates_with_doc_info = {
         'document_name': doc_name,
-        'updates': updates
+        'layer_groups': {}
     }
     new_texts = []
     new_texts_with_doc_info = {
@@ -90,18 +90,22 @@ def update_all_texts(doc_name, text_edit_widgets, socket_handler):
                     updates.append({
                         'layer_name': item['layer_name'],
                         'layer_id': item['layer_id'],
-                        'shape_index': item['shape_index'],
+                        'shape_id': item['shape_id'],
                         'new_text': escaped_segment,
-                        'remove_shape': False
+                        'remove_shape': False,
+
                     })
                 else:
                     updates.append({
                         'layer_name': item['layer_name'],
                         'layer_id': item['layer_id'],
-                        'shape_index': item['shape_index'],
+                        'shape_id': item['shape_id'],
                         'new_text': '',
-                        'remove_shape': True
+                        'remove_shape': True,
+
                     })
+
+    updates_with_doc_info['layer_groups'] = create_layer_groups(updates)
 
     '''
     既存テキスト更新と新規テキスト追加、もし両方がある場合は、同時にこの関数に渡されるため、
@@ -124,6 +128,7 @@ def update_all_texts(doc_name, text_edit_widgets, socket_handler):
         socket_handler.log("⚠️ No changes detected")
         return {'success': False, 'error': 'No changes detected'}
     else:
+        socket_handler.log(f"requests: {response}")
         return {'success': True, 'requests': {
             'document_name': doc_name,
             'requests': response

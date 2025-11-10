@@ -183,18 +183,18 @@ class StoryEditorWindow:
                     f"parsed_svg_data: {parsed_svg_data}")
 
                 # Extract text elements from SVG
-                text_elements = extract_elements_from_svg(
-                    svg_content)
+                # text_elements = extract_elements_from_svg(
+                #     svg_content)
 
-                if not text_elements:
+                if not parsed_svg_data['layer_shapes']:
                     continue
 
                 # Add QTextEdit for each text element
-                for elem_idx, text_elem in enumerate(text_elements):
+                for elem_idx, layer_shape in enumerate(parsed_svg_data['layer_shapes']):
                     svg_section_level_layout = QHBoxLayout()
                     # QTextEdit for editing
                     text_edit = QTextEdit()
-                    text_edit.setPlainText(text_elem['text_content'])
+                    text_edit.setPlainText(layer_shape['text_content'])
                     text_edit.setAcceptRichText(False)
                     text_edit.setFont(get_text_editor_font())
                     text_edit.setStyleSheet(get_tspan_editor_stylesheet())
@@ -214,9 +214,9 @@ class StoryEditorWindow:
                         'document_path': doc_path,
                         'layer_name': layer_name,
                         'layer_id': layer_id,
-                        'shape_index': elem_idx,
-                        'original_svg': text_elem['raw_svg'],
-                        'original_text': text_elem['text_content']
+                        'shape_id': layer_shape['element_id'],
+                        'original_text': layer_shape['text_content'],
+
                     })
 
                     doc_level_layers_layout.addLayout(

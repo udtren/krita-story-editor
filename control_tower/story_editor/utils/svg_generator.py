@@ -24,5 +24,38 @@ def generate_full_svg_data(text_elements: list[str]) -> str:
     return full_svg_content
 
 
-def update_existing_svg_data():
-    pass
+def create_layer_groups(updates: list[dict]) -> dict:
+    '''
+    new_layer_shapes example:
+    [
+        'layer_name': item['layer_name'],
+        'layer_id': item['layer_id'],
+        'shape_id': item['shape_id'],
+        'new_text': escaped_segment,
+        'remove_shape': False,
+    ]
+    '''
+    layer_groups = {}
+
+    for update in updates:
+        layer_id = update['layer_id']
+        if layer_id not in layer_groups:
+            layer_groups[layer_id] = {
+                'layer_name': update['layer_name'],
+                'layer_id': layer_id,
+                'shapes': []
+            }
+        layer_groups[layer_id]['shapes'].append({
+            'shape_id': update['shape_id'],
+            'new_text': update['new_text'],
+            'remove_shape': update['remove_shape'],
+
+        })
+
+    return layer_groups
+
+    # Now layer_groups is a dict where each value contains all shapes for that layer
+    # Example: layer_groups = {
+    #     'layer_id_1': {'layer_name': 'Layer 1', 'layer_id': 'layer_id_1', 'shapes': [...]},
+    #     'layer_id_2': {'layer_name': 'Layer 2', 'layer_id': 'layer_id_2', 'shapes': [...]}
+    # }
