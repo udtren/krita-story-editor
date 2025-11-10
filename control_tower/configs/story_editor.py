@@ -5,6 +5,10 @@ Styles and settings for the text editor components
 
 from PyQt5.QtGui import QFont
 
+# Story Editor Window Configuration
+STORY_EDITOR_WINDOW_WIDTH = 800
+STORY_EDITOR_WINDOW_HEIGHT = 1200
+
 # Text Editor Font Configuration
 TEXT_EDITOR_FONT_FAMILY = "Segoe UI"
 TEXT_EDITOR_FONT_SIZE = 11

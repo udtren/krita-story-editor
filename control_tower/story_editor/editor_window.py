@@ -11,7 +11,9 @@ from configs.story_editor import (
     get_tspan_editor_stylesheet,
     get_layer_header_stylesheet,
     TEXT_EDITOR_MIN_HEIGHT,
-    TEXT_EDITOR_MAX_HEIGHT
+    TEXT_EDITOR_MAX_HEIGHT,
+    STORY_EDITOR_WINDOW_WIDTH,
+    STORY_EDITOR_WINDOW_HEIGHT
 )
 from story_editor.utils.text_updater import update_all_texts
 
@@ -39,6 +41,10 @@ class StoryEditorWindow:
 
         # Clear any existing data
         self.svg_data = None
+
+        # Set the waiting flag on the parent (main window)
+        if hasattr(self.parent, '_waiting_for_svg'):
+            self.parent._waiting_for_svg = 'text_editor'
 
         # Request the SVG data (not text data)
         # The window will be created when set_svg_data() is called with the response
@@ -88,8 +94,10 @@ class StoryEditorWindow:
                 "⚠️ No SVG data available. Make sure the request succeeded.")
             return
 
-        # Close existing window if it exists
+        # Store current window position and size if window exists
+        window_geometry = None
         if self.text_editor_window:
+            window_geometry = self.text_editor_window.geometry()
             self.text_editor_window.close()
 
         # Clear previous widget references
@@ -98,7 +106,13 @@ class StoryEditorWindow:
         # Create new window
         self.text_editor_window = QWidget()
         self.text_editor_window.setWindowTitle("Story Editor")
-        self.text_editor_window.resize(800, 1200)
+
+        # Restore previous geometry or use default size
+        if window_geometry:
+            self.text_editor_window.setGeometry(window_geometry)
+        else:
+            self.text_editor_window.resize(
+                STORY_EDITOR_WINDOW_WIDTH, STORY_EDITOR_WINDOW_HEIGHT)
 
         # Main layout
         main_layout = QVBoxLayout(self.text_editor_window)
@@ -110,6 +124,12 @@ class StoryEditorWindow:
         new_text_btn = QPushButton("New Text")
         new_text_btn.clicked.connect(self.add_new_text_widget)
         top_bar.addWidget(new_text_btn)
+
+        # Refresh button
+        refresh_btn = QPushButton("Refresh from Krita")
+        refresh_btn.clicked.connect(self.refresh_data)
+        refresh_btn.setToolTip("Reload text data from Krita document")
+        top_bar.addWidget(refresh_btn)
 
         # Update button
         update_btn = QPushButton("Update Krita")
@@ -247,6 +267,12 @@ If you want multiple paragraphs within different text elements, separate them wi
 
         self.socket_handler.log(
             f"✅ Added new text widget with {choose_template_combo.count()} template(s)")
+
+    def refresh_data(self):
+        """Refresh the editor window with latest data from Krita"""
+        self.socket_handler.log("\n--- Refreshing data from Krita ---")
+        # Simply request new data, which will rebuild the window
+        self.show_text_editor()
 
     def update_all_texts(self):
         """Send update requests for all modified texts and add new texts"""

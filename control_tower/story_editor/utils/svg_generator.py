@@ -6,13 +6,8 @@ def generate_full_svg_data(text_elements: list[str]) -> str:
     """
     The text_elements example:
     [
-    "<text id="shape0" krita:textVersion="3" transform="translate(129.959999999996, 173.516874999995)" paint-order="stroke fill markers" fill="#000000" stroke-opacity="0" stroke="#000000" stroke-width="0" stroke-linecap="square" stroke-linejoin="bevel" style="inline-size: 262.799999999993;font-size: 12;white-space: pre-wrap;">Test Layer1
-
-    Test Line1
-    This layer has 2 shapes.</text>,
-    "<text id="shape1" krita:textVersion="3" transform="translate(435.84, 296.396875)" paint-order="stroke fill markers" fill="#000000" stroke-opacity="0" stroke="#000000" stroke-width="0" stroke-linecap="square" stroke-linejoin="bevel" style="inline-size: 353.16;font-size: 22.99;white-space: pre-wrap;">Test Layer1/2
-
-    This is the Second Shape.</text>"
+    "<text with parameter>My Text1</text>",
+    "<text with parameter>My Text2</text>"
     ]
 
     """
