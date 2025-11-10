@@ -19,13 +19,19 @@ def get_svg_from_activenode():
         return
 
     if str(active_node.type()) == "vectorlayer":
+        print(f"Vector Layer Full SVG Data\n")
+        print("=" * 60)
+        print(active_node.toSvg())
+        print("=" * 60)
+
         shapes = active_node.shapes()
 
         if not shapes:
             print("No shapes found in vector layer")
             return
 
-        print(f"Vector Layer: {active_node.name()}")
+        print(f"Layer Name: {active_node.name()}")
+        print(f"Node Id: {active_node.uniqueId()}")
         print(f"Number of shapes: {len(shapes)}\n")
         print("=" * 60)
 
