@@ -1,6 +1,7 @@
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QTextEdit, QLabel, QComboBox
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QTextEdit, QLabel, QComboBox, QToolBar, QAction
 from PyQt5.QtSvg import QSvgWidget
-from PyQt5.QtCore import QByteArray, QTimer
+from PyQt5.QtCore import QByteArray, QTimer, QSize
+from PyQt5.QtGui import QIcon
 import xml.etree.ElementTree as ET
 import re
 import uuid
@@ -93,28 +94,45 @@ class StoryEditorWindow:
         # Main layout
         main_layout = QVBoxLayout(self.text_editor_window)
 
-        # Top bar with close and update buttons
-        top_bar = QHBoxLayout()
+        #################################
+        # Toolbar
+        toolbar = QToolBar("Main Toolbar")
+        toolbar.setIconSize(QSize(16, 16))
+        toolbar.setStyleSheet("""
+            QToolBar {
+                background-color: #E0E0E0;
+                border: none;
+                padding: 4px;
+            }
+        """)
+        main_layout.addWidget(toolbar)
 
-        # New Text button
-        new_text_btn = QPushButton("New Text")
-        new_text_btn.clicked.connect(self.add_new_text_widget)
-        top_bar.addWidget(new_text_btn)
+        # Get absolute path to icon
+        icon_path_bath = os.path.join(
+            os.path.dirname(__file__), "icons")
 
-        # Refresh button
-        refresh_btn = QPushButton("Refresh from Krita")
-        refresh_btn.clicked.connect(self.refresh_data)
-        refresh_btn.setToolTip("Reload text data from Krita document")
-        top_bar.addWidget(refresh_btn)
+        new_text_btn = QAction(
+            QIcon(f"{os.path.join(icon_path_bath, 'plus.png')}"), "Add New Text", self.text_editor_window)
+        new_text_btn.setStatusTip("Add a new text widget")
+        new_text_btn.triggered.connect(self.add_new_text_widget)
+        new_text_btn.setCheckable(True)
+        toolbar.addAction(new_text_btn)
 
-        # Update button
-        update_btn = QPushButton("Update Krita")
-        update_btn.clicked.connect(self.update_all_texts)
-        top_bar.addWidget(update_btn)
+        refresh_btn = QAction(
+            QIcon(f"{os.path.join(icon_path_bath, 'refresh.png')}"), "Refresh from Krita", self.text_editor_window)
+        refresh_btn.setStatusTip("Reload text data from Krita document")
+        refresh_btn.triggered.connect(self.refresh_data)
+        refresh_btn.setCheckable(True)
+        toolbar.addAction(refresh_btn)
 
-        top_bar.addStretch()
+        update_btn = QAction(
+            QIcon(f"{os.path.join(icon_path_bath, 'check.png')}"), "Update Krita", self.text_editor_window)
+        update_btn.setStatusTip("Update Krita")
+        update_btn.triggered.connect(self.update_all_texts)
+        update_btn.setCheckable(True)
+        toolbar.addAction(update_btn)
 
-        main_layout.addLayout(top_bar)
+        #################################
 
         # VBoxLayout for all layers
         for doc_data in self.all_docs_svg_data:

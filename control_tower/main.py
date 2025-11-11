@@ -26,6 +26,9 @@ class ControlTower(QMainWindow):
         # Initialize text editor window handler
         self.text_editor_handler = StoryEditorWindow(self, self)
 
+        # Track which editor is waiting for SVG data
+        self._waiting_for_svg = None  # 'text_editor'
+
         # Set up socket
         self.socket = QLocalSocket(self)
         self.socket.connected.connect(self.on_connected)
@@ -43,30 +46,37 @@ class ControlTower(QMainWindow):
         layout.addWidget(self.status_label)
 
         # Connect button
-        self.connect_btn = QPushButton("Connect to Krita Docker")
+        self.connect_btn = QPushButton("Connect to Story Editor Agent")
         self.connect_btn.clicked.connect(self.connect_to_docker)
         self.connect_btn.setFont(get_button_font())
         self.connect_btn.setMinimumHeight(BUTTON_HEIGHT)
         self.connect_btn.setMinimumWidth(BUTTON_MIN_WIDTH)
         layout.addWidget(self.connect_btn)
 
-        # Show text editor button
-        self.show_text_editor_btn = QPushButton("Show Text Editor")
-        self.show_text_editor_btn.clicked.connect(
-            self.text_editor_handler.show_text_editor)
-        self.show_text_editor_btn.setFont(get_button_font())
-        self.show_text_editor_btn.setMinimumHeight(BUTTON_HEIGHT)
-        self.show_text_editor_btn.setMinimumWidth(BUTTON_MIN_WIDTH)
-        self.show_text_editor_btn.setEnabled(False)
-        layout.addWidget(self.show_text_editor_btn)
+        # Open Story Editor
+        self.show_story_editor_btn = QPushButton("Open/Refresh Story Editor")
+        self.show_story_editor_btn.clicked.connect(self.open_text_editor)
+        self.show_story_editor_btn.setFont(get_button_font())
+        self.show_story_editor_btn.setMinimumHeight(BUTTON_HEIGHT)
+        self.show_story_editor_btn.setMinimumWidth(BUTTON_MIN_WIDTH)
+        self.show_story_editor_btn.setEnabled(False)
+        layout.addWidget(self.show_story_editor_btn)
+
+        # Test button
+        self.test_btn = QPushButton("TEST")
+        self.test_btn.clicked.connect(self.test_get_all_docs_svg_data)
+        self.test_btn.setFont(get_button_font())
+        self.test_btn.setMinimumHeight(BUTTON_HEIGHT)
+        self.test_btn.setMinimumWidth(BUTTON_MIN_WIDTH)
+        layout.addWidget(self.test_btn)
 
         # Read KRA offline button
-        self.read_kra_btn = QPushButton("Read .kra File (Offline)")
-        self.read_kra_btn.clicked.connect(self.test_read_kra_offline)
-        self.read_kra_btn.setFont(get_button_font())
-        self.read_kra_btn.setMinimumHeight(BUTTON_HEIGHT)
-        self.read_kra_btn.setMinimumWidth(BUTTON_MIN_WIDTH)
-        layout.addWidget(self.read_kra_btn)
+        # self.read_kra_btn = QPushButton("Read .kra File (Offline)")
+        # self.read_kra_btn.clicked.connect(self.test_read_kra_offline)
+        # self.read_kra_btn.setFont(get_button_font())
+        # self.read_kra_btn.setMinimumHeight(BUTTON_HEIGHT)
+        # self.read_kra_btn.setMinimumWidth(BUTTON_MIN_WIDTH)
+        # layout.addWidget(self.read_kra_btn)
 
         # Log output
         self.log_output = QTextEdit()
@@ -74,7 +84,8 @@ class ControlTower(QMainWindow):
         self.log_output.setFont(get_log_font())
         layout.addWidget(self.log_output)
 
-        self.log("Application started. Click 'Connect to Krita Docker' to begin.")
+        self.log(
+            "Application started. Click 'Connect to Story Editor Agent' to begin.")
 
     def log(self, message):
         """Add a message to the log output"""
@@ -102,7 +113,8 @@ class ControlTower(QMainWindow):
         self.status_label.setText("Status: Connected")
         self.status_label.setStyleSheet("color: green;")
         self.connect_btn.setEnabled(False)
-        self.show_text_editor_btn.setEnabled(True)
+
+        self.show_story_editor_btn.setEnabled(True)
 
     def on_disconnected(self):
         """Called when disconnected"""
@@ -110,7 +122,8 @@ class ControlTower(QMainWindow):
         self.status_label.setText("Status: Disconnected")
         self.status_label.setStyleSheet("color: red;")
         self.connect_btn.setEnabled(True)
-        self.show_text_editor_btn.setEnabled(False)
+
+        self.show_story_editor_btn.setEnabled(False)
 
     def on_error(self, error):
         """Called when socket error occurs"""
@@ -121,35 +134,61 @@ class ControlTower(QMainWindow):
         """Send a request to the Krita docker"""
         request = {'action': action, **params}
         json_data = json.dumps(request)
-        self.log(f"📤 Sending: {json_data}")
+        self.log(f"📤 Sending Request to the Agent: {request['action']}")
         self.socket.write(json_data.encode('utf-8'))
         self.socket.flush()
 
     def on_data_received(self):
         """Handle data received from the Krita docker"""
         data = self.socket.readAll().data().decode('utf-8')
-        self.log(f"📥 Received: {data}")
+        # self.log(f"📥 Received: {data}")
 
         try:
             response = json.loads(data)
-            self.log(f"✅ Parsed response: {response}")
 
-            # Store text data if it's a get_layer_text response
-            if 'text_layers' in response and response.get('success'):
-                self.text_editor_handler.set_text_data(response['text_layers'])
+            # Only log non-SVG responses (SVG data is too large)
+            if 'text_update_request_result' in response and response.get('success'):
+                self.log(
+                    f"✔️ Text Update Request Finishied: {response['text_update_request_result']}")
+                self.text_editor_handler.refresh_data()
+
+            elif 'all_docs_svg_data' in response and response.get('success'):
+                self.log(
+                    f"📥 All docs svg data received from agent")
+
+                # Route to the appropriate handler based on which one is waiting
+                if self._waiting_for_svg == 'text_editor':
+                    self.text_editor_handler.set_svg_data(
+                        response['all_docs_svg_data'])
+                self._waiting_for_svg = None
+
+            elif 'progress' in response:
+                self.log(
+                    f"📋 Agent Progress: {response['progress']}")
+
+            else:
+                self.log(f"Other Response: {response}")
+
         except json.JSONDecodeError as e:
             self.log(f"⚠️ Failed to parse JSON: {e}")
 
-    def test_get_document_name(self):
-        """Test the get_document_name action"""
-        self.log("\n--- Testing get_document_name ---")
-        self.send_request('get_document_name')
+    def open_text_editor(self):
+        """Open the text editor window"""
+        self._waiting_for_svg = 'text_editor'
+        self.text_editor_handler.show_text_editor()
 
-    def test_get_layer_text(self):
-        """Test the get_layer_text action"""
-        self.log("\n--- Testing get_layer_text ---")
-        self.log("Retrieving text from all vector layers...")
-        self.send_request('get_layer_text')
+    def test_get_svg_data(self):
+        """Test the get_svg_data action"""
+        self.log("\n--- Testing get_svg_data ---")
+        self.log("Retrieving SVG data from all vector layers...")
+        self.send_request('get_all_svg_data')
+
+    def test_get_all_docs_svg_data(self):
+        """Test the get_all_docs_svg_data action"""
+        self.log("\n--- Testing get_all_docs_svg_data ---")
+        self.log(
+            "Retrieving SVG data from all vector layers in all open documents...")
+        self.send_request('get_all_docs_svg_data')
 
     def test_read_kra_offline(self):
         """Read text from a .kra file without connecting to Krita"""
