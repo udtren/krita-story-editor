@@ -64,7 +64,6 @@ class ControlTower(QMainWindow):
         central_widget.setStyleSheet(
             f"""
             QWidget#centralWidget {{
-                background-color: #a07949;
                 border-image: url({bg_image_path}) 0 0 0 0 stretch stretch;
             }}
         """
