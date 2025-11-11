@@ -76,7 +76,7 @@ def update_text_via_shapes(doc, layer_groups: dict, client=None):
                         doc.refreshProjection()
                         if client:
                             response = {
-                                'progress': f"Removed shape {shape.name()} from layer {target_layer.name()}"}
+                                'progress': f"{doc.name()}: Removed shape {shape.name()} from layer {target_layer.name()}"}
                             client.write(json.dumps(response).encode('utf-8'))
 
             ########################################

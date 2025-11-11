@@ -149,12 +149,12 @@ class ControlTower(QMainWindow):
             # Only log non-SVG responses (SVG data is too large)
             if 'text_update_request_result' in response and response.get('success'):
                 self.log(
-                    f"✅ Text Update Request Finishied: {response['text_update_request_result']}")
+                    f"✔️ Text Update Request Finishied: {response['text_update_request_result']}")
                 self.text_editor_handler.refresh_data()
 
             elif 'all_docs_svg_data' in response and response.get('success'):
                 self.log(
-                    f"✅ All docs svg data Received")
+                    f"📥 All docs svg data received from agent")
 
                 # Route to the appropriate handler based on which one is waiting
                 if self._waiting_for_svg == 'text_editor':

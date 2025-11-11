@@ -117,7 +117,7 @@ class StoryEditorAgentDocker(QDockWidget):
                     opened_docs = Krita.instance().documents()
                     merged_requests = request.get(
                         'merged_requests', {})
-                    response_body = {}
+
                     for doc in opened_docs:
                         for doc_data in merged_requests:
                             if doc.name() == doc_data.get('document_name'):
@@ -137,6 +137,11 @@ class StoryEditorAgentDocker(QDockWidget):
                                         update_text_via_shapes(
                                             doc, updates_with_doc_info.get('layer_groups', []), client)
 
+                                        response = {
+                                            'progress': f"{doc.name()}: Updated existing texts"}
+                                        client.write(json.dumps(
+                                            response).encode('utf-8'))
+
                                     elif text_edit_type == "new_texts_added":
                                         '''new_texts_with_doc_info = {
                                             'document_name': doc_name,
@@ -150,6 +155,10 @@ class StoryEditorAgentDocker(QDockWidget):
 
                                             new_text_via_shapes(
                                                 doc, svg_data)
+                                        response = {
+                                            'progress': f"{doc.name()}: Created new texts"}
+                                        client.write(json.dumps(
+                                            response).encode('utf-8'))
 
                     response = {'success': True,
                                 'text_update_request_result': "Text update applied successfully"}

@@ -57,7 +57,7 @@ def update_all_texts(doc_name, text_edit_widgets, socket_handler):
 
                 text_elements = []
                 # Generate random UUID for shape ID
-                shape_id_base = f"shape"
+                shape_id_base = f"shape{uuid.uuid4().hex[:4]}_"
 
                 # リスト型テキストセグメントごとにSVG要素を生成
                 for index, segment in enumerate(text_segments):
