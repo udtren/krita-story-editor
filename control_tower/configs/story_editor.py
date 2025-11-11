@@ -45,6 +45,27 @@ GROUP_BOX_PADDING = 10
 # Separator Color
 SEPARATOR_COLOR = "#555"
 
+# Window Background Color
+WINDOW_BACKGROUND_COLOR = "#81623f"
+
+# Toolbar Colors
+TOOLBAR_BACKGROUND_COLOR = "#8e764e"
+
+# Activate Button Colors
+ACTIVATE_BTN_DISABLED_COLOR = "#a6a6a6"
+ACTIVATE_BTN_DISABLED_BG = "#909090"
+ACTIVATE_BTN_BG = "#7c7c7c"
+ACTIVATE_BTN_COLOR = "#393939"
+ACTIVATE_BTN_CHECKED_BG = "#a5a5a5"
+ACTIVATE_BTN_CHECKED_COLOR = "#393939"
+
+# Template Combo Box Color
+TEMPLATE_COMBO_COLOR = "black"
+
+# Find/Replace Button Colors
+FIND_REPLACE_BTN_COLOR = "#221c13"
+FIND_REPLACE_BTN_FONT_SIZE = "18px"
+
 
 def get_text_editor_font():
     """Get the font for text editors"""
@@ -146,29 +167,104 @@ def get_editor_scroll_area_stylesheet():
             border: 1px solid #555;
             background-color: #2b2b2b;
         }
-        
+
         QScrollBar:vertical {
             border: none;
             background: #2b2b2b;
             width: 12px;
             margin: 0px;
         }
-        
+
         QScrollBar::handle:vertical {
             background: #555;
             min-height: 20px;
             border-radius: 6px;
         }
-        
+
         QScrollBar::handle:vertical:hover {
             background: #666;
         }
-        
+
         QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
             height: 0px;
         }
-        
+
         QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
             background: none;
         }
     """
+
+
+def get_window_stylesheet():
+    """Get the stylesheet for the main window"""
+    return f"background-color: {WINDOW_BACKGROUND_COLOR};"
+
+
+def get_toolbar_stylesheet():
+    """Get the stylesheet for the toolbar"""
+    return f"""
+        QToolBar {{
+            background-color: {TOOLBAR_BACKGROUND_COLOR};
+            border: none;
+            padding: 2px;
+        }}
+        QToolButton {{
+            color: {FIND_REPLACE_BTN_COLOR};
+            font-size: {FIND_REPLACE_BTN_FONT_SIZE};
+            font-weight: bold;
+            padding: 4px 8px;
+            border: none;
+            background-color: transparent;
+        }}
+        QToolButton:hover {{
+            background-color: rgba(0, 0, 0, 0.1);
+            border-radius: 3px;
+        }}
+        QToolButton:pressed {{
+            background-color: rgba(0, 0, 0, 0.2);
+        }}
+    """
+
+
+def get_activate_button_disabled_stylesheet():
+    """Get the stylesheet for disabled activate buttons"""
+    return f"""
+        QPushButton {{
+            font-style: italic;
+            padding-top: 2px;
+            padding-bottom: 0px;
+            padding-left: 2px;
+            padding-right: 2px;
+            font-weight: bold;
+            text-align: center;
+            font-size: 10pt;
+            color: {ACTIVATE_BTN_DISABLED_COLOR};
+            background-color: {ACTIVATE_BTN_DISABLED_BG};
+        }}
+    """
+
+
+def get_activate_button_stylesheet():
+    """Get the stylesheet for active activate buttons"""
+    return f"""
+        QPushButton {{
+            text-align: center;
+            padding-top: 2px;
+            padding-bottom: 0px;
+            padding-left: 2px;
+            padding-right: 2px;
+            font-weight: bold;
+            font-size: 10pt;
+            background-color: {ACTIVATE_BTN_BG};
+            color: {ACTIVATE_BTN_COLOR};
+        }}
+        QPushButton:checked {{
+            background-color: {ACTIVATE_BTN_CHECKED_BG};
+            color: {ACTIVATE_BTN_CHECKED_COLOR};
+        }}
+    """
+
+
+def get_template_combo_stylesheet():
+    """Get the stylesheet for template combo box"""
+    return f"color: {TEMPLATE_COMBO_COLOR};"

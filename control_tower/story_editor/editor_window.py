@@ -21,6 +21,11 @@ from configs.story_editor import (
     get_text_editor_font,
     get_tspan_editor_stylesheet,
     get_layer_header_stylesheet,
+    get_window_stylesheet,
+    get_toolbar_stylesheet,
+    get_activate_button_disabled_stylesheet,
+    get_activate_button_stylesheet,
+    get_template_combo_stylesheet,
     TEXT_EDITOR_MIN_HEIGHT,
     TEXT_EDITOR_MAX_HEIGHT,
     STORY_EDITOR_WINDOW_WIDTH,
@@ -28,6 +33,7 @@ from configs.story_editor import (
 )
 from story_editor.utils.text_updater import create_svg_data_for_doc
 from story_editor.utils.svg_parser import parse_krita_svg, extract_elements_from_svg
+from story_editor.utils.find_replace import show_find_replace_dialog
 
 
 class StoryEditorWindow:
@@ -96,7 +102,7 @@ class StoryEditorWindow:
         # Create new window
         self.text_editor_window = QWidget()
         self.text_editor_window.setWindowTitle("Story Editor")
-        self.text_editor_window.setStyleSheet("background-color: #81623f;")
+        self.text_editor_window.setStyleSheet(get_window_stylesheet())
 
         # Restore previous geometry or use default size
         if window_geometry:
@@ -113,15 +119,7 @@ class StoryEditorWindow:
         # Toolbar
         toolbar = QToolBar("Main Toolbar")
         toolbar.setIconSize(QSize(16, 16))
-        toolbar.setStyleSheet(
-            """
-            QToolBar {
-                background-color: #8e764e;
-                border: none;
-                padding: 2px;
-            }
-        """
-        )
+        toolbar.setStyleSheet(get_toolbar_stylesheet())
         main_layout.addWidget(toolbar)
 
         # Get absolute path to icon
@@ -154,6 +152,18 @@ class StoryEditorWindow:
         update_btn.triggered.connect(self.send_merged_svg_request)
         toolbar.addAction(update_btn)
 
+        # Add separator
+        toolbar.addSeparator()
+
+        # Find/Replace button
+        find_replace_btn = QAction(
+            "Find/Replace",
+            self.text_editor_window,
+        )
+        find_replace_btn.setStatusTip("Find and replace text in all editors")
+        find_replace_btn.triggered.connect(self.show_find_replace)
+        toolbar.addAction(find_replace_btn)
+
         #################################
 
         horizon_layout_for_active_and_texteditor = QHBoxLayout()
@@ -184,22 +194,7 @@ class StoryEditorWindow:
             activate_btn.setMinimumHeight(200)  # Make button tall
 
             if not opened:
-                activate_btn.setStyleSheet(
-                    """
-                    QPushButton {
-                        font-style: italic;
-                        padding-top: 2px;
-                        padding-bottom: 0px;
-                        padding-left: 2px;
-                        padding-right: 2px;
-                        font-weight: bold;
-                        text-align: center;
-                        font-size: 10pt;
-                        color: #a6a6a6;
-                        background-color: #909090;
-                    }
-                    """
-                )
+                activate_btn.setStyleSheet(get_activate_button_disabled_stylesheet())
                 activate_btn.setEnabled(False)  # Make button unclickable
                 activate_btn.setToolTip(
                     f"This document is not currently open in Krita\nPath: {doc_path}"
@@ -214,25 +209,7 @@ class StoryEditorWindow:
                         name, btn
                     )
                 )
-                activate_btn.setStyleSheet(
-                    """
-                    QPushButton {
-                        text-align: center;
-                        padding-top: 2px;
-                        padding-bottom: 0px;
-                        padding-left: 2px;
-                        padding-right: 2px;
-                        font-weight: bold;
-                        font-size: 10pt;
-                        background-color: #7c7c7c;
-                        color: #393939;
-                    }
-                    QPushButton:checked {
-                        background-color: #a5a5a5;
-                        color: #393939;
-                    }
-                """
-                )
+                activate_btn.setStyleSheet(get_activate_button_stylesheet())
             doc_header_layout.addWidget(activate_btn, alignment=Qt.AlignTop)
             doc_header_layout.addStretch()
             horizon_layout_for_active_and_texteditor.addLayout(
@@ -375,7 +352,7 @@ class StoryEditorWindow:
         choose_template_combo = QComboBox()
         choose_template_combo.setMinimumWidth(200)
         choose_template_combo.setMaximumWidth(400)
-        choose_template_combo.setStyleSheet("color: black;")
+        choose_template_combo.setStyleSheet(get_template_combo_stylesheet())
 
         # Find all XML files in svg_templates directory
         template_dir = "svg_templates"
@@ -425,6 +402,14 @@ class StoryEditorWindow:
         self.socket_handler.log("🔄 Refreshing data from Krita")
         # Simply request new data, which will rebuild the window
         self.show_text_editor()
+
+    def show_find_replace(self):
+        """Show the find/replace dialog"""
+        if not hasattr(self, "all_docs_text_state") or not self.all_docs_text_state:
+            self.socket_handler.log("⚠️ No text editors available")
+            return
+
+        show_find_replace_dialog(self.text_editor_window, self.all_docs_text_state)
 
     def send_merged_svg_request(self):
         """Send update requests for all modified texts and add new texts"""
