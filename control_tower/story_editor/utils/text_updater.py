@@ -17,8 +17,6 @@ def update_all_texts(doc_name, text_edit_widgets, socket_handler):
         text_edit_widgets: 既存テキスト更新と新規テキスト追加の両方を含むウィジェットのリスト
         socket_handler: Object with send_request and log methods
     """
-    socket_handler.log("\n--- Updating texts in Krita ---")
-
     response = []  # Final response list to hold all updates and new texts
     updates = []
     updates_with_doc_info = {
@@ -125,10 +123,9 @@ def update_all_texts(doc_name, text_edit_widgets, socket_handler):
         })
 
     if len(updates) == 0 and len(new_texts) == 0:
-        socket_handler.log("⚠️ No changes detected")
+        # socket_handler.log("⚠️ No changes detected")
         return {'success': False, 'error': 'No changes detected'}
     else:
-        socket_handler.log(f"requests: {response}")
         return {'success': True, 'requests': {
             'document_name': doc_name,
             'requests': response

@@ -179,13 +179,6 @@ class StoryEditorWindow:
                 parsed_svg_data = parse_krita_svg(
                     doc_name, doc_path, layer_id, svg_content)
 
-                self.socket_handler.log(
-                    f"parsed_svg_data: {parsed_svg_data}")
-
-                # Extract text elements from SVG
-                # text_elements = extract_elements_from_svg(
-                #     svg_content)
-
                 if not parsed_svg_data['layer_shapes']:
                     continue
 
@@ -246,7 +239,7 @@ class StoryEditorWindow:
 
         # Set active document
         self.active_doc_name = doc_name
-        self.socket_handler.log(f"📄 Activated document: {doc_name}")
+        # self.socket_handler.log(f"📄 Activated document: {doc_name}")
 
     def add_new_text_widget(self):
         """Add a new empty text editor widget for creating new text"""
@@ -324,11 +317,11 @@ If you want multiple paragraphs within different text elements, separate them wi
         })
 
         self.socket_handler.log(
-            f"✅ Added new text widget to '{self.active_doc_name}' with {choose_template_combo.count()} template(s)")
+            f"✅ Added new text widget to '{self.active_doc_name}' document.")
 
     def refresh_data(self):
         """Refresh the editor window with latest data from Krita"""
-        self.socket_handler.log("\n--- Refreshing data from Krita ---")
+        self.socket_handler.log("🔄 --- Refreshing data from Krita ---")
         # Simply request new data, which will rebuild the window
         self.show_text_editor()
 
@@ -339,7 +332,7 @@ If you want multiple paragraphs within different text elements, separate them wi
 
         for doc_name, doc_state in self.all_docs_text_state.items():
             self.socket_handler.log(
-                f"\n--- Updating texts in document: {doc_name} ---")
+                f"--- Creating update data for document: {doc_name} ---")
 
             result = update_all_texts(
                 doc_name=doc_name,
@@ -348,17 +341,17 @@ If you want multiple paragraphs within different text elements, separate them wi
             )
             if result.get('success'):
                 merged_requests.append(result.get('requests'))
+                self.socket_handler.log(
+                    f"✅ --- Update data for document: {doc_name} added to the merged requests ---")
 
+        self.socket_handler.log(
+            f"--- Sending Text Update Requests to Agents ---")
         self.socket_handler.send_request(
             'text_update_request', merged_requests=merged_requests)
-        self.socket_handler.log(
-            f"✅ Sent update request for document: {doc_name}")
-        # self.socket_handler.log(
-        #     f"merged_requests: {merged_requests}")
 
     def show_text_editor(self):
         """Show text editor window with SVG data from Krita document"""
-        self.socket_handler.log("\n--- Opening Text Editor ---")
+        self.socket_handler.log("--- Opening Story Editor ---")
 
         # Clear any existing data
         self.all_docs_svg_data = None
@@ -376,26 +369,3 @@ If you want multiple paragraphs within different text elements, separate them wi
         self.all_docs_svg_data = all_docs_svg_data
         # Automatically create the window when data is received
         self.create_text_editor_window()
-
-    # def extract_elements_from_svg(self, svg_content):
-    #     """Extract all <text> elements from SVG content"""
-    #     text_elements = []
-
-    #     # Use regex to find all <text> elements
-    #     pattern = r'<text[^>]*>.*?</text>'
-    #     # 1VectorLayerに複数のShapeがある場合は各<text>list_of_update_target
-    #     matches = re.findall(pattern, svg_content, re.DOTALL)
-
-    #     for raw_svg in matches:
-    #         elem = ET.fromstring(raw_svg)
-
-    #         text_content = ''.join(elem.itertext())
-    #         element_id = elem.get('id', '')
-
-    #         text_elements.append({
-    #             'raw_svg': raw_svg,
-    #             'element_id': element_id,
-    #             'text_content': text_content
-    #         })
-
-    #     return text_elements

@@ -32,6 +32,7 @@ def get_svg_from_activenode():
 
         print(f"Layer Name: {active_node.name()}")
         print(f"Node Id: {active_node.uniqueId()}")
+        print(f"Node Id String: {active_node.uniqueId().toString()}")
         print(f"Number of shapes: {len(shapes)}\n")
         print("=" * 60)
 

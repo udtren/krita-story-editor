@@ -134,7 +134,7 @@ class ControlTower(QMainWindow):
         """Send a request to the Krita docker"""
         request = {'action': action, **params}
         json_data = json.dumps(request)
-        self.log(f"📤 Sending: {json_data}")
+        self.log(f"📤 Sending Request to the Agent: {request['action']}")
         self.socket.write(json_data.encode('utf-8'))
         self.socket.flush()
 
@@ -152,9 +152,9 @@ class ControlTower(QMainWindow):
                     f"✅ Text Update Request Finishied: {response['text_update_request_result']}")
                 self.text_editor_handler.refresh_data()
 
-            if 'all_docs_svg_data' in response and response.get('success'):
+            elif 'all_docs_svg_data' in response and response.get('success'):
                 self.log(
-                    f"✅ Received SVG data for all open documents")
+                    f"✅ All docs svg data Received")
 
                 # Route to the appropriate handler based on which one is waiting
                 if self._waiting_for_svg == 'text_editor':
@@ -162,8 +162,12 @@ class ControlTower(QMainWindow):
                         response['all_docs_svg_data'])
                 self._waiting_for_svg = None
 
-            if 'svg_data' not in response and 'all_docs_svg_data' not in response:
-                self.log(f"✅ Parsed response: {response}")
+            elif 'progress' in response:
+                self.log(
+                    f"📋 Agent Progress: {response['progress']}")
+
+            else:
+                self.log(f"Other Response: {response}")
 
         except json.JSONDecodeError as e:
             self.log(f"⚠️ Failed to parse JSON: {e}")

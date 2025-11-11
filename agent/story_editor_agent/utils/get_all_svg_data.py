@@ -33,7 +33,7 @@ def get_all_svg_data(doc):
                 if svg_content:
                     svg_data.append({
                         'layer_name': layer.name(),
-                        'layer_id': str(layer.uniqueId()),
+                        'layer_id': layer.uniqueId().toString(),
                         'svg': svg_content
                     })
 
