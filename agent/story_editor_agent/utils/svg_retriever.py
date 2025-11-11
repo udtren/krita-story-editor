@@ -51,7 +51,7 @@ def get_opened_doc_svg_data(doc):
         )
 
         # Get thumbnail and convert to base64
-        thumbnail_qimage = doc.thumbnail(64, 64)
+        thumbnail_qimage = doc.thumbnail(128, 128)
         thumbnail_base64 = qimage_to_base64(thumbnail_qimage)
 
         if not doc:

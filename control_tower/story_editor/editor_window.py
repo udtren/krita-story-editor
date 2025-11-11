@@ -183,11 +183,13 @@ class StoryEditorWindow:
 
             # Create thumbnail label
             thumbnail_label = QLabel()
-            thumbnail_label.setFixedSize(64, 64)
+            thumbnail_label.setFixedSize(128, 128)
             thumbnail_label.setScaledContents(True)
             thumbnail_label.setStyleSheet(
-                "border: 1px solid #555; background-color: #2b2b2b;"
+                "border: 2px solid #555; background-color: #2b2b2b;"
             )
+            thumbnail_label.setProperty("default_border", "#555")
+            thumbnail_label.setProperty("active_border", "#aaa")
 
             # Load thumbnail from base64 data if available
             if thumbnail:
@@ -217,6 +219,13 @@ class StoryEditorWindow:
                 # No thumbnail available
                 thumbnail_label.setText("No\nPreview")
                 thumbnail_label.setAlignment(Qt.AlignCenter)
+
+            # Make thumbnail clickable
+            if opened:
+                thumbnail_label.setCursor(Qt.PointingHandCursor)
+                thumbnail_label.mousePressEvent = (
+                    lambda _, name=doc_name: self.thumbnail_clicked(name)
+                )
 
             thumbnail_layout.addWidget(thumbnail_label, alignment=Qt.AlignTop)
             thumbnail_layout.addStretch()
@@ -268,10 +277,13 @@ class StoryEditorWindow:
                 doc_header_layout, stretch=0
             )
 
-            # Store button reference for later activation
+            # Store button and thumbnail references for later activation
             if not hasattr(self, "doc_buttons"):
                 self.doc_buttons = {}
+            if not hasattr(self, "doc_thumbnails"):
+                self.doc_thumbnails = {}
             self.doc_buttons[doc_name] = activate_btn
+            self.doc_thumbnails[doc_name] = thumbnail_label
 
             # each document has its own QVBoxLayout wrapped in a container for border
             doc_container = QWidget()
@@ -361,13 +373,35 @@ class StoryEditorWindow:
         # Show the window
         self.text_editor_window.show()
 
-    def activate_document(self, doc_name, clicked_btn):
+    def thumbnail_clicked(self, doc_name):
+        """Handle thumbnail click - activate the document"""
+        self.activate_document(doc_name)
+
+    def activate_document(self, doc_name, clicked_btn=None):
         """Activate a document for adding new text"""
-        # Uncheck all other buttons
+        # Uncheck all other buttons and reset thumbnail borders
         if hasattr(self, "doc_buttons"):
             for name, btn in self.doc_buttons.items():
                 if name != doc_name:
                     btn.setChecked(False)
+                    # Reset thumbnail border
+                    if hasattr(self, "doc_thumbnails") and name in self.doc_thumbnails:
+                        thumbnail = self.doc_thumbnails[name]
+                        default_border = thumbnail.property("default_border")
+                        thumbnail.setStyleSheet(
+                            f"border: 2px solid {default_border}; background-color: #2b2b2b;"
+                        )
+
+        # Check the clicked button and update its thumbnail
+        if hasattr(self, "doc_buttons") and doc_name in self.doc_buttons:
+            self.doc_buttons[doc_name].setChecked(True)
+
+        if hasattr(self, "doc_thumbnails") and doc_name in self.doc_thumbnails:
+            thumbnail = self.doc_thumbnails[doc_name]
+            active_border = thumbnail.property("active_border")
+            thumbnail.setStyleSheet(
+                f"border: 2px solid {active_border}; background-color: #2b2b2b;"
+            )
 
         # Set active document
         self.active_doc_name = doc_name
@@ -436,6 +470,7 @@ class StoryEditorWindow:
 
         # Add to the ACTIVE document's layout
         active_layout.addLayout(svg_section_level_layout)
+        active_layout.setAlignment(svg_section_level_layout, Qt.AlignTop)
 
         # Store reference with metadata marking it as new
         self.all_docs_text_state[self.active_doc_name]["text_edit_widgets"].append(
