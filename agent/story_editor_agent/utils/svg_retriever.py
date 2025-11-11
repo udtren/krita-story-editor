@@ -1,9 +1,9 @@
+from krita import Krita
+import xml.etree.ElementTree as ET
 import zipfile
 import json
-from krita import Krita
+import os
 from .logs import write_log
-import xml.etree.ElementTree as ET
-from ..utils.logs import write_log
 
 
 def get_opened_doc_svg_data(doc):
@@ -22,7 +22,8 @@ def get_opened_doc_svg_data(doc):
         response_data = {
             'document_name': doc_name,
             'document_path': doc_path,
-            'svg_data': svg_data
+            'svg_data': svg_data,
+            'opened': True
         }
         root = doc.rootNode()
 
@@ -46,6 +47,76 @@ def get_opened_doc_svg_data(doc):
         import traceback
         write_log(traceback.format_exc())
         return []
+
+
+def get_all_offline_docs_from_folder(folder_path):
+    """
+    Scan a folder for .kra files and extract SVG data from each
+
+    Args:
+        folder_path: Path to the folder containing .kra files
+
+    Returns:
+        List of dictionaries with SVG data from each .kra file
+    """
+    kra_files_data = []
+
+    try:
+        for filename in os.listdir(folder_path):
+            if filename.lower().endswith('.kra'):
+                kra_path = os.path.join(folder_path, filename)
+                svg_data = get_offline_doc_svg_data(kra_path)
+                kra_files_data.append(svg_data)
+
+        return kra_files_data
+
+    except Exception as e:
+        raise Exception(f"Error scanning folder for .kra files: {e}")
+
+
+def get_offline_doc_svg_data(kra_path):
+    """
+    Extract all text from vector layers in a .kra file
+
+    Args:
+        kra_path: Path to the .kra file
+
+    Returns:
+        List of dictionaries with text layer information
+    """
+    svg_data = []
+    response_data = {
+        # 'document_name': doc_name,
+        'document_path': kra_path,
+        'svg_data': svg_data,
+        'opened': False
+    }
+
+    try:
+        # Open the .kra file as a zip
+        with zipfile.ZipFile(kra_path, 'r') as kra_zip:
+            all_files = kra_zip.namelist()
+
+            # Search for content.svg files
+            for file_path in all_files:
+                if 'content.svg' in file_path and 'shapelayer' in file_path:
+                    # Extract layer folder name from path
+                    parts = file_path.split('/')
+                    layer_folder = parts[-2] if len(parts) >= 2 else 'unknown'
+
+                    # Get SVG content
+                    svg_content = kra_zip.read(file_path).decode('utf-8')
+
+                    if svg_content:
+                        svg_data.append({
+                            'layer_folder': layer_folder,
+                            'svg_content': svg_content
+                        })
+
+            return response_data
+
+    except Exception as e:
+        raise Exception(f"Error reading .kra file: {e}")
 
 
 def get_svg_from_activenode():
@@ -133,3 +204,35 @@ def extract_text_from_svg(svg_content):
         import traceback
         write_log(traceback.format_exc())
         return ''
+
+
+# def _extract_text_from_svg(svg_content):
+#     """Extract text elements from SVG content string"""
+#     try:
+#         # Parse SVG
+#         root = ET.fromstring(svg_content)
+
+#         # Collect text elements with their HTML
+#         text_elements = []
+
+#         # Search for text elements
+#         for elem in root.iter():
+#             tag_lower = elem.tag.lower()
+#             if 'text' in tag_lower and elem.tag.endswith('text'):
+#                 # Get the text content
+#                 elem_text = ''.join(elem.itertext()).strip()
+
+#                 if elem_text:
+#                     # Convert element to HTML string (outer HTML)
+#                     outer_html = ET.tostring(
+#                         elem, encoding='unicode', method='xml')
+
+#                     text_elements.append({
+#                         'text': elem_text,
+#                         'html': outer_html
+#                     })
+
+#         return text_elements
+
+#     except Exception as e:
+#         raise Exception(f"Error parsing SVG: {e}")
