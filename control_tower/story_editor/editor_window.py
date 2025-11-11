@@ -10,8 +10,8 @@ from PyQt5.QtWidgets import (
     QAction,
 )
 from PyQt5.QtSvg import QSvgWidget
-from PyQt5.QtCore import QByteArray, QTimer, QSize
-from PyQt5.QtGui import QIcon
+from PyQt5.QtCore import QByteArray, QTimer, QSize, Qt
+from PyQt5.QtGui import QIcon, QTransform
 import xml.etree.ElementTree as ET
 import re
 import uuid
@@ -96,6 +96,7 @@ class StoryEditorWindow:
         # Create new window
         self.text_editor_window = QWidget()
         self.text_editor_window.setWindowTitle("Story Editor")
+        self.text_editor_window.setStyleSheet("background-color: #81623f;")
 
         # Restore previous geometry or use default size
         if window_geometry:
@@ -115,9 +116,9 @@ class StoryEditorWindow:
         toolbar.setStyleSheet(
             """
             QToolBar {
-                background-color: #E0E0E0;
+                background-color: #8e764e;
                 border: none;
-                padding: 4px;
+                padding: 2px;
             }
         """
         )
@@ -133,7 +134,6 @@ class StoryEditorWindow:
         )
         new_text_btn.setStatusTip("Add a new text widget")
         new_text_btn.triggered.connect(self.add_new_text_widget)
-        new_text_btn.setCheckable(True)
         toolbar.addAction(new_text_btn)
 
         refresh_btn = QAction(
@@ -143,7 +143,6 @@ class StoryEditorWindow:
         )
         refresh_btn.setStatusTip("Reload text data from Krita document")
         refresh_btn.triggered.connect(self.refresh_data)
-        refresh_btn.setCheckable(True)
         toolbar.addAction(refresh_btn)
 
         update_btn = QAction(
@@ -153,10 +152,11 @@ class StoryEditorWindow:
         )
         update_btn.setStatusTip("Update Krita")
         update_btn.triggered.connect(self.send_merged_svg_request)
-        update_btn.setCheckable(True)
         toolbar.addAction(update_btn)
 
         #################################
+
+        horizon_layout_for_active_and_texteditor = QHBoxLayout()
 
         # VBoxLayout for all layers
         for doc_data in self.all_docs_svg_data:
@@ -177,9 +177,29 @@ class StoryEditorWindow:
             doc_header_layout = QHBoxLayout()
 
             # Activate button for this document
-            activate_btn = QPushButton(f"📄 {doc_name}")
+            # Add line breaks between each character for vertical text
+            vertical_text = "\n".join(f"{doc_name}")
+            activate_btn = QPushButton(vertical_text)
+            activate_btn.setFixedWidth(40)  # Make button thin
+            activate_btn.setMinimumHeight(200)  # Make button tall
+
             if not opened:
-                activate_btn.setStyleSheet("color: gray; font-style: italic;")
+                activate_btn.setStyleSheet(
+                    """
+                    QPushButton {
+                        font-style: italic;
+                        padding-top: 2px;
+                        padding-bottom: 0px;
+                        padding-left: 2px;
+                        padding-right: 2px;
+                        font-weight: bold;
+                        text-align: center;
+                        font-size: 10pt;
+                        color: #a6a6a6;
+                        background-color: #909090;
+                    }
+                    """
+                )
                 activate_btn.setEnabled(False)  # Make button unclickable
                 activate_btn.setToolTip(
                     f"This document is not currently open in Krita\nPath: {doc_path}"
@@ -197,19 +217,27 @@ class StoryEditorWindow:
                 activate_btn.setStyleSheet(
                     """
                     QPushButton {
-                        text-align: left;
-                        padding: 8px;
+                        text-align: center;
+                        padding-top: 2px;
+                        padding-bottom: 0px;
+                        padding-left: 2px;
+                        padding-right: 2px;
                         font-weight: bold;
+                        font-size: 10pt;
+                        background-color: #7c7c7c;
+                        color: #393939;
                     }
                     QPushButton:checked {
-                        background-color: #4A9EFF;
-                        color: white;
+                        background-color: #a5a5a5;
+                        color: #393939;
                     }
                 """
                 )
-            doc_header_layout.addWidget(activate_btn)
+            doc_header_layout.addWidget(activate_btn, alignment=Qt.AlignTop)
             doc_header_layout.addStretch()
-            main_layout.addLayout(doc_header_layout)
+            horizon_layout_for_active_and_texteditor.addLayout(
+                doc_header_layout, stretch=0
+            )
 
             # Store button reference for later activation
             if not hasattr(self, "doc_buttons"):
@@ -291,8 +319,11 @@ class StoryEditorWindow:
                     doc_level_layers_layout.addLayout(svg_section_level_layout)
 
             # Add each document layout to main layout (AFTER all layers processed)
-            main_layout.addLayout(doc_level_layers_layout)
+            horizon_layout_for_active_and_texteditor.addLayout(
+                doc_level_layers_layout, stretch=1
+            )
 
+        main_layout.addLayout(horizon_layout_for_active_and_texteditor)
         main_layout.addStretch()
 
         # Show the window
@@ -324,10 +355,7 @@ class StoryEditorWindow:
 
         # Default template path
         default_template = "svg_templates/default_1.xml"
-        placeholder_text = """Enter new text here.
-
-
-If you want multiple paragraphs within different text elements, separate them with double line breaks."""
+        placeholder_text = """If you want multiple paragraphs within different text elements, separate them with double line breaks."""
 
         # Create new layout for this text element
         svg_section_level_layout = QHBoxLayout()
@@ -347,6 +375,7 @@ If you want multiple paragraphs within different text elements, separate them wi
         choose_template_combo = QComboBox()
         choose_template_combo.setMinimumWidth(200)
         choose_template_combo.setMaximumWidth(400)
+        choose_template_combo.setStyleSheet("color: black;")
 
         # Find all XML files in svg_templates directory
         template_dir = "svg_templates"
@@ -371,7 +400,7 @@ If you want multiple paragraphs within different text elements, separate them wi
         if default_index >= 0:
             choose_template_combo.setCurrentIndex(default_index)
 
-        svg_section_level_layout.addWidget(choose_template_combo)
+        svg_section_level_layout.addWidget(choose_template_combo, alignment=Qt.AlignTop)
 
         # Add to the ACTIVE document's layout
         active_layout.addLayout(svg_section_level_layout)

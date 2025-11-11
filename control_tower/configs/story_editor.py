@@ -16,12 +16,13 @@ TEXT_EDITOR_MIN_HEIGHT = 80
 TEXT_EDITOR_MAX_HEIGHT = 300
 
 # TSpan Editor Colors
-TSPAN_BORDER_COLOR = "#555"
-TSPAN_BACKGROUND_COLOR = "#2b2b2b"
-TSPAN_TEXT_COLOR = "#ffffff"
-TSPAN_FOCUS_BORDER_COLOR = "#4A9EFF"
+TSPAN_FONT_SIZE = 24
+TSPAN_BORDER_COLOR = "#595959"
+TSPAN_BACKGROUND_COLOR = "#333333"
+TSPAN_TEXT_COLOR = "#9C9C9C"
+TSPAN_FOCUS_BORDER_COLOR = "#8c8c8c"
 TSPAN_SELECTION_COLOR = "#4A9EFF"
-TSPAN_SELECTION_TEXT_COLOR = "#000000"
+TSPAN_SELECTION_TEXT_COLOR = "#C5C5C5"
 
 # Style Label Colors
 STYLE_LABEL_COLOR = "#888"
@@ -57,9 +58,10 @@ def get_tspan_editor_stylesheet():
         QTextEdit {{
             background-color: {TSPAN_BACKGROUND_COLOR};
             color: {TSPAN_TEXT_COLOR};
+            font-size: {TSPAN_FONT_SIZE}px;
             border: 2px solid {TSPAN_BORDER_COLOR};
-            border-radius: 4px;
-            padding: 8px;
+            border-radius: 2px;
+            padding: 2px;
             selection-background-color: {TSPAN_SELECTION_COLOR};
             selection-color: {TSPAN_SELECTION_TEXT_COLOR};
         }}
@@ -68,9 +70,9 @@ def get_tspan_editor_stylesheet():
             border: 2px solid {TSPAN_FOCUS_BORDER_COLOR};
         }}
         
-        QTextEdit:hover {{
-            border: 2px solid #666;
-        }}
+        # QTextEdit:hover {{
+        #     border: 2px solid #666;
+        # }}
     """
 
 
