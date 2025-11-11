@@ -11,7 +11,7 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtSvg import QSvgWidget
 from PyQt5.QtCore import QByteArray, QTimer, QSize, Qt
-from PyQt5.QtGui import QIcon, QTransform
+from PyQt5.QtGui import QIcon, QTransform, QPixmap
 import xml.etree.ElementTree as ET
 import re
 import uuid
@@ -174,6 +174,58 @@ class StoryEditorWindow:
             doc_path = doc_data.get("document_path", "unknown")
             self.svg_data = doc_data.get("svg_data", [])
             opened = doc_data.get("opened", True)
+            thumbnail = doc_data.get("thumbnail", None)
+
+            ###################################################
+            # Thumbnail QVBoxLayout
+            ###################################################
+            thumbnail_layout = QVBoxLayout()
+
+            # Create thumbnail label
+            thumbnail_label = QLabel()
+            thumbnail_label.setFixedSize(64, 64)
+            thumbnail_label.setScaledContents(True)
+            thumbnail_label.setStyleSheet(
+                "border: 1px solid #555; background-color: #2b2b2b;"
+            )
+
+            # Load thumbnail from base64 data if available
+            if thumbnail:
+                try:
+                    # Remove the data URI prefix if present
+                    if thumbnail.startswith("data:image"):
+                        thumbnail_data = thumbnail.split(",", 1)[1]
+                    else:
+                        thumbnail_data = thumbnail
+
+                    # Decode base64 to bytes
+                    import base64
+
+                    image_bytes = base64.b64decode(thumbnail_data)
+
+                    # Create QPixmap from bytes
+                    pixmap = QPixmap()
+                    pixmap.loadFromData(QByteArray(image_bytes))
+
+                    # Set the pixmap to label
+                    thumbnail_label.setPixmap(pixmap)
+                except Exception as e:
+                    # If loading fails, show placeholder text
+                    thumbnail_label.setText("No\nPreview")
+                    thumbnail_label.setAlignment(Qt.AlignCenter)
+            else:
+                # No thumbnail available
+                thumbnail_label.setText("No\nPreview")
+                thumbnail_label.setAlignment(Qt.AlignCenter)
+
+            thumbnail_layout.addWidget(thumbnail_label, alignment=Qt.AlignTop)
+            thumbnail_layout.addStretch()
+
+            # Add thumbnail layout to main horizontal layout
+            horizon_layout_for_active_and_texteditor.addLayout(
+                thumbnail_layout, stretch=0
+            )
+            ###################################################
 
             self.all_docs_text_state[doc_name] = {
                 "document_name": doc_name,
@@ -221,8 +273,13 @@ class StoryEditorWindow:
                 self.doc_buttons = {}
             self.doc_buttons[doc_name] = activate_btn
 
-            # each document has its own QVBoxLayout
-            doc_level_layers_layout = QVBoxLayout()
+            # each document has its own QVBoxLayout wrapped in a container for border
+            doc_container = QWidget()
+            doc_level_layers_layout = QVBoxLayout(doc_container)
+            doc_level_layers_layout.setContentsMargins(5, 5, 5, 5)
+            doc_container.setStyleSheet(
+                "border: 2px solid #333333; background-color: transparent;"
+            )
 
             # Store the layout for this document
             self.doc_layouts[doc_name] = doc_level_layers_layout
@@ -295,10 +352,8 @@ class StoryEditorWindow:
 
                     doc_level_layers_layout.addLayout(svg_section_level_layout)
 
-            # Add each document layout to main layout (AFTER all layers processed)
-            horizon_layout_for_active_and_texteditor.addLayout(
-                doc_level_layers_layout, stretch=1
-            )
+            # Add each document container to main layout (AFTER all layers processed)
+            horizon_layout_for_active_and_texteditor.addWidget(doc_container, stretch=1)
 
         main_layout.addLayout(horizon_layout_for_active_and_texteditor)
         main_layout.addStretch()

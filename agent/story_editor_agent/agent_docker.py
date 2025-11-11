@@ -353,6 +353,9 @@ class StoryEditorAgentDocker(QDockWidget):
                         response = {"success": False, "error": str(e)}
                     ####################################################
 
+                # Sort all_svg_data by document_name
+                all_svg_data.sort(key=lambda x: x.get("document_name", ""))
+
                 response = {"success": True, "all_docs_svg_data": all_svg_data}
                 write_log(f"all_docs_svg_data: {all_svg_data}")
                 client.write(json.dumps(response).encode("utf-8"))

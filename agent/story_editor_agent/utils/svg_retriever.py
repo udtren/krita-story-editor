@@ -3,7 +3,25 @@ import xml.etree.ElementTree as ET
 import zipfile
 import json
 import os
+import base64
+from PyQt5.QtCore import QByteArray, QBuffer, QIODevice
 from .logs import write_log
+
+
+def qimage_to_base64(qimage):
+    """Convert QImage to base64-encoded PNG string"""
+    if qimage is None or qimage.isNull():
+        return None
+
+    byte_array = QByteArray()
+    buffer = QBuffer(byte_array)
+    buffer.open(QIODevice.WriteOnly)
+    qimage.save(buffer, "PNG")
+    buffer.close()
+
+    # Convert to base64 string
+    base64_str = base64.b64encode(byte_array.data()).decode("utf-8")
+    return f"data:image/png;base64,{base64_str}"
 
 
 def krita_file_name_safe(doc):
@@ -32,6 +50,10 @@ def get_opened_doc_svg_data(doc):
             else "krita_file_not_saved"
         )
 
+        # Get thumbnail and convert to base64
+        thumbnail_qimage = doc.thumbnail(64, 64)
+        thumbnail_base64 = qimage_to_base64(thumbnail_qimage)
+
         if not doc:
             write_log("[ERROR] No active document")
             return []
@@ -44,6 +66,7 @@ def get_opened_doc_svg_data(doc):
             "document_path": os.path.normpath(doc_path),
             "svg_data": svg_data,
             "opened": True,
+            "thumbnail": thumbnail_base64,
         }
         root = doc.rootNode()
 
@@ -125,12 +148,26 @@ def _get_offline_doc_svg_data(kra_path):
         "document_path": kra_path,
         "svg_data": svg_data,
         "opened": False,
+        "thumbnail": None,
     }
 
     try:
         # Open the .kra file as a zip
         with zipfile.ZipFile(kra_path, "r") as kra_zip:
             all_files = kra_zip.namelist()
+
+            # Extract preview.png if available
+            if "preview.png" in all_files:
+                try:
+                    preview_data = kra_zip.read("preview.png")
+                    # Convert to base64
+                    preview_base64 = base64.b64encode(preview_data).decode("utf-8")
+                    response_data["thumbnail"] = (
+                        f"data:image/png;base64,{preview_base64}"
+                    )
+                except Exception as e:
+                    write_log(f"[WARNING] Could not read preview.png: {e}")
+                    response_data["thumbnail"] = None
 
             # Search for content.svg files
             for index, file_path in enumerate(all_files):
