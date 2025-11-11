@@ -3,20 +3,33 @@ from krita import *
 from PyQt5.QtNetwork import QLocalServer, QLocalSocket
 from PyQt5.QtCore import QByteArray
 from PyQt5.QtWidgets import (
-    QWidget, QVBoxLayout, QPushButton, QTextEdit, QDialog, QDialogButtonBox, QLabel)
+    QWidget,
+    QVBoxLayout,
+    QPushButton,
+    QTextEdit,
+    QDialog,
+    QDialogButtonBox,
+    QLabel,
+)
 import json
 import io
 import zipfile
 import sys
-from .utils import (get_opened_doc_svg_data, add_svg_layer_to_doc,
-                    get_svg_from_activenode, update_doc_layers_svg, get_all_offline_docs_from_folder,
-                    update_offline_kra_file)
+from .utils import (
+    get_opened_doc_svg_data,
+    add_svg_layer_to_doc,
+    get_svg_from_activenode,
+    update_doc_layers_svg,
+    get_all_offline_docs_from_folder,
+    update_offline_kra_file,
+    krita_file_name_safe,
+)
 from .configs.story_editor_agent import (
     DIALOG_WIDTH,
     DIALOG_HEIGHT,
     get_output_dialog_stylesheet,
     get_dialog_label_stylesheet,
-    get_dialog_stylesheet
+    get_dialog_stylesheet,
 )
 from .utils.logs import write_log
 
@@ -45,7 +58,8 @@ class StoryEditorAgentDocker(QDockWidget):
         get_svg_from_activenode_btn = QPushButton("Get SVG from Active Node")
         get_svg_from_activenode_btn.clicked.connect(self.show_active_node_svg)
         get_svg_from_activenode_btn.setToolTip(
-            "Click to view SVG data from the currently active vector layer")
+            "Click to view SVG data from the currently active vector layer"
+        )
         layout.addWidget(get_svg_from_activenode_btn)
 
         layout.addStretch()
@@ -84,15 +98,15 @@ class StoryEditorAgentDocker(QDockWidget):
         layout = QVBoxLayout(dialog)
 
         # Info label
-        label = QLabel(
-            "SVG data from active vector layer (you can select and copy):")
+        label = QLabel("SVG data from active vector layer (you can select and copy):")
         label.setStyleSheet(get_dialog_label_stylesheet())
         layout.addWidget(label)
 
         # Text display
         text_edit = QTextEdit()
         text_edit.setPlainText(
-            output_text if output_text else "No output or no active vector layer")
+            output_text if output_text else "No output or no active vector layer"
+        )
         text_edit.setReadOnly(True)
         text_edit.setStyleSheet(get_output_dialog_stylesheet())
         layout.addWidget(text_edit)
@@ -110,16 +124,17 @@ class StoryEditorAgentDocker(QDockWidget):
         self.clients.append(client)
 
     def handle_message(self, client):
-        data = client.readAll().data().decode('utf-8')
+        data = client.readAll().data().decode("utf-8")
         request = json.loads(data)
 
         # Process request and interact with Krita
-        match request['action']:
-            case 'docs_svg_update':
+        match request["action"]:
+            case "docs_svg_update":
                 try:
                     opened_docs = Krita.instance().documents()
-                    merged_requests = request.get(
-                        'merged_requests', {})
+                    merged_requests = request.get("merged_requests", {})
+
+                    write_log(f"Received merged requests: {merged_requests}")
 
                     ############################################################
                     # Separate opened and offline requests
@@ -128,21 +143,21 @@ class StoryEditorAgentDocker(QDockWidget):
                     offline_docs_requests = []
 
                     for doc_data in merged_requests:
-                        if doc_data.get('opened', False):
+                        if doc_data.get("opened", False):
                             opened_docs_requests.append(doc_data)
                         else:
                             offline_docs_requests.append(doc_data)
 
                     # Sort both lists by document_name
-                    opened_docs_requests.sort(
-                        key=lambda x: x.get('document_name', ''))
-                    offline_docs_requests.sort(
-                        key=lambda x: x.get('document_name', ''))
+                    opened_docs_requests.sort(key=lambda x: x.get("document_name", ""))
+                    offline_docs_requests.sort(key=lambda x: x.get("document_name", ""))
 
                     write_log(
-                        f"Opened documents: {[d.get('document_name') for d in opened_docs_requests]}")
+                        f"Opened documents: {[d.get('document_name') for d in opened_docs_requests]}"
+                    )
                     write_log(
-                        f"Offline documents: {[d.get('document_name') for d in offline_docs_requests]}")
+                        f"Offline documents: {[d.get('document_name') for d in offline_docs_requests]}"
+                    )
                     ############################################################
 
                     ############################################################
@@ -152,127 +167,156 @@ class StoryEditorAgentDocker(QDockWidget):
 
                     for doc in opened_docs:
                         for doc_data in opened_docs_requests:
-                            if doc.name() == doc_data.get('document_name'):
 
-                                for doc_layers_data in doc_data.get('requests', []):
+                            write_log(f"[DEBUG] Document: {krita_file_name_safe(doc)}")
+                            if krita_file_name_safe(doc) == doc_data.get(
+                                "document_name"
+                            ):
+
+                                for doc_layers_data in doc_data.get("requests", []):
 
                                     text_edit_type = doc_layers_data.get(
-                                        'text_edit_type', None)
+                                        "text_edit_type", None
+                                    )
 
-                                    if text_edit_type == 'existing_texts_updated':
-                                        '''updates_with_doc_info = {
+                                    if text_edit_type == "existing_texts_updated":
+                                        """updates_with_doc_info = {
                                             'document_name': doc_name,
                                             'layer_groups': layer_groups
-                                        }'''
-                                        updates_with_doc_info = doc_layers_data['data']
+                                        }"""
+                                        updates_with_doc_info = doc_layers_data["data"]
 
                                         result = update_doc_layers_svg(
-                                            doc, updates_with_doc_info.get('layer_groups', []), client)
+                                            doc,
+                                            updates_with_doc_info.get(
+                                                "layer_groups", []
+                                            ),
+                                            client,
+                                        )
 
-                                        if result['success']:
-                                            if result.get('removed_shapes_count') == 0:
+                                        if result["success"]:
+                                            if result.get("removed_shapes_count") == 0:
                                                 online_progress_messages.append(
-                                                    f"{doc.name()}: Updated existing texts.\n   {result.get('updated_layer_count')} layers modified.")
+                                                    f"{krita_file_name_safe(doc)}: Updated existing texts.\n   {result.get('updated_layer_count')} layers modified."
+                                                )
 
-                                            elif result.get('removed_shapes_count') > 0:
+                                            elif result.get("removed_shapes_count") > 0:
                                                 online_progress_messages.append(
-                                                    f"{doc.name()}: Updated existing texts.\n   {result.get('updated_layer_count')} layers modified.\n   Removed {result.get('removed_shapes_count')} shapes.")
+                                                    f"{krita_file_name_safe(doc)}: Updated existing texts.\n   {result.get('updated_layer_count')} layers modified.\n   Removed {result.get('removed_shapes_count')} shapes."
+                                                )
                                         else:
                                             online_progress_messages.append(
-                                                f"{doc.name()}: Updating existing texts failed.")
+                                                f"{krita_file_name_safe(doc)}: Updating existing texts failed."
+                                            )
 
                                     elif text_edit_type == "new_texts_added":
-                                        '''new_texts_with_doc_info = {
+                                        """new_texts_with_doc_info = {
                                             'document_name': doc_name,
                                             'new_texts': new_texts
-                                        }'''
-                                        new_texts_with_doc_info = doc_layers_data['data']
+                                        }"""
+                                        new_texts_with_doc_info = doc_layers_data[
+                                            "data"
+                                        ]
 
-                                        for new_text in new_texts_with_doc_info.get('new_texts', []):
-                                            svg_data = new_text.get(
-                                                'svg_data', '')
+                                        for new_text in new_texts_with_doc_info.get(
+                                            "new_texts", []
+                                        ):
+                                            svg_data = new_text.get("svg_data", "")
 
-                                            add_svg_layer_to_doc(
-                                                doc, svg_data)
+                                            add_svg_layer_to_doc(doc, svg_data)
                                         online_progress_messages.append(
-                                            f"{doc.name()}: New texts created.\n   Added {len(new_texts_with_doc_info.get('new_texts', []))} new layers.")
+                                            f"{krita_file_name_safe(doc)}: New texts created.\n   Added {len(new_texts_with_doc_info.get('new_texts', []))} new layers."
+                                        )
 
                     ############################################################
                     # Update Offline Documents
                     ############################################################
                     offline_progress_messages = []
 
-                    if request.get('krita_files_folder', None) and offline_docs_requests:
-                        krita_files_folder = request.get('krita_files_folder')
+                    if (
+                        request.get("krita_files_folder", None)
+                        and offline_docs_requests
+                    ):
+                        krita_files_folder = request.get("krita_files_folder")
 
                         write_log(
-                            f"Updating offline .kra files in folder: {[d.get('document_name') for d in offline_docs_requests]}")
+                            f"Updating offline .kra files in folder: {[d.get('document_name') for d in offline_docs_requests]}"
+                        )
 
                         for doc_data in offline_docs_requests:
-                            doc_name = doc_data.get('document_name')
-                            kra_path = os.path.join(
-                                krita_files_folder, doc_name)
+                            doc_name = doc_data.get("document_name")
+                            kra_path = os.path.join(krita_files_folder, doc_name)
 
                             # Check if file exists
                             if not os.path.exists(kra_path):
-                                write_log(
-                                    f"[WARNING] File not found: {kra_path}")
+                                write_log(f"[WARNING] File not found: {kra_path}")
                                 continue
 
                             try:
                                 # Process each text edit request for this document
-                                for doc_layers_data in doc_data.get('requests', []):
+                                for doc_layers_data in doc_data.get("requests", []):
                                     text_edit_type = doc_layers_data.get(
-                                        'text_edit_type', None)
+                                        "text_edit_type", None
+                                    )
 
-                                    if text_edit_type == 'existing_texts_updated':
-                                        updates_with_doc_info = doc_layers_data['data']
+                                    if text_edit_type == "existing_texts_updated":
+                                        updates_with_doc_info = doc_layers_data["data"]
                                         layer_groups = updates_with_doc_info.get(
-                                            'layer_groups', {})
+                                            "layer_groups", {}
+                                        )
 
                                         result = update_offline_kra_file(
-                                            kra_path, layer_groups)
+                                            kra_path, layer_groups
+                                        )
 
-                                        if result['success']:
-                                            if result.get('removed_shapes_count') == 0:
+                                        if result["success"]:
+                                            if result.get("removed_shapes_count") == 0:
                                                 offline_progress_messages.append(
-                                                    f"{doc_name} (offline): Updated existing texts.\n   {result.get('updated_layer_count')} layers modified.")
+                                                    f"{doc_name} (offline): Updated existing texts.\n   {result.get('updated_layer_count')} layers modified."
+                                                )
 
-                                            elif result.get('removed_shapes_count') > 0:
+                                            elif result.get("removed_shapes_count") > 0:
                                                 offline_progress_messages.append(
-                                                    f"{doc_name} (offline): Updated existing texts.\n   {result.get('updated_layer_count')} layers modified.\n   Removed {result.get('removed_shapes_count')} shapes.")
+                                                    f"{doc_name} (offline): Updated existing texts.\n   {result.get('updated_layer_count')} layers modified.\n   Removed {result.get('removed_shapes_count')} shapes."
+                                                )
                                         else:
                                             offline_progress_messages.append(
-                                                f"{doc_name} (offline): Updating existing texts failed.")
+                                                f"{doc_name} (offline): Updating existing texts failed."
+                                            )
 
                                     else:
                                         write_log(
-                                            f"[INFO] text_edit_type is {text_edit_type}. Skipping.")
+                                            f"[INFO] text_edit_type is {text_edit_type}. Skipping."
+                                        )
 
                             except Exception as e:
                                 write_log(
-                                    f"[ERROR] Failed to update offline file {doc_name}: {e}")
+                                    f"[ERROR] Failed to update offline file {doc_name}: {e}"
+                                )
 
                     ############################################################
                     final_message = "Text update applied successfully"
                     if online_progress_messages:
-                        final_message += "\n\nOnline files:\n" + \
-                            "\n".join(online_progress_messages)
+                        final_message += "\n\nOnline files:\n" + "\n".join(
+                            online_progress_messages
+                        )
                     if offline_progress_messages:
-                        final_message += "\n\nOffline files:\n" + \
-                            "\n".join(offline_progress_messages)
+                        final_message += "\n\nOffline files:\n" + "\n".join(
+                            offline_progress_messages
+                        )
 
-                    response = {'success': True,
-                                'docs_svg_update_result': final_message}
-                    client.write(json.dumps(response).encode('utf-8'))
+                    response = {
+                        "success": True,
+                        "docs_svg_update_result": final_message,
+                    }
+                    client.write(json.dumps(response).encode("utf-8"))
                 except Exception as e:
-                    response = {'success': False,
-                                'docs_svg_update_result': str(e)}
-                    client.write(json.dumps(response).encode('utf-8'))
+                    response = {"success": False, "docs_svg_update_result": str(e)}
+                    client.write(json.dumps(response).encode("utf-8"))
 
-            case 'get_all_docs_svg_data':
+            case "get_all_docs_svg_data":
                 opened_docs = Krita.instance().documents()
-                krita_folder_path = request.get('folder_path', None)
+                krita_folder_path = request.get("folder_path", None)
                 all_svg_data = []
                 opened_docs_path = []
 
@@ -280,18 +324,18 @@ class StoryEditorAgentDocker(QDockWidget):
                 # Get all docs svg data from opened documents
                 ####################################################
                 if not opened_docs:
-                    response = {'success': False,
-                                'error': 'No single active document'}
+                    response = {"success": False, "error": "No single active document"}
                 else:
                     try:
                         for doc in opened_docs:
                             response_data = get_opened_doc_svg_data(doc)
                             all_svg_data.append(response_data)
                             opened_docs_path.append(
-                                response_data.get('document_path', ''))
+                                response_data.get("document_path", "")
+                            )
 
                     except Exception as e:
-                        response = {'success': False, 'error': str(e)}
+                        response = {"success": False, "error": str(e)}
                 ####################################################
 
                 if krita_folder_path:
@@ -301,22 +345,25 @@ class StoryEditorAgentDocker(QDockWidget):
                     try:
                         write_log(f"Opened docs path: {opened_docs_path}")
                         offline_docs_svg_data = get_all_offline_docs_from_folder(
-                            krita_folder_path, opened_docs_path)
+                            krita_folder_path, opened_docs_path
+                        )
                         all_svg_data.extend(offline_docs_svg_data)
 
                     except Exception as e:
-                        response = {'success': False, 'error': str(e)}
+                        response = {"success": False, "error": str(e)}
                     ####################################################
 
-                response = {'success': True,
-                            'all_docs_svg_data': all_svg_data}
-                client.write(json.dumps(response).encode('utf-8'))
+                response = {"success": True, "all_docs_svg_data": all_svg_data}
+                write_log(f"all_docs_svg_data: {all_svg_data}")
+                client.write(json.dumps(response).encode("utf-8"))
 
             case _:
                 # Unknown action
-                response = {'success': False,
-                            'error': f"Unknown action: {request['action']}"}
-                client.write(json.dumps(response).encode('utf-8'))
+                response = {
+                    "success": False,
+                    "error": f"Unknown action: {request['action']}",
+                }
+                client.write(json.dumps(response).encode("utf-8"))
 
 
 class StoryEditorAgentFactory(DockWidgetFactoryBase):

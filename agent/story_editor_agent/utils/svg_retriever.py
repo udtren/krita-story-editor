@@ -6,24 +6,44 @@ import os
 from .logs import write_log
 
 
+def krita_file_name_safe(doc):
+    if doc.name() == "":
+        if doc.fileName():
+            doc_path = doc.fileName()
+            doc_name = (
+                os.path.basename(doc_path).replace(".kra", "")
+                if doc
+                else "krita_file_not_saved"
+            )
+        else:
+            doc_name = "krita_file_not_saved"
+    else:
+        doc_name = doc.name()
+    return doc_name
+
+
 def get_opened_doc_svg_data(doc):
     """Extract text content from all vector layers using Krita API"""
     try:
         doc_path = doc.fileName() if doc else "krita_file_not_saved"
-        doc_name = doc.name() if doc else "krita_file_not_saved"
+        doc_name = (
+            os.path.basename(doc_path).replace(".kra", "")
+            if doc
+            else "krita_file_not_saved"
+        )
 
         if not doc:
             write_log("[ERROR] No active document")
             return []
 
-        write_log(f"[DEBUG] Document: {doc.name()}")
+        write_log(f"[DEBUG] Document: {doc_name}")
 
         svg_data = []
         response_data = {
-            'document_name': doc_name,
-            'document_path': os.path.normpath(doc_path),
-            'svg_data': svg_data,
-            'opened': True
+            "document_name": doc_name,
+            "document_path": os.path.normpath(doc_path),
+            "svg_data": svg_data,
+            "opened": True,
         }
         root = doc.rootNode()
 
@@ -33,11 +53,13 @@ def get_opened_doc_svg_data(doc):
                 svg_content = layer.toSvg()
 
                 if svg_content:
-                    svg_data.append({
-                        'layer_name': layer.name(),
-                        'layer_id': layer.uniqueId().toString(),
-                        'svg': svg_content
-                    })
+                    svg_data.append(
+                        {
+                            "layer_name": layer.name(),
+                            "layer_id": layer.uniqueId().toString(),
+                            "svg": svg_content,
+                        }
+                    )
 
         write_log(json.dumps(svg_data))
         return response_data
@@ -45,6 +67,7 @@ def get_opened_doc_svg_data(doc):
     except Exception as e:
         write_log(f"Error extracting vector text: {e}")
         import traceback
+
         write_log(traceback.format_exc())
         return []
 
@@ -64,7 +87,9 @@ def get_all_offline_docs_from_folder(folder_path, opened_docs_path=[]):
 
     try:
         for filename in os.listdir(folder_path):
-            if filename.lower().endswith('.kra') and not filename.lower().endswith('.kra-autosave.kra'):
+            if filename.lower().endswith(".kra") and not filename.lower().endswith(
+                ".kra-autosave.kra"
+            ):
                 kra_path = os.path.join(folder_path, filename)
                 kra_path = os.path.normpath(kra_path)
 
@@ -96,33 +121,35 @@ def _get_offline_doc_svg_data(kra_path):
     """
     svg_data = []
     response_data = {
-        'document_name': os.path.basename(kra_path),
-        'document_path': kra_path,
-        'svg_data': svg_data,
-        'opened': False
+        "document_name": os.path.basename(kra_path),
+        "document_path": kra_path,
+        "svg_data": svg_data,
+        "opened": False,
     }
 
     try:
         # Open the .kra file as a zip
-        with zipfile.ZipFile(kra_path, 'r') as kra_zip:
+        with zipfile.ZipFile(kra_path, "r") as kra_zip:
             all_files = kra_zip.namelist()
 
             # Search for content.svg files
             for index, file_path in enumerate(all_files):
-                if 'content.svg' in file_path and 'shapelayer' in file_path:
+                if "content.svg" in file_path and "shapelayer" in file_path:
                     # Extract layer folder name from path
-                    parts = file_path.split('/')
-                    layer_folder = parts[-2] if len(parts) >= 2 else 'unknown'
+                    parts = file_path.split("/")
+                    layer_folder = parts[-2] if len(parts) >= 2 else "unknown"
 
                     # Get SVG content
-                    svg_content = kra_zip.read(file_path).decode('utf-8')
+                    svg_content = kra_zip.read(file_path).decode("utf-8")
 
                     if svg_content:
-                        svg_data.append({
-                            'layer_name': layer_folder,
-                            'layer_id': layer_folder,
-                            'svg': svg_content
-                        })
+                        svg_data.append(
+                            {
+                                "layer_name": layer_folder,
+                                "layer_id": layer_folder,
+                                "svg": svg_content,
+                            }
+                        )
 
             return response_data
 
@@ -187,24 +214,19 @@ def extract_text_from_svg(svg_content):
         # Search for text elements (with namespace)
         for elem in root.iter():
             tag_lower = elem.tag.lower()
-            if 'text' in tag_lower and elem.tag.endswith('text'):
+            if "text" in tag_lower and elem.tag.endswith("text"):
                 # This is a <text> element, not a <textPath> or similar
                 write_log(f"[DEBUG] Found text element with tag: {elem.tag}")
 
                 # Get the text content
-                elem_text = ''.join(elem.itertext()).strip()
+                elem_text = "".join(elem.itertext()).strip()
 
                 if elem_text:
                     # Convert element to HTML string (outer HTML)
-                    outer_html = ET.tostring(
-                        elem, encoding='unicode', method='xml')
+                    outer_html = ET.tostring(elem, encoding="unicode", method="xml")
 
-                    text_elements.append({
-                        'text': elem_text,
-                        'html': outer_html
-                    })
-                    write_log(
-                        f"[DEBUG] Extracted text element #{len(text_elements)}")
+                    text_elements.append({"text": elem_text, "html": outer_html})
+                    write_log(f"[DEBUG] Extracted text element #{len(text_elements)}")
 
         write_log(f"[DEBUG] Total text elements found: {len(text_elements)}")
 
@@ -213,8 +235,9 @@ def extract_text_from_svg(svg_content):
     except Exception as e:
         write_log(f"Error parsing SVG: {e}")
         import traceback
+
         write_log(traceback.format_exc())
-        return ''
+        return ""
 
 
 # def _extract_text_from_svg(svg_content):
