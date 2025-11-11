@@ -64,7 +64,7 @@ def get_all_offline_docs_from_folder(folder_path, opened_docs_path=[]):
 
     try:
         for filename in os.listdir(folder_path):
-            if filename.lower().endswith('.kra'):
+            if filename.lower().endswith('.kra') and not filename.lower().endswith('.kra-autosave.kra'):
                 kra_path = os.path.join(folder_path, filename)
                 kra_path = os.path.normpath(kra_path)
 
