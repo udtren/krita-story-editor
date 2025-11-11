@@ -1,14 +1,13 @@
-from .utils.logs import write_log
 from krita import *
 from PyQt5.QtNetwork import QLocalServer, QLocalSocket
 from PyQt5.QtCore import QByteArray
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QPushButton, QTextEdit, QDialog, QDialogButtonBox, QLabel
+from PyQt5.QtWidgets import (
+    QWidget, QVBoxLayout, QPushButton, QTextEdit, QDialog, QDialogButtonBox, QLabel)
 import json
 import io
 import sys
-from .utils import get_all_svg_data, new_text_via_shapes
-from .utils.get_svg_from_activenode import get_svg_from_activenode
-from .utils import update_text_via_shapes
+from .utils import (get_opened_doc_svg_data, add_svg_layer_to_doc,
+                    get_svg_from_activenode, update_doc_layers_svg)
 from .configs.story_editor_agent import (
     DIALOG_WIDTH,
     DIALOG_HEIGHT,
@@ -16,6 +15,7 @@ from .configs.story_editor_agent import (
     get_dialog_label_stylesheet,
     get_dialog_stylesheet
 )
+from .utils.logs import write_log
 
 
 class StoryEditorAgentDocker(QDockWidget):
@@ -38,7 +38,7 @@ class StoryEditorAgentDocker(QDockWidget):
         main_widget = QWidget()
         layout = QVBoxLayout(main_widget)
 
-        # Debug button to get SVG from active node
+        # get SVG from active node for creating template
         get_svg_from_activenode_btn = QPushButton("Get SVG from Active Node")
         get_svg_from_activenode_btn.clicked.connect(self.show_active_node_svg)
         get_svg_from_activenode_btn.setToolTip(
@@ -112,7 +112,7 @@ class StoryEditorAgentDocker(QDockWidget):
 
         # Process request and interact with Krita
         match request['action']:
-            case 'text_update_request':
+            case 'docs_svg_update':
                 try:
                     opened_docs = Krita.instance().documents()
                     merged_requests = request.get(
@@ -134,18 +134,18 @@ class StoryEditorAgentDocker(QDockWidget):
                                         }'''
                                         updates_with_doc_info = single_layer_data['data']
 
-                                        result = update_text_via_shapes(
+                                        result = update_doc_layers_svg(
                                             doc, updates_with_doc_info.get('layer_groups', []), client)
 
                                         if result['success']:
                                             if result.get('removed_shapes_count') == 0:
                                                 response = {
-                                                    'progress': f"{doc.name()}: Updated existing texts"}
+                                                    'progress': f"{doc.name()}: Updated existing texts.\n   {result.get('updated_layer_count')} layers modified."}
                                                 client.write(json.dumps(
                                                     response).encode('utf-8'))
                                             elif result.get('removed_shapes_count') > 0:
                                                 response = {
-                                                    'progress': f"{doc.name()}: Updated existing texts. Removed {result.get('removed_shapes_count')} shapes"}
+                                                    'progress': f"{doc.name()}: Updated existing texts.\n   {result.get('updated_layer_count')} layers modified.\n   Removed {result.get('removed_shapes_count')} shapes."}
                                                 client.write(json.dumps(
                                                     response).encode('utf-8'))
                                         else:
@@ -165,19 +165,19 @@ class StoryEditorAgentDocker(QDockWidget):
                                             svg_data = new_text.get(
                                                 'svg_data', '')
 
-                                            new_text_via_shapes(
+                                            add_svg_layer_to_doc(
                                                 doc, svg_data)
                                         response = {
-                                            'progress': f"{doc.name()}: Created new texts"}
+                                            'progress': f"{doc.name()}: New texts created.\n   Added {len(new_texts_with_doc_info.get('new_texts', []))} new layers."}
                                         client.write(json.dumps(
                                             response).encode('utf-8'))
 
                     response = {'success': True,
-                                'text_update_request_result': "Text update applied successfully"}
+                                'docs_svg_update_result': "Text update applied successfully"}
                     client.write(json.dumps(response).encode('utf-8'))
                 except Exception as e:
                     response = {'success': False,
-                                'text_update_request_result': str(e)}
+                                'docs_svg_update_result': str(e)}
                     client.write(json.dumps(response).encode('utf-8'))
 
             case 'get_all_docs_svg_data':
@@ -190,7 +190,7 @@ class StoryEditorAgentDocker(QDockWidget):
                 else:
                     try:
                         for doc in opened_docs:
-                            response_data = get_all_svg_data(doc)
+                            response_data = get_opened_doc_svg_data(doc)
                             all_svg_data.append(response_data)
                         response = {'success': True,
                                     'all_docs_svg_data': all_svg_data}

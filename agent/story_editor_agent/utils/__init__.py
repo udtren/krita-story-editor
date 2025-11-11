@@ -1,14 +1,13 @@
-from .extract_text_from_svg import extract_text_from_svg
 from .update_text_in_kra import update_text_in_kra
-from .update_text_via_shapes import update_text_via_shapes
-from .get_all_svg_data import get_all_svg_data
-from .new_text_via_shapes import new_text_via_shapes
+from .text_updater import update_doc_layers_svg, add_svg_layer_to_doc
+from .svg_retriever import get_opened_doc_svg_data, get_svg_from_activenode, extract_text_from_svg
 
 
 __all__ = [
     'extract_text_from_svg',
     'update_text_in_kra',
-    'update_text_via_shapes',
-    'get_all_svg_data',
-    'new_text_via_shapes',
+    'update_doc_layers_svg',
+    'get_opened_doc_svg_data',
+    'add_svg_layer_to_doc',
+    'get_svg_from_activenode'
 ]

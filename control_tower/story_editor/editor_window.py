@@ -1,4 +1,5 @@
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QTextEdit, QLabel, QComboBox, QToolBar, QAction
+from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout,
+                             QPushButton, QTextEdit, QLabel, QComboBox, QToolBar, QAction)
 from PyQt5.QtSvg import QSvgWidget
 from PyQt5.QtCore import QByteArray, QTimer, QSize
 from PyQt5.QtGui import QIcon
@@ -366,7 +367,7 @@ If you want multiple paragraphs within different text elements, separate them wi
             self.socket_handler.log(
                 f"--- {len(merged_requests)} documents to update ---")
             self.socket_handler.send_request(
-                'text_update_request', merged_requests=merged_requests)
+                'docs_svg_update', merged_requests=merged_requests)
         else:
             self.socket_handler.log("⚠️ No updates or new texts to send.")
 

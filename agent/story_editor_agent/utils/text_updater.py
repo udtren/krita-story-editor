@@ -4,11 +4,10 @@ from .update_text_in_kra import update_svg_text
 from .xml_formatter import remove_namespace_prefixes
 import xml.etree.ElementTree as ET
 from PyQt5.QtCore import QUuid
-import re
-import json
+import uuid
 
 
-def update_text_via_shapes(doc, layer_groups: dict, client=None):
+def update_doc_layers_svg(doc, layer_groups: dict, client=None):
     """
     Update text content in vector layers using Krita's shape API
 
@@ -27,6 +26,9 @@ def update_text_via_shapes(doc, layer_groups: dict, client=None):
         if not doc:
             write_log("[ERROR] No active document")
             return 0
+
+        updated_layer_count = 0
+        removed_shape_count = 0
 
         for layer_id, layer_data in layer_groups.items():
             layer_id = layer_data.get('layer_id')
@@ -64,11 +66,12 @@ def update_text_via_shapes(doc, layer_groups: dict, client=None):
             for shape in target_layer.shapes():
                 shape.remove()
             target_layer.addShapesFromSvg(modified_svg)
+            updated_layer_count += 1
             doc.refreshProjection()
 
             ########################################
             # Handle shape removal
-            removed_shape_count = 0
+
             shapes = target_layer.shapes()
             for shape in shapes:
                 for update in shapes_to_update:
@@ -79,9 +82,49 @@ def update_text_via_shapes(doc, layer_groups: dict, client=None):
             ########################################
         return {
             'success': True,
-            'updated_layer': target_layer.name(),
+            'updated_layer_count': updated_layer_count,
             'removed_shapes_count': removed_shape_count
         }
+
+    except Exception as e:
+        write_log(f"[ERROR] Failed to update text via shapes: {e}")
+        import traceback
+        write_log(traceback.format_exc())
+        return 0
+
+
+def add_svg_layer_to_doc(doc, svg_content):
+    """
+    Add new text content in vector layers using Krita's shape API
+
+    Args:
+        doc: Krita document object
+        svg_content: Single svg_content dictionary containing:
+            - svg_content: Full SVG content of the layer
+
+    Returns:
+        Number of successfully updated layers
+    """
+    try:
+        if not doc:
+            write_log("[ERROR] No active document")
+            return 0
+
+        ###################################
+        # Create new vector layer
+        ###################################
+        layer_name = f"Text-{uuid.uuid4().hex[:4]}"
+        new_layer = doc.createVectorLayer(layer_name)
+        doc.rootNode().addChildNode(new_layer, None)
+        doc.refreshProjection()
+
+        result = new_layer.addShapesFromSvg(svg_content)
+
+        # Refresh the document to show changes
+        doc.refreshProjection()
+        write_log("[DEBUG] Refreshed document projection")
+
+        return result
 
     except Exception as e:
         write_log(f"[ERROR] Failed to update text via shapes: {e}")

@@ -147,9 +147,9 @@ class ControlTower(QMainWindow):
             response = json.loads(data)
 
             # Only log non-SVG responses (SVG data is too large)
-            if 'text_update_request_result' in response and response.get('success'):
+            if 'docs_svg_update_result' in response and response.get('success'):
                 self.log(
-                    f"✔️ Text Update Request Finishied: {response['text_update_request_result']}")
+                    f"✔️ Text Update Request Finishied: {response['docs_svg_update_result']}")
                 self.text_editor_handler.refresh_data()
 
             elif 'all_docs_svg_data' in response and response.get('success'):
