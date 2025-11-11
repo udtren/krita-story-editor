@@ -150,7 +150,8 @@ def update_offline_kra_file(kra_path, layer_groups):
         Dictionary with success status and update count
     """
     try:
-        updated_count = 0
+        updated_layer_count = 0
+        removed_shapes_count = 0
 
         # Get the document name without extension
         doc_name = os.path.splitext(os.path.basename(kra_path))[0]
@@ -225,12 +226,13 @@ def update_offline_kra_file(kra_path, layer_groups):
                             # Remove the element from the tree
                             root.remove(text_elem)
                             write_log(f"[DEBUG] Removed shape {shape_id}")
-                            updated_count += 1
+                            updated_layer_count += 1
+                            removed_shapes_count += 1
                         else:
                             # Update the text content
                             text_elem.text = new_text
                             write_log(f"[DEBUG] Updated shape {shape_id}")
-                            updated_count += 1
+                            updated_layer_count += 1
 
                     # Convert back to string
                     modified_svg = ET.tostring(
@@ -260,17 +262,18 @@ def update_offline_kra_file(kra_path, layer_groups):
             os.remove(backup_path)
             write_log(f"[INFO] Successfully updated {kra_path}")
 
+            return {
+                'success': True,
+                'updated_layer_count': updated_layer_count,
+                'removed_shapes_count': removed_shapes_count
+            }
+
         except Exception as e:
             # Restore from backup if something went wrong
             if os.path.exists(backup_path):
                 shutil.copy2(backup_path, kra_path)
                 os.remove(backup_path)
             raise e
-
-        return {
-            'success': True,
-            'updated_count': updated_count
-        }
 
     except Exception as e:
         write_log(f"[ERROR] Failed to update offline .kra file: {e}")

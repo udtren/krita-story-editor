@@ -155,22 +155,29 @@ class StoryEditorWindow:
 
             # Activate button for this document
             activate_btn = QPushButton(f"📄 {doc_name}")
-            activate_btn.setCheckable(True)
-            activate_btn.setToolTip(
-                f"Click to activate this document for adding new text\nPath: {doc_path}")
-            activate_btn.clicked.connect(
-                lambda checked, name=doc_name, btn=activate_btn: self.activate_document(name, btn))
-            activate_btn.setStyleSheet("""
-                QPushButton {
-                    text-align: left;
-                    padding: 8px;
-                    font-weight: bold;
-                }
-                QPushButton:checked {
-                    background-color: #4A9EFF;
-                    color: white;
-                }
-            """)
+            if not opened:
+                activate_btn.setStyleSheet(
+                    "color: gray; font-style: italic;")
+                activate_btn.setEnabled(False)  # Make button unclickable
+                activate_btn.setToolTip(
+                    f"This document is not currently open in Krita\nPath: {doc_path}")
+            else:
+                activate_btn.setCheckable(True)
+                activate_btn.setToolTip(
+                    f"Click to activate this document for adding new text\nPath: {doc_path}")
+                activate_btn.clicked.connect(
+                    lambda checked, name=doc_name, btn=activate_btn: self.activate_document(name, btn))
+                activate_btn.setStyleSheet("""
+                    QPushButton {
+                        text-align: left;
+                        padding: 8px;
+                        font-weight: bold;
+                    }
+                    QPushButton:checked {
+                        background-color: #4A9EFF;
+                        color: white;
+                    }
+                """)
             doc_header_layout.addWidget(activate_btn)
             doc_header_layout.addStretch()
             main_layout.addLayout(doc_header_layout)
@@ -187,9 +194,9 @@ class StoryEditorWindow:
             self.doc_layouts[doc_name] = doc_level_layers_layout
 
             # Set first document as active by default
-            if self.active_doc_name is None:
-                self.active_doc_name = doc_name
-                activate_btn.setChecked(True)
+            # if self.active_doc_name is None:
+            #     self.active_doc_name = doc_name
+            #     activate_btn.setChecked(True)
 
             # For each layer
             for layer_data in self.svg_data:
@@ -236,13 +243,13 @@ class StoryEditorWindow:
                     #################################################
                     # Add metadata label
                     #################################################
-                    metadata_label = QLabel(
-                        f"Layer: {layer_name} | Layer Id: {layer_id} | Shape ID: {layer_shape['element_id']}")
-                    metadata_label.setStyleSheet(
-                        "color: gray; font-size: 10pt;")
-                    metadata_label.setMaximumWidth(100)
-                    metadata_label.setWordWrap(True)
-                    svg_section_level_layout.addWidget(metadata_label)
+                    # metadata_label = QLabel(
+                    #     f"Layer: {layer_name} | Layer Id: {layer_id} | Shape ID: {layer_shape['element_id']}")
+                    # metadata_label.setStyleSheet(
+                    #     "color: gray; font-size: 10pt;")
+                    # metadata_label.setMaximumWidth(100)
+                    # metadata_label.setWordWrap(True)
+                    # svg_section_level_layout.addWidget(metadata_label)
 
                     #################################################
 

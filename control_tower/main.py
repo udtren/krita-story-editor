@@ -1,6 +1,8 @@
-from PyQt5.QtWidgets import QApplication, QMainWindow, QPushButton, QVBoxLayout, QWidget, QTextEdit, QLabel, QInputDialog, QFileDialog
+from PyQt5.QtWidgets import (QApplication, QMainWindow, QPushButton,
+                             QVBoxLayout, QHBoxLayout, QWidget, QTextEdit, QLabel, QInputDialog, QFileDialog)
 from PyQt5.QtNetwork import QLocalSocket
-from PyQt5.QtCore import QTimer
+from PyQt5.QtCore import QTimer, Qt
+from PyQt5.QtGui import QFont, QFontDatabase
 from configs.main_window import (
     setup_dark_palette,
     WINDOW_WIDTH,
@@ -15,13 +17,14 @@ from utils.kra_reader import extract_text_from_kra
 from story_editor import StoryEditorWindow
 import json
 import sys
+import os
 
 
 class ControlTower(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle(WINDOW_TITLE)
-        self.resize(WINDOW_WIDTH, WINDOW_HEIGHT)
+        self.setFixedSize(WINDOW_WIDTH, WINDOW_HEIGHT)
 
         # Initialize text editor window handler
         self.text_editor_handler = StoryEditorWindow(self, self)
@@ -41,43 +44,110 @@ class ControlTower(QMainWindow):
         self.setCentralWidget(central_widget)
         layout = QVBoxLayout(central_widget)
 
-        # Connection status
-        self.status_label = QLabel("Status: Not Connected")
-        layout.addWidget(self.status_label)
+        # Title Layout
+        title_layout = QHBoxLayout()
+        title_label = QLabel("Krita Story Editor")
+        title_label.setAlignment(
+            Qt.AlignmentFlag.AlignCenter | Qt.AlignmentFlag.AlignVCenter)
 
-        # Connect button
+        # Load custom font from file
+        font_path = os.path.join(os.path.dirname(
+            __file__), "fonts", "Minecraft.ttf")
+        font_id = QFontDatabase.addApplicationFont(font_path)
+        if font_id != -1:
+            font_family = QFontDatabase.applicationFontFamilies(font_id)[0]
+            title_font = QFont(font_family, 24)
+            title_label.setFont(title_font)
+        else:
+            # Fallback if font loading fails
+            title_label.setFont(get_button_font())
+
+        title_layout.addWidget(title_label)
+        layout.addLayout(title_layout)
+
+        # Log output
+        self.log_output = QTextEdit()
+        self.log_output.setReadOnly(True)
+        self.log_output.setFont(get_log_font())
+        self.log_output.setStyleSheet("""
+            QTextEdit {
+                background: qlineargradient(
+                    x1: 0, y1: 0, x2: 0, y2: 1,
+                    stop: 0 rgba(30, 30, 30, 255),
+                    stop: 1 rgba(30, 30, 30, 0)
+                );
+                border: none;
+            }
+        """)
+        layout.addWidget(self.log_output)
+
+        # Connection status (aligned to the right)
+        status_layout = QHBoxLayout()
+        status_layout.addStretch()  # Push label to the right
+        self.status_label = QLabel("Status: Not Connected")
+        self.status_label.setAlignment(
+            Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+
+        if font_id != -1:
+            font_family = QFontDatabase.applicationFontFamilies(font_id)[0]
+            status_label_font = QFont(font_family, 12)
+            self.status_label.setFont(status_label_font)
+        else:
+            # Fallback if font loading fails
+            self.status_label.setFont(get_button_font())
+
+        self.status_label.setFixedSize(250, 50)
+        self.status_label.setStyleSheet(
+            "background-color: black; color: white; padding: 5px;")
+        status_layout.addWidget(self.status_label)
+        layout.addLayout(status_layout)
+
+        # Connect button (aligned to the right)
+        connect_layout = QHBoxLayout()
+        connect_layout.addStretch()  # Push button to the right
         self.connect_btn = QPushButton("Connect to Story Editor Agent")
         self.connect_btn.clicked.connect(self.connect_to_docker)
         self.connect_btn.setFont(get_button_font())
-        self.connect_btn.setMinimumHeight(BUTTON_HEIGHT)
-        self.connect_btn.setMinimumWidth(BUTTON_MIN_WIDTH)
-        layout.addWidget(self.connect_btn)
 
-        # Open Story Editor
-        self.show_story_editor_btn = QPushButton("Open/Refresh Story Editor")
-        self.show_story_editor_btn.clicked.connect(self.open_text_editor)
-        self.show_story_editor_btn.setFont(get_button_font())
-        self.show_story_editor_btn.setMinimumHeight(BUTTON_HEIGHT)
-        self.show_story_editor_btn.setMinimumWidth(BUTTON_MIN_WIDTH)
-        self.show_story_editor_btn.setEnabled(False)
-        layout.addWidget(self.show_story_editor_btn)
+        self.connect_btn.setFixedSize(300, 50)
+        connect_layout.addWidget(self.connect_btn)
+        layout.addLayout(connect_layout)
 
-        # Krita Folder Path Input
+        # Krita Folder Path Input (aligned to the right)
+        folder_layout = QHBoxLayout()
+        folder_layout.addStretch()  # Push button to the right
         self.krita_files_path_btn = QPushButton("Set Krita Files Folder Path")
         self.krita_files_path_btn.clicked.connect(
             self.set_krita_files_folder_path)
         self.krita_files_path_btn.setFont(get_button_font())
-        self.krita_files_path_btn.setMinimumHeight(BUTTON_HEIGHT)
-        self.krita_files_path_btn.setMinimumWidth(BUTTON_MIN_WIDTH)
-        layout.addWidget(self.krita_files_path_btn)
+
+        self.krita_files_path_btn.setFixedSize(300, 50)
+        folder_layout.addWidget(self.krita_files_path_btn)
+        layout.addLayout(folder_layout)
+
+        # Add spacing between buttons
+        layout.addSpacing(20)  # 20 pixels of space
+
+        # Open Story Editor (aligned to the right)
+        editor_layout = QHBoxLayout()
+        editor_layout.addStretch()  # Push button to the right
+        self.show_story_editor_btn = QPushButton("Open/Refresh Story Editor")
+        self.show_story_editor_btn.clicked.connect(self.open_text_editor)
+        self.show_story_editor_btn.setFont(get_button_font())
+
+        self.show_story_editor_btn.setFixedSize(300, 50)
+        self.show_story_editor_btn.setEnabled(False)
+        editor_layout.addWidget(self.show_story_editor_btn)
+        layout.addLayout(editor_layout)
 
         # Test button
-        self.test_btn = QPushButton("TEST")
-        self.test_btn.clicked.connect(self.test_get_all_docs_svg_data)
-        self.test_btn.setFont(get_button_font())
-        self.test_btn.setMinimumHeight(BUTTON_HEIGHT)
-        self.test_btn.setMinimumWidth(BUTTON_MIN_WIDTH)
-        layout.addWidget(self.test_btn)
+        # self.test_btn = QPushButton("TEST")
+        # self.test_btn.clicked.connect(self.test_get_all_docs_svg_data)
+        # self.test_btn.setFont(get_button_font())
+        # self.test_btn.setMinimumHeight(BUTTON_HEIGHT)
+        # self.test_btn.setMinimumWidth(BUTTON_MIN_WIDTH)
+        # self.test_btn.setAlignment(Qt.AlignmentFlag.AlignRight)
+        # layout.addWidget(self.test_btn)
 
         # Read KRA offline button
         # self.read_kra_btn = QPushButton("Read .kra File (Offline)")
@@ -86,12 +156,6 @@ class ControlTower(QMainWindow):
         # self.read_kra_btn.setMinimumHeight(BUTTON_HEIGHT)
         # self.read_kra_btn.setMinimumWidth(BUTTON_MIN_WIDTH)
         # layout.addWidget(self.read_kra_btn)
-
-        # Log output
-        self.log_output = QTextEdit()
-        self.log_output.setReadOnly(True)
-        self.log_output.setFont(get_log_font())
-        layout.addWidget(self.log_output)
 
         self.log(
             "Application started. Click 'Connect to Story Editor Agent' to begin.")
@@ -120,7 +184,8 @@ class ControlTower(QMainWindow):
         """Called when successfully connected"""
         self.log("✅ Connected to Krita docker!")
         self.status_label.setText("Status: Connected")
-        self.status_label.setStyleSheet("color: green;")
+        self.status_label.setStyleSheet(
+            "background-color: black; color: green; padding: 5px;")
         self.connect_btn.setEnabled(False)
 
         self.show_story_editor_btn.setEnabled(True)

@@ -148,6 +148,8 @@ class StoryEditorAgentDocker(QDockWidget):
                     ############################################################
                     # Update Opened Documents
                     ############################################################
+                    online_progress_messages = []
+
                     for doc in opened_docs:
                         for doc_data in opened_docs_requests:
                             if doc.name() == doc_data.get('document_name'):
@@ -169,20 +171,15 @@ class StoryEditorAgentDocker(QDockWidget):
 
                                         if result['success']:
                                             if result.get('removed_shapes_count') == 0:
-                                                response = {
-                                                    'progress': f"{doc.name()}: Updated existing texts.\n   {result.get('updated_layer_count')} layers modified."}
-                                                client.write(json.dumps(
-                                                    response).encode('utf-8'))
+                                                online_progress_messages.append(
+                                                    f"{doc.name()}: Updated existing texts.\n   {result.get('updated_layer_count')} layers modified.")
+
                                             elif result.get('removed_shapes_count') > 0:
-                                                response = {
-                                                    'progress': f"{doc.name()}: Updated existing texts.\n   {result.get('updated_layer_count')} layers modified.\n   Removed {result.get('removed_shapes_count')} shapes."}
-                                                client.write(json.dumps(
-                                                    response).encode('utf-8'))
+                                                online_progress_messages.append(
+                                                    f"{doc.name()}: Updated existing texts.\n   {result.get('updated_layer_count')} layers modified.\n   Removed {result.get('removed_shapes_count')} shapes.")
                                         else:
-                                            response = {
-                                                'progress': f"{doc.name()}: Updating existing texts failed"}
-                                            client.write(json.dumps(
-                                                response).encode('utf-8'))
+                                            online_progress_messages.append(
+                                                f"{doc.name()}: Updating existing texts failed.")
 
                                     elif text_edit_type == "new_texts_added":
                                         '''new_texts_with_doc_info = {
@@ -197,14 +194,14 @@ class StoryEditorAgentDocker(QDockWidget):
 
                                             add_svg_layer_to_doc(
                                                 doc, svg_data)
-                                        response = {
-                                            'progress': f"{doc.name()}: New texts created.\n   Added {len(new_texts_with_doc_info.get('new_texts', []))} new layers."}
-                                        client.write(json.dumps(
-                                            response).encode('utf-8'))
+                                        online_progress_messages.append(
+                                            f"{doc.name()}: New texts created.\n   Added {len(new_texts_with_doc_info.get('new_texts', []))} new layers.")
 
                     ############################################################
                     # Update Offline Documents
                     ############################################################
+                    offline_progress_messages = []
+
                     if request.get('krita_files_folder', None) and offline_docs_requests:
                         krita_files_folder = request.get('krita_files_folder')
 
@@ -237,15 +234,16 @@ class StoryEditorAgentDocker(QDockWidget):
                                             kra_path, layer_groups)
 
                                         if result['success']:
-                                            response = {
-                                                'progress': f"{doc_name} (offline): Updated {result.get('updated_count', 0)} text elements"}
-                                            client.write(json.dumps(
-                                                response).encode('utf-8'))
+                                            if result.get('removed_shapes_count') == 0:
+                                                offline_progress_messages.append(
+                                                    f"{doc_name} (offline): Updated existing texts.\n   {result.get('updated_layer_count')} layers modified.")
+
+                                            elif result.get('removed_shapes_count') > 0:
+                                                offline_progress_messages.append(
+                                                    f"{doc_name} (offline): Updated existing texts.\n   {result.get('updated_layer_count')} layers modified.\n   Removed {result.get('removed_shapes_count')} shapes.")
                                         else:
-                                            response = {
-                                                'progress': f"{doc_name} (offline): Update failed - {result.get('error', 'Unknown error')}"}
-                                            client.write(json.dumps(
-                                                response).encode('utf-8'))
+                                            offline_progress_messages.append(
+                                                f"{doc_name} (offline): Updating existing texts failed.")
 
                                     else:
                                         write_log(
@@ -254,13 +252,18 @@ class StoryEditorAgentDocker(QDockWidget):
                             except Exception as e:
                                 write_log(
                                     f"[ERROR] Failed to update offline file {doc_name}: {e}")
-                                import traceback
-                                write_log(traceback.format_exc())
 
                     ############################################################
+                    final_message = "Text update applied successfully"
+                    if online_progress_messages:
+                        final_message += "\n\nOnline files:\n" + \
+                            "\n".join(online_progress_messages)
+                    if offline_progress_messages:
+                        final_message += "\n\nOffline files:\n" + \
+                            "\n".join(offline_progress_messages)
 
                     response = {'success': True,
-                                'docs_svg_update_result': "Text update applied successfully"}
+                                'docs_svg_update_result': final_message}
                     client.write(json.dumps(response).encode('utf-8'))
                 except Exception as e:
                     response = {'success': False,
