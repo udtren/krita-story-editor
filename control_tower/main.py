@@ -52,10 +52,27 @@ class ControlTower(QMainWindow):
         # UI Setup
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
-        central_widget.setStyleSheet("background-color: #a07949;")
+
+        # Get path to background image
+        bg_image_path = os.path.join(
+            os.path.dirname(__file__), "images", "coffee_pixel.png"
+        )
+        # Convert to forward slashes for Qt stylesheet
+        bg_image_path = bg_image_path.replace("\\", "/")
+
+        # Apply background only to the central widget, not children
+        central_widget.setStyleSheet(
+            f"""
+            QWidget#centralWidget {{
+                background-color: #a07949;
+                border-image: url({bg_image_path}) 0 0 0 0 stretch stretch;
+            }}
+        """
+        )
+        central_widget.setObjectName("centralWidget")
         layout = QVBoxLayout(central_widget)
 
-        # Title Layout #4366c5
+        # Title Layout
         title_layout = QHBoxLayout()
         title_label = QLabel("Krita Story Editor")
         title_label.setAlignment(
@@ -69,11 +86,11 @@ class ControlTower(QMainWindow):
             font_family = QFontDatabase.applicationFontFamilies(font_id)[0]
             title_font = QFont(font_family, 24)
             title_label.setFont(title_font)
-            title_label.setStyleSheet("color: #693214;")
+            title_label.setStyleSheet("color: #ecbd30;")
         else:
             # Fallback if font loading fails
             title_label.setFont(get_button_font())
-            title_label.setStyleSheet("color: #693214;")
+            title_label.setStyleSheet("color: #ecbd30;")
 
         title_layout.addWidget(title_label)
         layout.addLayout(title_layout)
@@ -125,7 +142,13 @@ class ControlTower(QMainWindow):
         self.connect_btn = QPushButton("Connect to Story Editor Agent")
         self.connect_btn.clicked.connect(self.connect_to_docker)
         self.connect_btn.setFont(get_button_font())
-        self.connect_btn.setStyleSheet("color: #4b281c; padding: 5px;")
+        self.connect_btn.setStyleSheet(
+            """
+            color: #4b281c; 
+            background-color: #9e6658;
+            padding: 5px;
+            """
+        )
 
         self.connect_btn.setFixedSize(300, 50)
         connect_layout.addWidget(self.connect_btn)
@@ -137,7 +160,13 @@ class ControlTower(QMainWindow):
         self.krita_files_path_btn = QPushButton("Set Krita Files Folder Path")
         self.krita_files_path_btn.clicked.connect(self.set_krita_files_folder_path)
         self.krita_files_path_btn.setFont(get_button_font())
-        self.krita_files_path_btn.setStyleSheet("color: #4b281c; padding: 5px;")
+        self.krita_files_path_btn.setStyleSheet(
+            """
+            color: #4b281c; 
+            background-color: #9e6658;
+            padding: 5px;
+            """
+        )
 
         self.krita_files_path_btn.setFixedSize(300, 50)
         folder_layout.addWidget(self.krita_files_path_btn)
@@ -306,7 +335,11 @@ class ControlTower(QMainWindow):
         self.krita_files_folder = folder_path
         self.krita_files_path_btn.setText(f"{folder_path}")
         self.krita_files_path_btn.setStyleSheet(
-            "font-size: 12px; color: #4b281c; padding: 5px; font-weight: bold;"
+            """
+            font-size: 12px;  
+            color: #4b281c; 
+            background-color: #9e6658;
+            font-weight: bold;"""
         )
 
         # Refresh the Story Editor window if it exists
