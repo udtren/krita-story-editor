@@ -8,7 +8,7 @@ import html
 from .svg_generator import generate_full_svg_data, create_layer_groups
 
 
-def create_svg_data_for_doc(doc_name, text_edit_widgets, socket_handler):
+def create_svg_data_for_doc(doc_name, text_edit_widgets, socket_handler, opened):
     """
     Send update requests for all modified texts and add new texts
 
@@ -16,17 +16,18 @@ def create_svg_data_for_doc(doc_name, text_edit_widgets, socket_handler):
         doc_name: Kritaドキュメント名
         text_edit_widgets: 既存テキスト更新と新規テキスト追加の両方を含むウィジェットのリスト
         socket_handler: Object with send_request and log methods
+        opened: Boolean indicating if the document is opened
     """
     response = []  # Final response list to hold all updates and new texts
     updates = []
     updates_with_doc_info = {
         'document_name': doc_name,
-        'layer_groups': {}
+        'layer_groups': {},
     }
     new_texts = []
     new_texts_with_doc_info = {
         'document_name': doc_name,
-        'new_texts': new_texts
+        'new_texts': new_texts,
     }
 
     for item in text_edit_widgets:
@@ -128,7 +129,8 @@ def create_svg_data_for_doc(doc_name, text_edit_widgets, socket_handler):
     else:
         return {'success': True, 'requests': {
             'document_name': doc_name,
-            'requests': response
+            'requests': response,
+            'opened': opened
         }}
 
 

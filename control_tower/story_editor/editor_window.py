@@ -140,12 +140,14 @@ class StoryEditorWindow:
             doc_name = doc_data.get('document_name', 'unknown')
             doc_path = doc_data.get('document_path', 'unknown')
             self.svg_data = doc_data.get('svg_data', [])
+            opened = doc_data.get('opened', True)
 
             self.all_docs_text_state[doc_name] = {
                 'document_name': doc_name,
                 'document_path': doc_path,
                 'has_text_changes': False,
-                'text_edit_widgets': []
+                'text_edit_widgets': [],
+                'opened': opened
             }
 
             # Document header with clickable button to activate
@@ -231,6 +233,19 @@ class StoryEditorWindow:
 
                     })
 
+                    #################################################
+                    # Add metadata label
+                    #################################################
+                    metadata_label = QLabel(
+                        f"Layer: {layer_name} | Layer Id: {layer_id} | Shape ID: {layer_shape['element_id']}")
+                    metadata_label.setStyleSheet(
+                        "color: gray; font-size: 10pt;")
+                    metadata_label.setMaximumWidth(100)
+                    metadata_label.setWordWrap(True)
+                    svg_section_level_layout.addWidget(metadata_label)
+
+                    #################################################
+
                     doc_level_layers_layout.addLayout(
                         svg_section_level_layout)
 
@@ -241,12 +256,6 @@ class StoryEditorWindow:
 
         # Show the window
         self.text_editor_window.show()
-
-        # Count total text widgets across all documents
-        total_texts = sum(len(doc_state['text_edit_widgets'])
-                          for doc_state in self.all_docs_text_state.values())
-        # self.socket_handler.log(
-        #     f"✅ Text editor opened with {total_texts} text element(s) from {len(self.all_docs_svg_data)} document(s)")
 
     def activate_document(self, doc_name, clicked_btn):
         """Activate a document for adding new text"""
@@ -356,7 +365,8 @@ If you want multiple paragraphs within different text elements, separate them wi
             result = create_svg_data_for_doc(
                 doc_name=doc_name,
                 text_edit_widgets=doc_state['text_edit_widgets'],
-                socket_handler=self.socket_handler
+                socket_handler=self.socket_handler,
+                opened=doc_state.get('opened')
             )
             if result.get('success'):
                 merged_requests.append(result.get('requests'))
@@ -367,7 +377,7 @@ If you want multiple paragraphs within different text elements, separate them wi
             self.socket_handler.log(
                 f"--- {len(merged_requests)} documents to update ---")
             self.socket_handler.send_request(
-                'docs_svg_update', merged_requests=merged_requests)
+                'docs_svg_update', merged_requests=merged_requests, krita_files_folder=self.parent.krita_files_folder if hasattr(self.parent, 'krita_files_folder') else None)
         else:
             self.socket_handler.log("⚠️ No updates or new texts to send.")
 
@@ -382,9 +392,18 @@ If you want multiple paragraphs within different text elements, separate them wi
         if hasattr(self.parent, '_waiting_for_svg'):
             self.parent._waiting_for_svg = 'text_editor'
 
-        # Request the SVG data (not text data)
+        # Get krita folder path if available
+        krita_folder_path = None
+        if hasattr(self.parent, 'krita_files_folder'):
+            krita_folder_path = self.parent.krita_files_folder
+
+        # Request the SVG data
         # The window will be created when set_svg_data() is called with the response
-        self.socket_handler.send_request('get_all_docs_svg_data')
+        if krita_folder_path:
+            self.socket_handler.send_request(
+                'get_all_docs_svg_data', folder_path=krita_folder_path)
+        else:
+            self.socket_handler.send_request('get_all_docs_svg_data')
 
     def set_svg_data(self, all_docs_svg_data):
         """Store the received SVG data and create the editor window"""

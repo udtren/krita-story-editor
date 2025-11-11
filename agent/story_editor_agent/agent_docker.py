@@ -1,3 +1,4 @@
+import os
 from krita import *
 from PyQt5.QtNetwork import QLocalServer, QLocalSocket
 from PyQt5.QtCore import QByteArray
@@ -5,9 +6,11 @@ from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QPushButton, QTextEdit, QDialog, QDialogButtonBox, QLabel)
 import json
 import io
+import zipfile
 import sys
 from .utils import (get_opened_doc_svg_data, add_svg_layer_to_doc,
-                    get_svg_from_activenode, update_doc_layers_svg)
+                    get_svg_from_activenode, update_doc_layers_svg, get_all_offline_docs_from_folder,
+                    update_offline_kra_file)
 from .configs.story_editor_agent import (
     DIALOG_WIDTH,
     DIALOG_HEIGHT,
@@ -118,13 +121,40 @@ class StoryEditorAgentDocker(QDockWidget):
                     merged_requests = request.get(
                         'merged_requests', {})
 
+                    ############################################################
+                    # Separate opened and offline requests
+                    ############################################################
+                    opened_docs_requests = []
+                    offline_docs_requests = []
+
+                    for doc_data in merged_requests:
+                        if doc_data.get('opened', False):
+                            opened_docs_requests.append(doc_data)
+                        else:
+                            offline_docs_requests.append(doc_data)
+
+                    # Sort both lists by document_name
+                    opened_docs_requests.sort(
+                        key=lambda x: x.get('document_name', ''))
+                    offline_docs_requests.sort(
+                        key=lambda x: x.get('document_name', ''))
+
+                    write_log(
+                        f"Opened documents: {[d.get('document_name') for d in opened_docs_requests]}")
+                    write_log(
+                        f"Offline documents: {[d.get('document_name') for d in offline_docs_requests]}")
+                    ############################################################
+
+                    ############################################################
+                    # Update Opened Documents
+                    ############################################################
                     for doc in opened_docs:
-                        for doc_data in merged_requests:
+                        for doc_data in opened_docs_requests:
                             if doc.name() == doc_data.get('document_name'):
 
-                                for single_layer_data in doc_data.get('requests', []):
+                                for doc_layers_data in doc_data.get('requests', []):
 
-                                    text_edit_type = single_layer_data.get(
+                                    text_edit_type = doc_layers_data.get(
                                         'text_edit_type', None)
 
                                     if text_edit_type == 'existing_texts_updated':
@@ -132,7 +162,7 @@ class StoryEditorAgentDocker(QDockWidget):
                                             'document_name': doc_name,
                                             'layer_groups': layer_groups
                                         }'''
-                                        updates_with_doc_info = single_layer_data['data']
+                                        updates_with_doc_info = doc_layers_data['data']
 
                                         result = update_doc_layers_svg(
                                             doc, updates_with_doc_info.get('layer_groups', []), client)
@@ -159,7 +189,7 @@ class StoryEditorAgentDocker(QDockWidget):
                                             'document_name': doc_name,
                                             'new_texts': new_texts
                                         }'''
-                                        new_texts_with_doc_info = single_layer_data['data']
+                                        new_texts_with_doc_info = doc_layers_data['data']
 
                                         for new_text in new_texts_with_doc_info.get('new_texts', []):
                                             svg_data = new_text.get(
@@ -172,6 +202,63 @@ class StoryEditorAgentDocker(QDockWidget):
                                         client.write(json.dumps(
                                             response).encode('utf-8'))
 
+                    ############################################################
+                    # Update Offline Documents
+                    ############################################################
+                    if request.get('krita_files_folder', None) and offline_docs_requests:
+                        krita_files_folder = request.get('krita_files_folder')
+
+                        write_log(
+                            f"Updating offline .kra files in folder: {[d.get('document_name') for d in offline_docs_requests]}")
+
+                        for doc_data in offline_docs_requests:
+                            doc_name = doc_data.get('document_name')
+                            kra_path = os.path.join(
+                                krita_files_folder, doc_name)
+
+                            # Check if file exists
+                            if not os.path.exists(kra_path):
+                                write_log(
+                                    f"[WARNING] File not found: {kra_path}")
+                                continue
+
+                            try:
+                                # Process each text edit request for this document
+                                for doc_layers_data in doc_data.get('requests', []):
+                                    text_edit_type = doc_layers_data.get(
+                                        'text_edit_type', None)
+
+                                    if text_edit_type == 'existing_texts_updated':
+                                        updates_with_doc_info = doc_layers_data['data']
+                                        layer_groups = updates_with_doc_info.get(
+                                            'layer_groups', {})
+
+                                        result = update_offline_kra_file(
+                                            kra_path, layer_groups)
+
+                                        if result['success']:
+                                            response = {
+                                                'progress': f"{doc_name} (offline): Updated {result.get('updated_count', 0)} text elements"}
+                                            client.write(json.dumps(
+                                                response).encode('utf-8'))
+                                        else:
+                                            response = {
+                                                'progress': f"{doc_name} (offline): Update failed - {result.get('error', 'Unknown error')}"}
+                                            client.write(json.dumps(
+                                                response).encode('utf-8'))
+
+                                    else:
+                                        write_log(
+                                            f"[INFO] text_edit_type is {text_edit_type}. Skipping.")
+
+                            except Exception as e:
+                                write_log(
+                                    f"[ERROR] Failed to update offline file {doc_name}: {e}")
+                                import traceback
+                                write_log(traceback.format_exc())
+
+                    ############################################################
+
                     response = {'success': True,
                                 'docs_svg_update_result': "Text update applied successfully"}
                     client.write(json.dumps(response).encode('utf-8'))
@@ -182,8 +269,13 @@ class StoryEditorAgentDocker(QDockWidget):
 
             case 'get_all_docs_svg_data':
                 opened_docs = Krita.instance().documents()
+                krita_folder_path = request.get('folder_path', None)
                 all_svg_data = []
+                opened_docs_path = []
 
+                ####################################################
+                # Get all docs svg data from opened documents
+                ####################################################
                 if not opened_docs:
                     response = {'success': False,
                                 'error': 'No single active document'}
@@ -192,10 +284,29 @@ class StoryEditorAgentDocker(QDockWidget):
                         for doc in opened_docs:
                             response_data = get_opened_doc_svg_data(doc)
                             all_svg_data.append(response_data)
-                        response = {'success': True,
-                                    'all_docs_svg_data': all_svg_data}
+                            opened_docs_path.append(
+                                response_data.get('document_path', ''))
+
                     except Exception as e:
                         response = {'success': False, 'error': str(e)}
+                ####################################################
+
+                if krita_folder_path:
+                    ####################################################
+                    # Get all docs svg data from .kra files in folder
+                    ####################################################
+                    try:
+                        write_log(f"Opened docs path: {opened_docs_path}")
+                        offline_docs_svg_data = get_all_offline_docs_from_folder(
+                            krita_folder_path, opened_docs_path)
+                        all_svg_data.extend(offline_docs_svg_data)
+
+                    except Exception as e:
+                        response = {'success': False, 'error': str(e)}
+                    ####################################################
+
+                response = {'success': True,
+                            'all_docs_svg_data': all_svg_data}
                 client.write(json.dumps(response).encode('utf-8'))
 
             case _:

@@ -21,7 +21,7 @@ def get_opened_doc_svg_data(doc):
         svg_data = []
         response_data = {
             'document_name': doc_name,
-            'document_path': doc_path,
+            'document_path': os.path.normpath(doc_path),
             'svg_data': svg_data,
             'opened': True
         }
@@ -49,32 +49,42 @@ def get_opened_doc_svg_data(doc):
         return []
 
 
-def get_all_offline_docs_from_folder(folder_path):
+def get_all_offline_docs_from_folder(folder_path, opened_docs_path=[]):
     """
     Scan a folder for .kra files and extract SVG data from each
 
     Args:
         folder_path: Path to the folder containing .kra files
+        opened_docs_path: List of paths to documents that are already opened (skip these)
 
     Returns:
         List of dictionaries with SVG data from each .kra file
     """
-    kra_files_data = []
+    response_datas = []
 
     try:
         for filename in os.listdir(folder_path):
             if filename.lower().endswith('.kra'):
                 kra_path = os.path.join(folder_path, filename)
-                svg_data = get_offline_doc_svg_data(kra_path)
-                kra_files_data.append(svg_data)
+                kra_path = os.path.normpath(kra_path)
 
-        return kra_files_data
+                write_log(f"[DEBUG] Found offline .kra file: {kra_path}")
+
+                # Skip if this file is already opened in Krita
+                if kra_path in opened_docs_path:
+                    write_log(f"[DEBUG] Skipping opened document: {kra_path}")
+                    continue
+
+                response_data = _get_offline_doc_svg_data(kra_path)
+                response_datas.append(response_data)
+
+        return response_datas
 
     except Exception as e:
         raise Exception(f"Error scanning folder for .kra files: {e}")
 
 
-def get_offline_doc_svg_data(kra_path):
+def _get_offline_doc_svg_data(kra_path):
     """
     Extract all text from vector layers in a .kra file
 
@@ -86,7 +96,7 @@ def get_offline_doc_svg_data(kra_path):
     """
     svg_data = []
     response_data = {
-        # 'document_name': doc_name,
+        'document_name': os.path.basename(kra_path),
         'document_path': kra_path,
         'svg_data': svg_data,
         'opened': False
@@ -98,7 +108,7 @@ def get_offline_doc_svg_data(kra_path):
             all_files = kra_zip.namelist()
 
             # Search for content.svg files
-            for file_path in all_files:
+            for index, file_path in enumerate(all_files):
                 if 'content.svg' in file_path and 'shapelayer' in file_path:
                     # Extract layer folder name from path
                     parts = file_path.split('/')
@@ -109,8 +119,9 @@ def get_offline_doc_svg_data(kra_path):
 
                     if svg_content:
                         svg_data.append({
-                            'layer_folder': layer_folder,
-                            'svg_content': svg_content
+                            'layer_name': layer_folder,
+                            'layer_id': layer_folder,
+                            'svg': svg_content
                         })
 
             return response_data

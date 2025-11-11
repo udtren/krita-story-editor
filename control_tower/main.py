@@ -62,6 +62,15 @@ class ControlTower(QMainWindow):
         self.show_story_editor_btn.setEnabled(False)
         layout.addWidget(self.show_story_editor_btn)
 
+        # Krita Folder Path Input
+        self.krita_files_path_btn = QPushButton("Set Krita Files Folder Path")
+        self.krita_files_path_btn.clicked.connect(
+            self.set_krita_files_folder_path)
+        self.krita_files_path_btn.setFont(get_button_font())
+        self.krita_files_path_btn.setMinimumHeight(BUTTON_HEIGHT)
+        self.krita_files_path_btn.setMinimumWidth(BUTTON_MIN_WIDTH)
+        layout.addWidget(self.krita_files_path_btn)
+
         # Test button
         self.test_btn = QPushButton("TEST")
         self.test_btn.clicked.connect(self.test_get_all_docs_svg_data)
@@ -189,6 +198,32 @@ class ControlTower(QMainWindow):
         self.log(
             "Retrieving SVG data from all vector layers in all open documents...")
         self.send_request('get_all_docs_svg_data')
+
+    def set_krita_files_folder_path(self):
+        """Set the folder path where Krita files are located"""
+        self.log("\n--- Setting Krita Files Folder Path ---")
+
+        # Open folder dialog to select directory
+        folder_path = QFileDialog.getExistingDirectory(
+            self,
+            "Select Krita Files Folder",
+            "",
+            QFileDialog.Option.ShowDirsOnly
+        )
+
+        if not folder_path:
+            self.log("❌ No folder selected")
+            return
+
+        self.log(f"✅ Krita files folder set to: {folder_path}")
+
+        # Store the path (you can save this to a config file or use it for batch operations)
+        self.krita_files_folder = folder_path
+        self.krita_files_path_btn.setText(f"{folder_path}")
+
+        # Refresh the Story Editor window if it exists
+        if self.text_editor_handler.text_editor_window:
+            self.text_editor_handler.refresh_data()
 
     def test_read_kra_offline(self):
         """Read text from a .kra file without connecting to Krita"""
