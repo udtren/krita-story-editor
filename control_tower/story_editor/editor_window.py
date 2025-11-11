@@ -16,7 +16,7 @@ from configs.story_editor import (
     STORY_EDITOR_WINDOW_WIDTH,
     STORY_EDITOR_WINDOW_HEIGHT
 )
-from story_editor.utils.text_updater import update_all_texts
+from story_editor.utils.text_updater import create_svg_data_for_doc
 from story_editor.utils.svg_parser import parse_krita_svg, extract_elements_from_svg
 
 
@@ -128,7 +128,7 @@ class StoryEditorWindow:
         update_btn = QAction(
             QIcon(f"{os.path.join(icon_path_bath, 'check.png')}"), "Update Krita", self.text_editor_window)
         update_btn.setStatusTip("Update Krita")
-        update_btn.triggered.connect(self.update_all_texts)
+        update_btn.triggered.connect(self.send_merged_svg_request)
         update_btn.setCheckable(True)
         toolbar.addAction(update_btn)
 
@@ -343,7 +343,7 @@ If you want multiple paragraphs within different text elements, separate them wi
         # Simply request new data, which will rebuild the window
         self.show_text_editor()
 
-    def update_all_texts(self):
+    def send_merged_svg_request(self):
         """Send update requests for all modified texts and add new texts"""
 
         merged_requests = []
@@ -352,7 +352,7 @@ If you want multiple paragraphs within different text elements, separate them wi
             self.socket_handler.log(
                 f"⏳ Creating update data for document: {doc_name}")
 
-            result = update_all_texts(
+            result = create_svg_data_for_doc(
                 doc_name=doc_name,
                 text_edit_widgets=doc_state['text_edit_widgets'],
                 socket_handler=self.socket_handler
@@ -362,10 +362,13 @@ If you want multiple paragraphs within different text elements, separate them wi
                 self.socket_handler.log(
                     f"✅ Update data for document: {doc_name} added to the merged requests")
 
-        # self.socket_handler.log(
-        #     f"--- Sending Text Update Requests to Agents ---")
-        self.socket_handler.send_request(
-            'text_update_request', merged_requests=merged_requests)
+        if len(merged_requests) > 0:
+            self.socket_handler.log(
+                f"--- {len(merged_requests)} documents to update ---")
+            self.socket_handler.send_request(
+                'text_update_request', merged_requests=merged_requests)
+        else:
+            self.socket_handler.log("⚠️ No updates or new texts to send.")
 
     def show_text_editor(self):
         """Show text editor window with SVG data from Krita document"""

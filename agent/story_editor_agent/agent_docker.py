@@ -134,13 +134,25 @@ class StoryEditorAgentDocker(QDockWidget):
                                         }'''
                                         updates_with_doc_info = single_layer_data['data']
 
-                                        update_text_via_shapes(
+                                        result = update_text_via_shapes(
                                             doc, updates_with_doc_info.get('layer_groups', []), client)
 
-                                        response = {
-                                            'progress': f"{doc.name()}: Updated existing texts"}
-                                        client.write(json.dumps(
-                                            response).encode('utf-8'))
+                                        if result['success']:
+                                            if result.get('removed_shapes_count') == 0:
+                                                response = {
+                                                    'progress': f"{doc.name()}: Updated existing texts"}
+                                                client.write(json.dumps(
+                                                    response).encode('utf-8'))
+                                            elif result.get('removed_shapes_count') > 0:
+                                                response = {
+                                                    'progress': f"{doc.name()}: Updated existing texts. Removed {result.get('removed_shapes_count')} shapes"}
+                                                client.write(json.dumps(
+                                                    response).encode('utf-8'))
+                                        else:
+                                            response = {
+                                                'progress': f"{doc.name()}: Updating existing texts failed"}
+                                            client.write(json.dumps(
+                                                response).encode('utf-8'))
 
                                     elif text_edit_type == "new_texts_added":
                                         '''new_texts_with_doc_info = {

@@ -8,7 +8,7 @@ import html
 from .svg_generator import generate_full_svg_data, create_layer_groups
 
 
-def update_all_texts(doc_name, text_edit_widgets, socket_handler):
+def create_svg_data_for_doc(doc_name, text_edit_widgets, socket_handler):
     """
     Send update requests for all modified texts and add new texts
 

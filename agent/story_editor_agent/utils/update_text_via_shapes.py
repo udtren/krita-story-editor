@@ -68,19 +68,20 @@ def update_text_via_shapes(doc, layer_groups: dict, client=None):
 
             ########################################
             # Handle shape removal
+            removed_shape_count = 0
             shapes = target_layer.shapes()
             for shape in shapes:
                 for update in shapes_to_update:
                     if shape.name() == update.get('shape_id') and update.get('remove_shape') == True:
                         shape.remove()
                         doc.refreshProjection()
-                        if client:
-                            response = {
-                                'progress': f"{doc.name()}: Removed shape {shape.name()} from layer {target_layer.name()}"}
-                            client.write(json.dumps(response).encode('utf-8'))
-
+                        removed_shape_count += 1
             ########################################
-        return True
+        return {
+            'success': True,
+            'updated_layer': target_layer.name(),
+            'removed_shapes_count': removed_shape_count
+        }
 
     except Exception as e:
         write_log(f"[ERROR] Failed to update text via shapes: {e}")
