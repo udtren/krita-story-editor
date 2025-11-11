@@ -59,7 +59,35 @@ def update_doc_layers_svg(doc, layer_groups: dict, client=None):
                 element_id = text_elem.get('id')
                 for shape in shapes_to_update:
                     if shape['shape_id'] == element_id:
-                        text_elem.text = shape['new_text']
+                        new_text = shape['new_text']
+
+                        # Find tspan elements
+                        tspan_elements = text_elem.findall('.//svg:tspan', namespaces)
+
+                        if tspan_elements:
+                            # Split new text by newlines to match multiple tspans
+                            text_lines = new_text.split('\n')
+
+                            # Update existing tspans
+                            for i, tspan in enumerate(tspan_elements):
+                                if i < len(text_lines):
+                                    tspan.text = text_lines[i]
+                                else:
+                                    tspan.text = ''
+
+                            # If we have more lines than tspans, add new tspans
+                            if len(text_lines) > len(tspan_elements):
+                                for i in range(len(tspan_elements), len(text_lines)):
+                                    # Create new tspan based on the last one's attributes
+                                    last_tspan = tspan_elements[-1]
+                                    new_tspan = ET.SubElement(text_elem, '{http://www.w3.org/2000/svg}tspan')
+                                    new_tspan.set('x', last_tspan.get('x', '0'))
+                                    dy_value = last_tspan.get('dy', '12')
+                                    new_tspan.set('dy', dy_value)
+                                    new_tspan.text = text_lines[i]
+                        else:
+                            # No tspans, set text directly (fallback)
+                            text_elem.text = new_text
             modified_svg = ET.tostring(root, encoding='unicode')
 
             modified_svg = remove_namespace_prefixes(modified_svg)
@@ -230,7 +258,34 @@ def update_offline_kra_file(kra_path, layer_groups):
                             removed_shapes_count += 1
                         else:
                             # Update the text content
-                            text_elem.text = new_text
+                            # Find tspan elements
+                            tspan_elements = text_elem.findall('.//svg:tspan', namespaces)
+
+                            if tspan_elements:
+                                # Split new text by newlines to match multiple tspans
+                                text_lines = new_text.split('\n')
+
+                                # Update existing tspans
+                                for i, tspan in enumerate(tspan_elements):
+                                    if i < len(text_lines):
+                                        tspan.text = text_lines[i]
+                                    else:
+                                        tspan.text = ''
+
+                                # If we have more lines than tspans, add new tspans
+                                if len(text_lines) > len(tspan_elements):
+                                    for i in range(len(tspan_elements), len(text_lines)):
+                                        # Create new tspan based on the last one's attributes
+                                        last_tspan = tspan_elements[-1]
+                                        new_tspan = ET.SubElement(text_elem, '{http://www.w3.org/2000/svg}tspan')
+                                        new_tspan.set('x', last_tspan.get('x', '0'))
+                                        dy_value = last_tspan.get('dy', '12')
+                                        new_tspan.set('dy', dy_value)
+                                        new_tspan.text = text_lines[i]
+                            else:
+                                # No tspans, set text directly (fallback)
+                                text_elem.text = new_text
+
                             write_log(f"[DEBUG] Updated shape {shape_id}")
                             updated_layer_count += 1
 

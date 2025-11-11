@@ -22,7 +22,20 @@ def parse_krita_svg(doc_name, doc_path, layer_id, svg_content):
     text_elements = root.findall('.//svg:text', namespaces)
     for text_elem in text_elements:
         element_id = text_elem.get('id')
-        text_content = text_elem.text or ''
+
+        # Extract text from all tspan elements
+        text_parts = []
+        tspan_elements = text_elem.findall('.//svg:tspan', namespaces)
+        if tspan_elements:
+            for tspan in tspan_elements:
+                if tspan.text:
+                    text_parts.append(tspan.text)
+        else:
+            # Fallback to direct text content if no tspan elements
+            if text_elem.text:
+                text_parts.append(text_elem.text)
+
+        text_content = '\n'.join(text_parts)
         text_elem.text = f"{element_id}_TEXT_TO_REPLACE"
 
         result['layer_shapes'].append({
@@ -51,7 +64,20 @@ def extract_elements_from_svg(svg_content):
 
     for text_elem in text_elements:
         element_id = text_elem.get('id')
-        text_content = text_elem.text or ''
+
+        # Extract text from all tspan elements
+        text_parts = []
+        tspan_elements = text_elem.findall('.//svg:tspan', namespaces)
+        if tspan_elements:
+            for tspan in tspan_elements:
+                if tspan.text:
+                    text_parts.append(tspan.text)
+        else:
+            # Fallback to direct text content if no tspan elements
+            if text_elem.text:
+                text_parts.append(text_elem.text)
+
+        text_content = '\n'.join(text_parts)
 
         result.append({
             'raw_svg': svg_content,

@@ -1,5 +1,15 @@
-from PyQt5.QtWidgets import (QApplication, QMainWindow, QPushButton,
-                             QVBoxLayout, QHBoxLayout, QWidget, QTextEdit, QLabel, QInputDialog, QFileDialog)
+from PyQt5.QtWidgets import (
+    QApplication,
+    QMainWindow,
+    QPushButton,
+    QVBoxLayout,
+    QHBoxLayout,
+    QWidget,
+    QTextEdit,
+    QLabel,
+    QInputDialog,
+    QFileDialog,
+)
 from PyQt5.QtNetwork import QLocalSocket
 from PyQt5.QtCore import QTimer, Qt
 from PyQt5.QtGui import QFont, QFontDatabase
@@ -11,7 +21,7 @@ from configs.main_window import (
     BUTTON_HEIGHT,
     BUTTON_MIN_WIDTH,
     get_button_font,
-    get_log_font
+    get_log_font,
 )
 from utils.kra_reader import extract_text_from_kra
 from story_editor import StoryEditorWindow
@@ -42,31 +52,28 @@ class ControlTower(QMainWindow):
         # UI Setup
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
-        central_widget.setStyleSheet(
-            "background-color: #a07949;")
+        central_widget.setStyleSheet("background-color: #a07949;")
         layout = QVBoxLayout(central_widget)
 
         # Title Layout #4366c5
         title_layout = QHBoxLayout()
         title_label = QLabel("Krita Story Editor")
         title_label.setAlignment(
-            Qt.AlignmentFlag.AlignCenter | Qt.AlignmentFlag.AlignVCenter)
+            Qt.AlignmentFlag.AlignCenter | Qt.AlignmentFlag.AlignVCenter
+        )
 
         # Load custom font from file
-        font_path = os.path.join(os.path.dirname(
-            __file__), "fonts", "Minecraft.ttf")
+        font_path = os.path.join(os.path.dirname(__file__), "fonts", "Minecraft.ttf")
         font_id = QFontDatabase.addApplicationFont(font_path)
         if font_id != -1:
             font_family = QFontDatabase.applicationFontFamilies(font_id)[0]
             title_font = QFont(font_family, 24)
             title_label.setFont(title_font)
-            title_label.setStyleSheet(
-                "color: #693214;")
+            title_label.setStyleSheet("color: #693214;")
         else:
             # Fallback if font loading fails
             title_label.setFont(get_button_font())
-            title_label.setStyleSheet(
-                "color: #693214;")
+            title_label.setStyleSheet("color: #693214;")
 
         title_layout.addWidget(title_label)
         layout.addLayout(title_layout)
@@ -75,7 +82,8 @@ class ControlTower(QMainWindow):
         self.log_output = QTextEdit()
         self.log_output.setReadOnly(True)
         self.log_output.setFont(get_log_font())
-        self.log_output.setStyleSheet("""
+        self.log_output.setStyleSheet(
+            """
             QTextEdit {
                 background: qlineargradient(
                     x1: 0, y1: 0, x2: 0, y2: 1,
@@ -84,7 +92,8 @@ class ControlTower(QMainWindow):
                 );
                 border: none;
             }
-        """)
+        """
+        )
         layout.addWidget(self.log_output)
 
         # Connection status (aligned to the right)
@@ -92,7 +101,8 @@ class ControlTower(QMainWindow):
         status_layout.addStretch()  # Push label to the right
         self.status_label = QLabel("Status: Not Connected")
         self.status_label.setAlignment(
-            Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+            Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
+        )
 
         if font_id != -1:
             font_family = QFontDatabase.applicationFontFamilies(font_id)[0]
@@ -104,7 +114,8 @@ class ControlTower(QMainWindow):
 
         self.status_label.setFixedSize(250, 50)
         self.status_label.setStyleSheet(
-            "background-color: black; color: #c8c8c8; padding: 5px;")
+            "background-color: black; color: #c8c8c8; padding: 5px;"
+        )
         status_layout.addWidget(self.status_label)
         layout.addLayout(status_layout)
 
@@ -114,8 +125,7 @@ class ControlTower(QMainWindow):
         self.connect_btn = QPushButton("Connect to Story Editor Agent")
         self.connect_btn.clicked.connect(self.connect_to_docker)
         self.connect_btn.setFont(get_button_font())
-        self.connect_btn.setStyleSheet(
-            "color: #4b281c; padding: 5px;")
+        self.connect_btn.setStyleSheet("color: #4b281c; padding: 5px;")
 
         self.connect_btn.setFixedSize(300, 50)
         connect_layout.addWidget(self.connect_btn)
@@ -125,11 +135,9 @@ class ControlTower(QMainWindow):
         folder_layout = QHBoxLayout()
         folder_layout.addStretch()  # Push button to the right
         self.krita_files_path_btn = QPushButton("Set Krita Files Folder Path")
-        self.krita_files_path_btn.clicked.connect(
-            self.set_krita_files_folder_path)
+        self.krita_files_path_btn.clicked.connect(self.set_krita_files_folder_path)
         self.krita_files_path_btn.setFont(get_button_font())
-        self.krita_files_path_btn.setStyleSheet(
-            "color: #4b281c; padding: 5px;")
+        self.krita_files_path_btn.setStyleSheet("color: #4b281c; padding: 5px;")
 
         self.krita_files_path_btn.setFixedSize(300, 50)
         folder_layout.addWidget(self.krita_files_path_btn)
@@ -144,7 +152,8 @@ class ControlTower(QMainWindow):
         self.show_story_editor_btn = QPushButton("Open/Refresh Story Editor")
         self.show_story_editor_btn.clicked.connect(self.open_text_editor)
         self.show_story_editor_btn.setStyleSheet(
-            "background-color: #414a8e; color: #1a1625; padding: 5px;")
+            "background-color: #414a8e; color: #1a1625; padding: 5px;"
+        )
         self.show_story_editor_btn.setFont(get_button_font())
 
         self.show_story_editor_btn.setFixedSize(300, 50)
@@ -169,8 +178,7 @@ class ControlTower(QMainWindow):
         # self.read_kra_btn.setMinimumWidth(BUTTON_MIN_WIDTH)
         # layout.addWidget(self.read_kra_btn)
 
-        self.log(
-            "Application started. Click 'Connect to Story Editor Agent' to begin.")
+        self.log("Application started. Click 'Connect to Story Editor Agent' to begin.")
 
     def log(self, message):
         """Add a message to the log output"""
@@ -197,7 +205,8 @@ class ControlTower(QMainWindow):
         self.log("✅ Connected to Krita docker!")
         self.status_label.setText("Status: Connected")
         self.status_label.setStyleSheet(
-            "background-color: black; color: #4cc340; padding: 5px;")
+            "background-color: black; color: #4cc340; padding: 5px;"
+        )
         self.connect_btn.setEnabled(False)
         self.connect_btn.setStyleSheet("color: gray;")
 
@@ -207,8 +216,12 @@ class ControlTower(QMainWindow):
         """Called when disconnected"""
         self.log("❌ Disconnected from Krita docker")
         self.status_label.setText("Status: Disconnected")
-        self.status_label.setStyleSheet("color: red;")
+        self.status_label.setStyleSheet(
+            "background-color: black; color: #c8c8c8; padding: 5px;"
+        )
+
         self.connect_btn.setEnabled(True)
+        self.connect_btn.setStyleSheet("color: #4b281c; padding: 5px;")
 
         self.show_story_editor_btn.setEnabled(False)
 
@@ -219,39 +232,37 @@ class ControlTower(QMainWindow):
 
     def send_request(self, action, **params):
         """Send a request to the Krita docker"""
-        request = {'action': action, **params}
+        request = {"action": action, **params}
         json_data = json.dumps(request)
         self.log(f"📤 Sending Request to the Agent: {request['action']}")
-        self.socket.write(json_data.encode('utf-8'))
+        self.socket.write(json_data.encode("utf-8"))
         self.socket.flush()
 
     def on_data_received(self):
         """Handle data received from the Krita docker"""
-        data = self.socket.readAll().data().decode('utf-8')
+        data = self.socket.readAll().data().decode("utf-8")
         # self.log(f"📥 Received: {data}")
 
         try:
             response = json.loads(data)
 
             # Only log non-SVG responses (SVG data is too large)
-            if 'docs_svg_update_result' in response and response.get('success'):
+            if "docs_svg_update_result" in response and response.get("success"):
                 self.log(
-                    f"✔️ Text Update Request Finishied: {response['docs_svg_update_result']}")
+                    f"✔️ Text Update Request Finishied: {response['docs_svg_update_result']}"
+                )
                 self.text_editor_handler.refresh_data()
 
-            elif 'all_docs_svg_data' in response and response.get('success'):
-                self.log(
-                    f"📥 All docs svg data received from agent")
+            elif "all_docs_svg_data" in response and response.get("success"):
+                self.log(f"📥 All docs svg data received from agent")
 
                 # Route to the appropriate handler based on which one is waiting
-                if self._waiting_for_svg == 'text_editor':
-                    self.text_editor_handler.set_svg_data(
-                        response['all_docs_svg_data'])
+                if self._waiting_for_svg == "text_editor":
+                    self.text_editor_handler.set_svg_data(response["all_docs_svg_data"])
                 self._waiting_for_svg = None
 
-            elif 'progress' in response:
-                self.log(
-                    f"📋 Agent Progress: {response['progress']}")
+            elif "progress" in response:
+                self.log(f"📋 Agent Progress: {response['progress']}")
 
             else:
                 self.log(f"Other Response: {response}")
@@ -261,21 +272,20 @@ class ControlTower(QMainWindow):
 
     def open_text_editor(self):
         """Open the text editor window"""
-        self._waiting_for_svg = 'text_editor'
+        self._waiting_for_svg = "text_editor"
         self.text_editor_handler.show_text_editor()
 
     def test_get_svg_data(self):
         """Test the get_svg_data action"""
         self.log("\n--- Testing get_svg_data ---")
         self.log("Retrieving SVG data from all vector layers...")
-        self.send_request('get_all_svg_data')
+        self.send_request("get_all_svg_data")
 
     def test_get_all_docs_svg_data(self):
         """Test the get_all_docs_svg_data action"""
         self.log("\n--- Testing get_all_docs_svg_data ---")
-        self.log(
-            "Retrieving SVG data from all vector layers in all open documents...")
-        self.send_request('get_all_docs_svg_data')
+        self.log("Retrieving SVG data from all vector layers in all open documents...")
+        self.send_request("get_all_docs_svg_data")
 
     def set_krita_files_folder_path(self):
         """Set the folder path where Krita files are located"""
@@ -283,10 +293,7 @@ class ControlTower(QMainWindow):
 
         # Open folder dialog to select directory
         folder_path = QFileDialog.getExistingDirectory(
-            self,
-            "Select Krita Files Folder",
-            "",
-            QFileDialog.Option.ShowDirsOnly
+            self, "Select Krita Files Folder", "", QFileDialog.Option.ShowDirsOnly
         )
 
         if not folder_path:
@@ -298,6 +305,9 @@ class ControlTower(QMainWindow):
         # Store the path (you can save this to a config file or use it for batch operations)
         self.krita_files_folder = folder_path
         self.krita_files_path_btn.setText(f"{folder_path}")
+        self.krita_files_path_btn.setStyleSheet(
+            "font-size: 12px; color: #4b281c; padding: 5px; font-weight: bold;"
+        )
 
         # Refresh the Story Editor window if it exists
         if self.text_editor_handler.text_editor_window:
@@ -309,10 +319,7 @@ class ControlTower(QMainWindow):
 
         # Open file dialog to select .kra file
         file_path, _ = QFileDialog.getOpenFileName(
-            self,
-            "Select .kra File",
-            "",
-            "Krita Files (*.kra);;All Files (*)"
+            self, "Select .kra File", "", "Krita Files (*.kra);;All Files (*)"
         )
 
         if not file_path:
@@ -327,7 +334,8 @@ class ControlTower(QMainWindow):
             if text_layers:
                 self.log(f"✅ Found {len(text_layers)} layer(s) with text")
                 self.log(
-                    f"📥 Result: {json.dumps(text_layers, indent=2, ensure_ascii=False)}")
+                    f"📥 Result: {json.dumps(text_layers, indent=2, ensure_ascii=False)}"
+                )
             else:
                 self.log("⚠️ No text layers found in file")
 
@@ -346,5 +354,5 @@ def main():
     sys.exit(app.exec())
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

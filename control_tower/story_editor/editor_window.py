@@ -34,6 +34,7 @@ from configs.story_editor import (
 from story_editor.utils.text_updater import create_svg_data_for_doc
 from story_editor.utils.svg_parser import parse_krita_svg, extract_elements_from_svg
 from story_editor.utils.find_replace import show_find_replace_dialog
+from story_editor.utils.logs import write_log
 
 
 class StoryEditorWindow:
@@ -130,13 +131,13 @@ class StoryEditorWindow:
             "Add New Text",
             self.text_editor_window,
         )
-        new_text_btn.setStatusTip("Add a new text widget")
+        new_text_btn.setStatusTip("Add a new text widget to the active document")
         new_text_btn.triggered.connect(self.add_new_text_widget)
         toolbar.addAction(new_text_btn)
 
         refresh_btn = QAction(
             QIcon(f"{os.path.join(icon_path_bath, 'refresh.png')}"),
-            "Refresh from Krita",
+            "Refresh from Krita document",
             self.text_editor_window,
         )
         refresh_btn.setStatusTip("Reload text data from Krita document")
@@ -148,7 +149,7 @@ class StoryEditorWindow:
             "Update Krita",
             self.text_editor_window,
         )
-        update_btn.setStatusTip("Update Krita")
+        update_btn.setStatusTip("Update Krita document with modified and new texts")
         update_btn.triggered.connect(self.send_merged_svg_request)
         toolbar.addAction(update_btn)
 
@@ -164,9 +165,36 @@ class StoryEditorWindow:
         find_replace_btn.triggered.connect(self.show_find_replace)
         toolbar.addAction(find_replace_btn)
 
-        #################################
+        # Add spacer to push pin button to the right
+        spacer = QWidget()
+        spacer.setSizePolicy(
+            QWidget().sizePolicy().Expanding, QWidget().sizePolicy().Preferred
+        )
+        toolbar.addWidget(spacer)
 
-        horizon_layout_for_active_and_texteditor = QHBoxLayout()
+        # Pin button to keep window on top
+        pin_btn = QAction(
+            QIcon(f"{os.path.join(icon_path_bath, 'thumbtack_light.png')}"),
+            "Pin Window on Top",
+            self.text_editor_window,
+        )
+        pin_btn.setCheckable(True)
+        pin_btn.setStatusTip("Keep Story Editor window on top of all windows")
+        pin_btn.triggered.connect(self.toggle_window_pin)
+        toolbar.addAction(pin_btn)
+
+        # Store reference to pin button for later use
+        self.pin_btn = pin_btn
+
+        #################################
+        thumbnail_and_text_layout = QHBoxLayout()
+        thumbnail_layout = QVBoxLayout()
+        text_edit_layout = QVBoxLayout()
+
+        thumbnail_and_text_layout.addLayout(thumbnail_layout)
+        thumbnail_and_text_layout.addLayout(text_edit_layout)
+
+        write_log(f"all_docs_svg_data: {self.all_docs_svg_data}")
 
         # VBoxLayout for all layers
         for doc_data in self.all_docs_svg_data:
@@ -176,10 +204,12 @@ class StoryEditorWindow:
             opened = doc_data.get("opened", True)
             thumbnail = doc_data.get("thumbnail", None)
 
+            horizon_layout_for_active_and_texteditor = QHBoxLayout()
+            text_edit_layout.addLayout(horizon_layout_for_active_and_texteditor)
+
             ###################################################
             # Thumbnail QVBoxLayout
             ###################################################
-            thumbnail_layout = QVBoxLayout()
 
             # Create thumbnail label
             thumbnail_label = QLabel()
@@ -227,12 +257,8 @@ class StoryEditorWindow:
                     lambda _, name=doc_name: self.thumbnail_clicked(name)
                 )
 
-            thumbnail_layout.addWidget(thumbnail_label, alignment=Qt.AlignTop)
-            thumbnail_layout.addStretch()
-
-            # Add thumbnail layout to main horizontal layout
-            horizon_layout_for_active_and_texteditor.addLayout(
-                thumbnail_layout, stretch=0
+            thumbnail_layout.addWidget(
+                thumbnail_label, alignment=Qt.AlignTop, stretch=0
             )
             ###################################################
 
@@ -310,6 +336,7 @@ class StoryEditorWindow:
                 parsed_svg_data = parse_krita_svg(
                     doc_name, doc_path, layer_id, svg_content
                 )
+                write_log(f"parsed_svg_data: {parsed_svg_data}")
 
                 if not parsed_svg_data["layer_shapes"]:
                     continue
@@ -367,7 +394,10 @@ class StoryEditorWindow:
             # Add each document container to main layout (AFTER all layers processed)
             horizon_layout_for_active_and_texteditor.addWidget(doc_container, stretch=1)
 
-        main_layout.addLayout(horizon_layout_for_active_and_texteditor)
+        # Add stretch at the end of thumbnail layout
+        thumbnail_layout.addStretch()
+
+        main_layout.addLayout(thumbnail_and_text_layout)
         main_layout.addStretch()
 
         # Show the window
@@ -500,6 +530,37 @@ class StoryEditorWindow:
             return
 
         show_find_replace_dialog(self.text_editor_window, self.all_docs_text_state)
+
+    def toggle_window_pin(self, checked):
+        """Toggle window always-on-top state"""
+        if not self.text_editor_window:
+            return
+
+        # Get current window flags
+        flags = self.text_editor_window.windowFlags()
+
+        # Get icon path
+        icon_path_bath = os.path.join(os.path.dirname(__file__), "icons")
+
+        if checked:
+            # Add WindowStaysOnTopHint flag
+            self.text_editor_window.setWindowFlags(flags | Qt.WindowStaysOnTopHint)
+            # Change icon to dark thumbtack
+            self.pin_btn.setIcon(
+                QIcon(os.path.join(icon_path_bath, "thumbtack_dark.png"))
+            )
+            self.socket_handler.log("📌 Story Editor window pinned on top")
+        else:
+            # Remove WindowStaysOnTopHint flag
+            self.text_editor_window.setWindowFlags(flags & ~Qt.WindowStaysOnTopHint)
+            # Change icon back to light thumbtack
+            self.pin_btn.setIcon(
+                QIcon(os.path.join(icon_path_bath, "thumbtack_light.png"))
+            )
+            self.socket_handler.log("📌 Story Editor window unpinned")
+
+        # Need to show the window again after changing flags
+        self.text_editor_window.show()
 
     def send_merged_svg_request(self):
         """Send update requests for all modified texts and add new texts"""

@@ -1,6 +1,1 @@
-<text xmlns="http://www.w3.org/2000/svg" id="SHAPE_ID" krita:textVersion="3"
-    xmlns:krita="http://krita.org/namespaces/svg/krita"
-    transform="translate(40.0, 40.0)" paint-order="stroke fill markers"
-    fill="#000000" stroke-opacity="0" stroke="#000000" stroke-width="0" stroke-linecap="square"
-    stroke-linejoin="bevel" style="inline-size: 850.0;font-size: 30.00;white-space: pre-wrap;">
-    TEXT_TO_REPLACE</text>
+<text id="SHAPE_ID" krita:useRichText="true" text-rendering="auto" krita:textVersion="3" transform="translate(32.2096508010538, 122.436130598988)" fill="#0a0a00" stroke-opacity="0" stroke="#000000" stroke-width="0" stroke-linecap="square" stroke-linejoin="bevel" kerning="none" letter-spacing="0" word-spacing="0" style="text-align: start;text-align-last: auto;font-family: HG明朝B;font-size: 18;"><tspan x="0">TEXT_TO_REPLACE</tspan></text>
