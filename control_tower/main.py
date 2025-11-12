@@ -24,6 +24,7 @@ from configs.main_window import (
     get_log_font,
 )
 from utils.kra_reader import extract_text_from_kra
+from utils.template_manager import show_template_manager
 from story_editor import StoryEditorWindow
 import json
 import sys
@@ -184,10 +185,11 @@ class ControlTower(QMainWindow):
         edit_templates_layout = QHBoxLayout()
         edit_templates_layout.addStretch()  # Push button to the right
         self.edit_templates_btn = QPushButton("Edit Templates")
+        self.edit_templates_btn.clicked.connect(self.open_template_manager)
         self.edit_templates_btn.setFont(get_button_font())
         self.edit_templates_btn.setStyleSheet(
             """
-            color: #4b281c; 
+            color: #4b281c;
             background-color: #9e6658;
             padding: 5px;
             border-radius: 8px;
@@ -316,6 +318,11 @@ class ControlTower(QMainWindow):
         """Open the text editor window"""
         self._waiting_for_svg = "text_editor"
         self.text_editor_handler.show_text_editor()
+
+    def open_template_manager(self):
+        """Open the template manager window"""
+        self.log("📝 Opening Template Manager...")
+        self.template_manager_window = show_template_manager(self)
 
     def set_krita_files_folder_path(self):
         """Set the folder path where Krita files are located"""

@@ -45,7 +45,12 @@ def add_new_text_widget(
     active_layout = doc_layouts[active_doc_name]
 
     # Default template path
-    default_template = "svg_templates/default_1.xml"
+    default_template = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
+        "utils",
+        "user_templates",
+        "default_1.xml",
+    )
     placeholder_text = """If you want multiple paragraphs within different text elements, separate them with double line breaks."""
 
     # Create new layout for this text element
@@ -68,8 +73,12 @@ def add_new_text_widget(
     choose_template_combo.setMaximumWidth(400)
     choose_template_combo.setStyleSheet(get_template_combo_stylesheet())
 
-    # Find all XML files in svg_templates directory
-    template_dir = "svg_templates"
+    # Find all XML files in user_templates directory
+    template_dir = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
+        "utils",
+        "user_templates",
+    )
     template_files = []
 
     if os.path.exists(template_dir):
