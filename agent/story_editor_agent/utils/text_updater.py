@@ -34,7 +34,11 @@ def update_doc_layers_svg(doc, existing_texts_updated: [dict]):
                 target_layer.addShapesFromSvg(svg_data)
                 updated_layer_count += 1
                 doc.refreshProjection()
-        return {"success": True, "count": updated_layer_count}
+        return {
+            "success": True,
+            "result": f"Updated {updated_layer_count} layers.",
+            "count": updated_layer_count,
+        }
 
     except Exception as e:
         write_log(f"[ERROR] Failed to update layer SVG: {str(e)}")
@@ -75,7 +79,11 @@ def add_svg_layer_to_doc(doc, new_texts_added: [dict]):
             doc.refreshProjection()
             new_layer_count += 1
 
-        return {"success": True, "count": new_layer_count}
+        return {
+            "success": True,
+            "result": f"Added {new_layer_count} new layers.",
+            "count": new_layer_count,
+        }
 
     except Exception as e:
         write_log(f"[ERROR] Failed to add new svg data: {e}")
@@ -103,36 +111,61 @@ def update_offline_kra_file(doc_path, existing_texts_updated: [dict]):
     try:
         # Get the document name without extension
         doc_name = os.path.splitext(os.path.basename(doc_path))[0]
-        modified_files = []
 
         # Create a backup
         backup_path = doc_path + ".backup"
         shutil.copy2(doc_path, backup_path)
 
-        # Process each layer group
+        # Create a mapping of file paths to new SVG data
+        modified_files = {}
         for layer_data in existing_texts_updated:
-
             layer_name = layer_data.get("layer_name")
             layer_id = layer_data.get("layer_id")
             svg_data = layer_data.get("svg_data")
 
             # Build the expected SVG file path inside the .kra
             svg_path_in_kra = f"{doc_name}/layers/{layer_id}/content.svg"
-            modified_files.append(svg_path_in_kra)
+            modified_files[svg_path_in_kra] = svg_data
 
-        # Create a new .kra file with the updated content
-        with zipfile.ZipFile(doc_path, "w", zipfile.ZIP_DEFLATED) as kra:
-            # Copy all files from original, replacing modified ones
-            for file_path in kra.namelist():
-                if file_path in modified_files:
-                    # Write the modified SVG
-                    kra.writestr(file_path, modified_files[file_path].encode("utf-8"))
-                    layer_updated_count += 1
+        # Create a temporary file for the new .kra
+        temp_kra = tempfile.NamedTemporaryFile(delete=False, suffix=".kra")
+        temp_kra_path = temp_kra.name
+        temp_kra.close()
+
+        # Read from original and write to temporary file
+        with zipfile.ZipFile(backup_path, "r") as original_kra:
+            with zipfile.ZipFile(temp_kra_path, "w", zipfile.ZIP_DEFLATED) as new_kra:
+                # Copy all files from original, replacing modified ones
+                for file_path in original_kra.namelist():
+                    if file_path in modified_files:
+                        # Write the modified SVG
+                        new_kra.writestr(
+                            file_path, modified_files[file_path].encode("utf-8")
+                        )
+                        layer_updated_count += 1
+                    else:
+                        # Copy original file unchanged
+                        file_data = original_kra.read(file_path)
+                        new_kra.writestr(file_path, file_data)
+
+        # Replace original with updated file
+        shutil.move(temp_kra_path, doc_path)
 
         return {
             "success": True,
+            "result": f"{doc_name} (offline):\n  Updated {layer_updated_count} layers.",
             "count": layer_updated_count,
         }
 
     except Exception as e:
         write_log(f"[ERROR] Failed to update offline .kra file: {e}")
+        # Try to restore from backup if something went wrong
+        if os.path.exists(backup_path):
+            try:
+                shutil.copy2(backup_path, doc_path)
+            except:
+                pass
+        return {
+            "success": False,
+            "error": str(e),
+        }

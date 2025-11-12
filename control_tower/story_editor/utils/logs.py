@@ -1,6 +1,6 @@
 def write_log(log_msg, enable_debug=False):
 
-    enable_debug = True
+    enable_debug = False
 
     if enable_debug:
         with open(

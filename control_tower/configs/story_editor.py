@@ -24,6 +24,11 @@ TSPAN_FOCUS_BORDER_COLOR = "#8c8c8c"
 TSPAN_SELECTION_COLOR = "#4A9EFF"
 TSPAN_SELECTION_TEXT_COLOR = "#C5C5C5"
 
+# Tooltip Colors
+TOOLTIP_BACKGROUND_COLOR = "#cfd171"
+TOOLTIP_TEXT_COLOR = "#120E0E"
+TOOLTIP_BORDER_COLOR = "#101010"
+
 # Style Label Colors
 STYLE_LABEL_COLOR = "#888"
 STYLE_LABEL_FONT_SIZE = 10
@@ -86,11 +91,20 @@ def get_tspan_editor_stylesheet():
             selection-background-color: {TSPAN_SELECTION_COLOR};
             selection-color: {TSPAN_SELECTION_TEXT_COLOR};
         }}
-        
+
         QTextEdit:focus {{
             border: 2px solid {TSPAN_FOCUS_BORDER_COLOR};
         }}
-        
+
+        QToolTip {{
+            background-color: {TOOLTIP_BACKGROUND_COLOR};
+            color: {TOOLTIP_TEXT_COLOR};
+            border: 1px solid {TOOLTIP_BORDER_COLOR};
+            padding: 5px;
+            border-radius: 3px;
+            font-size: 14px;
+        }}
+
         # QTextEdit:hover {{
         #     border: 2px solid #666;
         # }}

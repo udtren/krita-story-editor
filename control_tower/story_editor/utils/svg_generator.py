@@ -1,6 +1,7 @@
 import xml.etree.ElementTree as ET
 import uuid
 from .xml_formatter import remove_namespace_prefixes
+from .svg_parser import _add_missing_namespaces
 
 
 def create_new_svg_data_krita5_2(svg_template, shape_id, text_segment) -> str:
@@ -84,7 +85,7 @@ def create_new_svg_data_krita5_2(svg_template, shape_id, text_segment) -> str:
 
         # Remove extra tspans if template had more than we need
         if len(text_lines) < len(tspan_elements):
-            for tspan in tspan_elements[len(text_lines):]:
+            for tspan in tspan_elements[len(text_lines) :]:
                 root.remove(tspan)
     else:
         # No tspan elements found, set text directly
@@ -171,6 +172,7 @@ def update_existing_svg_data_krita5_2(svg_content, layer_shapes, changes) -> str
 
     has_changes = False
 
+    svg_content = _add_missing_namespaces(svg_content)
     root = ET.fromstring(svg_content)
     namespaces = {
         "svg": "http://www.w3.org/2000/svg",

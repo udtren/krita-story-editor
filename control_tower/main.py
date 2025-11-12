@@ -107,6 +107,7 @@ class ControlTower(QMainWindow):
                     stop: 1 rgba(30, 30, 30, 0)
                 );
                 border: none;
+                border-radius: 8px;
             }
         """
         )
@@ -122,15 +123,20 @@ class ControlTower(QMainWindow):
 
         if font_id != -1:
             font_family = QFontDatabase.applicationFontFamilies(font_id)[0]
-            status_label_font = QFont(font_family, 12)
+            status_label_font = QFont(font_family, 10)
             self.status_label.setFont(status_label_font)
         else:
             # Fallback if font loading fails
             self.status_label.setFont(get_button_font())
 
-        self.status_label.setFixedSize(250, 50)
+        self.status_label.setFixedSize(250, 40)
         self.status_label.setStyleSheet(
-            "background-color: black; color: #c8c8c8; padding: 5px;"
+            """
+            background-color: black; 
+            color: #c8c8c8; 
+            padding: 5px;
+            border-radius: 8px;
+            """
         )
         status_layout.addWidget(self.status_label)
         layout.addLayout(status_layout)
@@ -138,7 +144,7 @@ class ControlTower(QMainWindow):
         # Connect button (aligned to the right)
         connect_layout = QHBoxLayout()
         connect_layout.addStretch()  # Push button to the right
-        self.connect_btn = QPushButton("Connect to Story Editor Agent")
+        self.connect_btn = QPushButton("Connect to Agent")
         self.connect_btn.clicked.connect(self.connect_to_docker)
         self.connect_btn.setFont(get_button_font())
         self.connect_btn.setStyleSheet(
@@ -146,17 +152,18 @@ class ControlTower(QMainWindow):
             color: #4b281c; 
             background-color: #9e6658;
             padding: 5px;
+            border-radius: 8px;
             """
         )
 
-        self.connect_btn.setFixedSize(300, 50)
+        self.connect_btn.setFixedSize(250, 40)
         connect_layout.addWidget(self.connect_btn)
         layout.addLayout(connect_layout)
 
         # Krita Folder Path Input (aligned to the right)
         folder_layout = QHBoxLayout()
         folder_layout.addStretch()  # Push button to the right
-        self.krita_files_path_btn = QPushButton("Set Krita Files Folder Path")
+        self.krita_files_path_btn = QPushButton("Set Krita Folder Path")
         self.krita_files_path_btn.clicked.connect(self.set_krita_files_folder_path)
         self.krita_files_path_btn.setFont(get_button_font())
         self.krita_files_path_btn.setStyleSheet(
@@ -164,10 +171,11 @@ class ControlTower(QMainWindow):
             color: #4b281c; 
             background-color: #9e6658;
             padding: 5px;
+            border-radius: 8px;
             """
         )
 
-        self.krita_files_path_btn.setFixedSize(300, 50)
+        self.krita_files_path_btn.setFixedSize(250, 40)
         folder_layout.addWidget(self.krita_files_path_btn)
         layout.addLayout(folder_layout)
 
@@ -177,40 +185,28 @@ class ControlTower(QMainWindow):
         # Open Story Editor (aligned to the right)
         editor_layout = QHBoxLayout()
         editor_layout.addStretch()  # Push button to the right
-        self.show_story_editor_btn = QPushButton("Open/Refresh Story Editor")
+        self.show_story_editor_btn = QPushButton("Open Story Editor")
         self.show_story_editor_btn.clicked.connect(self.open_text_editor)
         self.show_story_editor_btn.setStyleSheet(
-            "background-color: #414a8e; color: #1a1625; padding: 5px;"
+            """
+            background-color: #414a8e; 
+            color: #1a1625; 
+            padding: 5px; 
+            border-radius: 8px;
+            """
         )
         self.show_story_editor_btn.setFont(get_button_font())
 
-        self.show_story_editor_btn.setFixedSize(300, 50)
+        self.show_story_editor_btn.setFixedSize(250, 40)
         self.show_story_editor_btn.setEnabled(False)
         editor_layout.addWidget(self.show_story_editor_btn)
         layout.addLayout(editor_layout)
-
-        # Test button
-        # self.test_btn = QPushButton("TEST")
-        # self.test_btn.clicked.connect(self.test_get_all_docs_svg_data)
-        # self.test_btn.setFont(get_button_font())
-        # self.test_btn.setMinimumHeight(BUTTON_HEIGHT)
-        # self.test_btn.setMinimumWidth(BUTTON_MIN_WIDTH)
-        # self.test_btn.setAlignment(Qt.AlignmentFlag.AlignRight)
-        # layout.addWidget(self.test_btn)
-
-        # Read KRA offline button
-        # self.read_kra_btn = QPushButton("Read .kra File (Offline)")
-        # self.read_kra_btn.clicked.connect(self.test_read_kra_offline)
-        # self.read_kra_btn.setFont(get_button_font())
-        # self.read_kra_btn.setMinimumHeight(BUTTON_HEIGHT)
-        # self.read_kra_btn.setMinimumWidth(BUTTON_MIN_WIDTH)
-        # layout.addWidget(self.read_kra_btn)
 
         self.log("Application started. Click 'Connect to Story Editor Agent' to begin.")
 
     def log(self, message):
         """Add a message to the log output"""
-        self.log_output.append(f"[LOG] {message}")
+        self.log_output.append(f" {message}")
 
     def connect_to_docker(self):
         """Connect to the Krita docker's local server"""
@@ -269,7 +265,6 @@ class ControlTower(QMainWindow):
     def on_data_received(self):
         """Handle data received from the Krita docker"""
         data = self.socket.readAll().data().decode("utf-8")
-        # self.log(f"📥 Received: {data}")
 
         try:
             response = json.loads(data)
@@ -303,18 +298,6 @@ class ControlTower(QMainWindow):
         self._waiting_for_svg = "text_editor"
         self.text_editor_handler.show_text_editor()
 
-    def test_get_svg_data(self):
-        """Test the get_svg_data action"""
-        self.log("\n--- Testing get_svg_data ---")
-        self.log("Retrieving SVG data from all vector layers...")
-        self.send_request("get_all_svg_data")
-
-    def test_get_all_docs_svg_data(self):
-        """Test the get_all_docs_svg_data action"""
-        self.log("\n--- Testing get_all_docs_svg_data ---")
-        self.log("Retrieving SVG data from all vector layers in all open documents...")
-        self.send_request("get_all_docs_svg_data")
-
     def set_krita_files_folder_path(self):
         """Set the folder path where Krita files are located"""
         self.log("\n--- Setting Krita Files Folder Path ---")
@@ -344,35 +327,6 @@ class ControlTower(QMainWindow):
         # Refresh the Story Editor window if it exists
         if self.text_editor_handler.text_editor_window:
             self.text_editor_handler.refresh_data()
-
-    def test_read_kra_offline(self):
-        """Read text from a .kra file without connecting to Krita"""
-        self.log("\n--- Testing offline .kra reading ---")
-
-        # Open file dialog to select .kra file
-        file_path, _ = QFileDialog.getOpenFileName(
-            self, "Select .kra File", "", "Krita Files (*.kra);;All Files (*)"
-        )
-
-        if not file_path:
-            self.log("❌ No file selected")
-            return
-
-        self.log(f"Reading file: {file_path}")
-
-        try:
-            text_layers = extract_text_from_kra(file_path)
-
-            if text_layers:
-                self.log(f"✅ Found {len(text_layers)} layer(s) with text")
-                self.log(
-                    f"📥 Result: {json.dumps(text_layers, indent=2, ensure_ascii=False)}"
-                )
-            else:
-                self.log("⚠️ No text layers found in file")
-
-        except Exception as e:
-            self.log(f"❌ Error reading .kra file: {e}")
 
 
 def main():

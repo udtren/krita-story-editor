@@ -141,9 +141,6 @@ class StoryEditorAgentDocker(QDockWidget):
                     ############################################################
                     opened_docs_requests = []
                     offline_docs_requests = []
-                    existing_layer_update_count = 0
-                    new_layer_add_count = 0
-                    offline_existing_layer_update_count = 0
 
                     for doc_data in merged_requests:
                         if doc_data.get("opened", False):
@@ -178,6 +175,8 @@ class StoryEditorAgentDocker(QDockWidget):
                                 )
                                 new_texts_added = doc_data.get("new_texts_added", [])
 
+                                result_message_base = f"{krita_file_name_safe(doc)}: "
+
                                 if len(existing_texts_updated) > 0:
 
                                     result = update_doc_layers_svg(
@@ -185,12 +184,8 @@ class StoryEditorAgentDocker(QDockWidget):
                                     )
 
                                     if result["success"]:
-                                        online_progress_messages.append(
-                                            f"{krita_file_name_safe(doc)}: Updated existing texts."
-                                        )
-                                        existing_layer_update_count += result.get(
-                                            "count", 0
-                                        )
+                                        result_message_base += f"\n  Updated {result.get('count', 0)} existing texts. "
+
                                     else:
                                         online_progress_messages.append(
                                             f"{krita_file_name_safe(doc)}: Updating existing texts failed."
@@ -199,14 +194,13 @@ class StoryEditorAgentDocker(QDockWidget):
 
                                     result = add_svg_layer_to_doc(doc, new_texts_added)
                                     if result["success"]:
-                                        online_progress_messages.append(
-                                            f"{krita_file_name_safe(doc)}: New texts created."
-                                        )
-                                        new_layer_add_count += result.get("count", 0)
+                                        result_message_base += f"\n  Added {result.get('count', 0)} new texts. "
+
                                     else:
                                         online_progress_messages.append(
                                             f"{krita_file_name_safe(doc)}: Creating new texts failed."
                                         )
+                                online_progress_messages.append(result_message_base)
 
                     ############################################################
                     # Update Offline Documents
@@ -234,19 +228,17 @@ class StoryEditorAgentDocker(QDockWidget):
                             result = update_offline_kra_file(
                                 doc_path, existing_texts_updated
                             )
-                            offline_existing_layer_update_count += result.get(
-                                "count", 0
-                            )
+                            offline_progress_messages.append(result.get("result", ""))
 
                     ############################################################
                     final_message = "Text update applied successfully"
                     if online_progress_messages:
-                        final_message += "\n\nOnline files:\n" + "\n".join(
-                            online_progress_messages
+                        final_message += (
+                            "\n" + "\n".join(online_progress_messages) + "\n"
                         )
                     if offline_progress_messages:
-                        final_message += "\n\nOffline files:\n" + "\n".join(
-                            offline_progress_messages
+                        final_message += (
+                            "\n" + "\n".join(offline_progress_messages) + "\n"
                         )
 
                     response = {

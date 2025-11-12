@@ -5,7 +5,6 @@ from PyQt5.QtWidgets import (
     QPushButton,
     QTextEdit,
     QLabel,
-    QComboBox,
     QToolBar,
     QAction,
 )
@@ -16,7 +15,6 @@ import xml.etree.ElementTree as ET
 import re
 import uuid
 import os
-import glob
 from configs.story_editor import (
     get_text_editor_font,
     get_tspan_editor_stylesheet,
@@ -25,7 +23,6 @@ from configs.story_editor import (
     get_toolbar_stylesheet,
     get_activate_button_disabled_stylesheet,
     get_activate_button_stylesheet,
-    get_template_combo_stylesheet,
     TEXT_EDITOR_MIN_HEIGHT,
     TEXT_EDITOR_MAX_HEIGHT,
     STORY_EDITOR_WINDOW_WIDTH,
@@ -39,8 +36,9 @@ from configs.shortcuts import (
 )
 from story_editor.utils.text_updater import create_svg_data_for_doc
 from story_editor.utils.svg_parser import parse_krita_svg, extract_elements_from_svg
-from story_editor.utils.find_replace import show_find_replace_dialog
+from story_editor.widgets.find_replace import show_find_replace_dialog
 from story_editor.utils.logs import write_log
+from story_editor.widgets.new_text_edit import add_new_text_widget
 
 
 class StoryEditorWindow:
@@ -53,20 +51,6 @@ class StoryEditorWindow:
         Args:
             parent: The parent widget (main window)
             socket_handler: Object with send_request and log methods
-
-        get_all_svg_data response data structure:
-        [
-            {
-                'document_name': 'Example.kra',
-                'document_path': '/path/to/Example.kra',
-                'svg_data': [{
-                        'layer_name': 'Layer 1',
-                        'layer_id': '...',
-                        'svg': '<svg>...</svg>'}
-                        , ...]
-            },
-            ...
-        ]
         """
         self.parent = parent
         self.socket_handler = socket_handler
@@ -89,16 +73,8 @@ class StoryEditorWindow:
         if self.text_editor_window:
             window_geometry = self.text_editor_window.geometry()
             self.text_editor_window.close()
-
             # Clear previous widget references
-            """all_docs_text_state data structure:
-        all_docs_text_state[document_name] = {
-                        'document_name': 'Example.kra',
-                        'document_path': '/path/to/Example.kra',
-                        'has_text_changes':False,
-                        'new_text_widgets':[]
-                        }
-        """
+
         self.all_docs_text_state = {}
         self.new_text_widgets = []
         self.doc_layouts = {}
@@ -108,6 +84,9 @@ class StoryEditorWindow:
         self.text_editor_window = QWidget()
         self.text_editor_window.setWindowTitle("Story Editor")
         self.text_editor_window.setStyleSheet(get_window_stylesheet())
+
+        # Add close event handler to re-enable the button
+        self.text_editor_window.closeEvent = lambda event: self._on_window_close(event)
 
         # Restore previous geometry or use default size
         if window_geometry:
@@ -364,6 +343,9 @@ class StoryEditorWindow:
                     # QTextEdit for editing
                     text_edit = QTextEdit()
                     text_edit.setPlainText(layer_shape["text_content"])
+                    text_edit.setToolTip(
+                        f"Doc: {doc_name} | Layer: {layer_name} | Layer Id: {layer_id} | Shape ID: {layer_shape['element_id']}"
+                    )
                     text_edit.setAcceptRichText(False)
                     text_edit.setFont(get_text_editor_font())
                     text_edit.setStyleSheet(get_tspan_editor_stylesheet())
@@ -389,29 +371,16 @@ class StoryEditorWindow:
                         }
                     )
 
-                    # Store reference with metadata
-                    # self.all_docs_text_state[doc_name]["new_text_widgets"].append(
-                    #     {
-                    #         "widget": text_edit,
-                    #         "document_name": doc_name,
-                    #         "document_path": doc_path,
-                    #         "layer_name": layer_name,
-                    #         "layer_id": layer_id,
-                    #         "shape_id": layer_shape["element_id"],
-                    #         "original_text": layer_shape["text_content"],
-                    #     }
-                    # )
-
                     #################################################
                     # Add metadata label
                     #################################################
-                    metadata_label = QLabel(
-                        f"Layer: {layer_name} | Layer Id: {layer_id} | Shape ID: {layer_shape['element_id']}"
-                    )
-                    metadata_label.setStyleSheet("color: black; font-size: 12pt;")
-                    metadata_label.setMaximumWidth(300)
-                    metadata_label.setWordWrap(True)
-                    svg_section_level_layout.addWidget(metadata_label)
+                    # metadata_label = QLabel(
+                    #     f"Layer: {layer_name} | Layer Id: {layer_id} | Shape ID: {layer_shape['element_id']}"
+                    # )
+                    # metadata_label.setStyleSheet("color: black; font-size: 12pt;")
+                    # metadata_label.setMaximumWidth(300)
+                    # metadata_label.setWordWrap(True)
+                    # svg_section_level_layout.addWidget(metadata_label)
 
                     #################################################
 
@@ -429,164 +398,14 @@ class StoryEditorWindow:
         # Show the window
         self.text_editor_window.show()
 
-    def thumbnail_clicked(self, doc_name):
-        """Handle thumbnail click - activate the document"""
-        self.activate_document(doc_name)
-
-    def activate_document(self, doc_name, clicked_btn=None):
-        """Activate a document for adding new text"""
-        # Uncheck all other buttons and reset thumbnail borders
-        if hasattr(self, "doc_buttons"):
-            for name, btn in self.doc_buttons.items():
-                if name != doc_name:
-                    btn.setChecked(False)
-                    # Reset thumbnail border
-                    if hasattr(self, "doc_thumbnails") and name in self.doc_thumbnails:
-                        thumbnail = self.doc_thumbnails[name]
-                        default_border = thumbnail.property("default_border")
-                        thumbnail.setStyleSheet(
-                            f"border: 2px solid {default_border}; background-color: #2b2b2b;"
-                        )
-
-        # Check the clicked button and update its thumbnail
-        if hasattr(self, "doc_buttons") and doc_name in self.doc_buttons:
-            self.doc_buttons[doc_name].setChecked(True)
-
-        if hasattr(self, "doc_thumbnails") and doc_name in self.doc_thumbnails:
-            thumbnail = self.doc_thumbnails[doc_name]
-            active_border = thumbnail.property("active_border")
-            thumbnail.setStyleSheet(
-                f"border: 2px solid {active_border}; background-color: #2b2b2b;"
-            )
-
-        # Set active document
-        self.active_doc_name = doc_name
-        # self.socket_handler.log(f"📄 Activated document: {doc_name}")
-
     def add_new_text_widget(self):
         """Add a new empty text editor widget for creating new text"""
-        # Check if a document is active
-        if not self.active_doc_name or self.active_doc_name not in self.doc_layouts:
-            self.socket_handler.log(
-                "⚠️ No active document. Please click on a document name to activate it first."
-            )
-            return
-
-        # Get the active document's layout
-        active_layout = self.doc_layouts[self.active_doc_name]
-
-        # Default template path
-        default_template = "svg_templates/default_1.xml"
-        placeholder_text = """If you want multiple paragraphs within different text elements, separate them with double line breaks."""
-
-        # Create new layout for this text element
-        svg_section_level_layout = QHBoxLayout()
-
-        # Create the text editor
-        text_edit = QTextEdit()
-        text_edit.setPlainText("")
-        text_edit.setPlaceholderText(placeholder_text)
-        text_edit.setFont(get_text_editor_font())
-        text_edit.setStyleSheet(get_tspan_editor_stylesheet())
-        text_edit.setMaximumHeight(TEXT_EDITOR_MAX_HEIGHT)
-        text_edit.setMinimumHeight(TEXT_EDITOR_MIN_HEIGHT)
-
-        svg_section_level_layout.addWidget(text_edit)
-
-        # Create template selector combo box
-        choose_template_combo = QComboBox()
-        choose_template_combo.setMinimumWidth(200)
-        choose_template_combo.setMaximumWidth(400)
-        choose_template_combo.setStyleSheet(get_template_combo_stylesheet())
-
-        # Find all XML files in svg_templates directory
-        template_dir = "svg_templates"
-        template_files = []
-
-        if os.path.exists(template_dir):
-            # Get all .xml files
-            xml_files = glob.glob(os.path.join(template_dir, "*.xml"))
-            for xml_file in sorted(xml_files):
-                # Get just the filename without path
-                filename = os.path.basename(xml_file)
-                template_files.append((filename, xml_file))
-                choose_template_combo.addItem(filename, xml_file)
-
-        if not template_files:
-            self.socket_handler.log(f"⚠️ No template files found in {template_dir}")
-            # Add default as fallback
-            choose_template_combo.addItem("default_1.xml", default_template)
-
-        # Set default selection
-        default_index = choose_template_combo.findText("default_1.xml")
-        if default_index >= 0:
-            choose_template_combo.setCurrentIndex(default_index)
-
-        svg_section_level_layout.addWidget(choose_template_combo, alignment=Qt.AlignTop)
-
-        # Add to the ACTIVE document's layout
-        active_layout.addLayout(svg_section_level_layout)
-        active_layout.setAlignment(svg_section_level_layout, Qt.AlignTop)
-
-        # Store reference with metadata marking it as new
-        self.all_docs_text_state[self.active_doc_name]["new_text_widgets"].append(
-            {
-                "widget": text_edit,
-                "is_new": True,  # Flag to identify new text
-                "document_name": self.active_doc_name,  # Store which document this belongs to
-                "template_combo": choose_template_combo,  # Store reference to combo box
-                "original_text": "",
-            }
+        add_new_text_widget(
+            self.active_doc_name,
+            self.doc_layouts,
+            self.all_docs_text_state,
+            self.socket_handler,
         )
-
-        self.socket_handler.log(
-            f"✅ Added new text widget to '{self.active_doc_name}' document."
-        )
-
-    def refresh_data(self):
-        """Refresh the editor window with latest data from Krita"""
-        self.socket_handler.log("🔄 Refreshing data from Krita")
-        # Simply request new data, which will rebuild the window
-        self.show_text_editor()
-
-    def show_find_replace(self):
-        """Show the find/replace dialog"""
-        if not hasattr(self, "all_docs_text_state") or not self.all_docs_text_state:
-            self.socket_handler.log("⚠️ No text editors available")
-            return
-
-        show_find_replace_dialog(self.text_editor_window, self.all_docs_text_state)
-
-    def toggle_window_pin(self, checked):
-        """Toggle window always-on-top state"""
-        if not self.text_editor_window:
-            return
-
-        # Get current window flags
-        flags = self.text_editor_window.windowFlags()
-
-        # Get icon path
-        icon_path_bath = os.path.join(os.path.dirname(__file__), "icons")
-
-        if checked:
-            # Add WindowStaysOnTopHint flag
-            self.text_editor_window.setWindowFlags(flags | Qt.WindowStaysOnTopHint)
-            # Change icon to dark thumbtack
-            self.pin_btn.setIcon(
-                QIcon(os.path.join(icon_path_bath, "thumbtack_dark.png"))
-            )
-            self.socket_handler.log("📌 Story Editor window pinned on top")
-        else:
-            # Remove WindowStaysOnTopHint flag
-            self.text_editor_window.setWindowFlags(flags & ~Qt.WindowStaysOnTopHint)
-            # Change icon back to light thumbtack
-            self.pin_btn.setIcon(
-                QIcon(os.path.join(icon_path_bath, "thumbtack_light.png"))
-            )
-            self.socket_handler.log("📌 Story Editor window unpinned")
-
-        # Need to show the window again after changing flags
-        self.text_editor_window.show()
 
     def send_merged_svg_request(self):
         """Send update requests for all modified texts and add new texts"""
@@ -682,3 +501,106 @@ class StoryEditorWindow:
         self.all_docs_svg_data = all_docs_svg_data
         # Automatically create the window when data is received
         self.create_text_editor_window()
+        # Disable the open button when window is shown
+        self._update_open_button_state(False)
+
+    def _on_window_close(self, event):
+        """Handle window close event to re-enable the open button"""
+        # Re-enable the open button
+        self._update_open_button_state(True)
+        # Accept the close event
+        event.accept()
+
+    def _update_open_button_state(self, enabled):
+        """Update the state of the 'Open Story Editor' button in the main window"""
+        if hasattr(self.parent, "show_story_editor_btn"):
+            self.parent.show_story_editor_btn.setEnabled(enabled)
+            if enabled:
+                self.parent.show_story_editor_btn.setText("Open Story Editor")
+                self.parent.show_story_editor_btn.setStyleSheet(
+                    "background-color: #414a8e; color: #1a1625; padding: 5px;"
+                )
+            else:
+                self.parent.show_story_editor_btn.setText("Story Editor is Open")
+                self.parent.show_story_editor_btn.setStyleSheet(
+                    "background-color: #666666; color: #999999; padding: 5px;"
+                )
+
+    def thumbnail_clicked(self, doc_name):
+        """Handle thumbnail click - activate the document"""
+        self.activate_document(doc_name)
+
+    def activate_document(self, doc_name, clicked_btn=None):
+        """Activate a document for adding new text"""
+        # Uncheck all other buttons and reset thumbnail borders
+        if hasattr(self, "doc_buttons"):
+            for name, btn in self.doc_buttons.items():
+                if name != doc_name:
+                    btn.setChecked(False)
+                    # Reset thumbnail border
+                    if hasattr(self, "doc_thumbnails") and name in self.doc_thumbnails:
+                        thumbnail = self.doc_thumbnails[name]
+                        default_border = thumbnail.property("default_border")
+                        thumbnail.setStyleSheet(
+                            f"border: 2px solid {default_border}; background-color: #2b2b2b;"
+                        )
+
+        # Check the clicked button and update its thumbnail
+        if hasattr(self, "doc_buttons") and doc_name in self.doc_buttons:
+            self.doc_buttons[doc_name].setChecked(True)
+
+        if hasattr(self, "doc_thumbnails") and doc_name in self.doc_thumbnails:
+            thumbnail = self.doc_thumbnails[doc_name]
+            active_border = thumbnail.property("active_border")
+            thumbnail.setStyleSheet(
+                f"border: 2px solid {active_border}; background-color: #2b2b2b;"
+            )
+
+        # Set active document
+        self.active_doc_name = doc_name
+        # self.socket_handler.log(f"📄 Activated document: {doc_name}")
+
+    def refresh_data(self):
+        """Refresh the editor window with latest data from Krita"""
+        self.socket_handler.log("🔄 Refreshing data from Krita")
+        # Simply request new data, which will rebuild the window
+        self.show_text_editor()
+
+    def show_find_replace(self):
+        """Show the find/replace dialog"""
+        if not hasattr(self, "all_docs_text_state") or not self.all_docs_text_state:
+            self.socket_handler.log("⚠️ No text editors available")
+            return
+
+        show_find_replace_dialog(self.text_editor_window, self.all_docs_text_state)
+
+    def toggle_window_pin(self, checked):
+        """Toggle window always-on-top state"""
+        if not self.text_editor_window:
+            return
+
+        # Get current window flags
+        flags = self.text_editor_window.windowFlags()
+
+        # Get icon path
+        icon_path_bath = os.path.join(os.path.dirname(__file__), "icons")
+
+        if checked:
+            # Add WindowStaysOnTopHint flag
+            self.text_editor_window.setWindowFlags(flags | Qt.WindowStaysOnTopHint)
+            # Change icon to dark thumbtack
+            self.pin_btn.setIcon(
+                QIcon(os.path.join(icon_path_bath, "thumbtack_dark.png"))
+            )
+            self.socket_handler.log("📌 Story Editor window pinned on top")
+        else:
+            # Remove WindowStaysOnTopHint flag
+            self.text_editor_window.setWindowFlags(flags & ~Qt.WindowStaysOnTopHint)
+            # Change icon back to light thumbtack
+            self.pin_btn.setIcon(
+                QIcon(os.path.join(icon_path_bath, "thumbtack_light.png"))
+            )
+            self.socket_handler.log("📌 Story Editor window unpinned")
+
+        # Need to show the window again after changing flags
+        self.text_editor_window.show()
