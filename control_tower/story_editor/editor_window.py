@@ -419,8 +419,10 @@ class StoryEditorWindow:
         # Add stretch at the end of thumbnail layout (inside the container for proper scrolling)
         thumbnail_layout.addStretch()
 
+        # Add stretch at the end of all_docs_layout (inside the container for proper scrolling)
+        all_docs_layout.addStretch()
+
         main_layout.addLayout(thumbnail_and_text_layout)
-        main_layout.addStretch()
 
         # Show the window
         self.text_editor_window.show()
