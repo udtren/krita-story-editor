@@ -4,6 +4,55 @@ from .xml_formatter import remove_namespace_prefixes
 from .svg_parser import _add_missing_namespaces
 
 
+def create_new_svg_data_krita5_3(svg_template, shape_id, text_segment) -> str:
+    """
+    Create new SVG data from a template with shape_id and text replacement.
+    Unlike Krita 5.2, Krita 5.3 does NOT use tspan tags. Text is set directly
+    on the <text> element with white-space: pre-wrap to handle line breaks.
+
+    Args:
+        svg_template: Template SVG string with SHAPE_ID and TEXT_TO_REPLACE placeholders
+        shape_id: The ID to replace SHAPE_ID with
+        text_segment: The text content to insert (may contain line breaks)
+
+    Returns:
+        Valid SVG data as a string
+
+    svg_template example:
+    <text id="SHAPE_ID" krita:textVersion="3" transform="translate(53.4, 60.820625)"
+    paint-order="stroke fill markers" fill="#000000" stroke="#000000"
+    stroke-width="0" stroke-linecap="square" stroke-linejoin="bevel"
+    style="inline-size: 152.76;text-align: left;text-align-last: auto;
+    font-size: 12;white-space: pre-wrap;">TEXT_TO_REPLACE</text>
+    """
+    # First, replace SHAPE_ID in the template
+    svg_content = svg_template.replace("SHAPE_ID", shape_id)
+
+    # Escape the text for SVG
+    escaped_text = escape_text_for_svg(text_segment)
+
+    # Parse the template as XML
+    try:
+        root = ET.fromstring(svg_content)
+    except ET.ParseError:
+        # If parsing fails, fall back to simple string replacement
+        return svg_content.replace("TEXT_TO_REPLACE", escaped_text)
+
+    # Register namespaces to preserve them in output
+    ET.register_namespace("", "http://www.w3.org/2000/svg")
+    ET.register_namespace("krita", "http://krita.org/namespaces/svg/krita")
+
+    # Krita 5.3 uses direct text content without tspan elements
+    # The white-space: pre-wrap style handles line breaks automatically
+    root.text = escaped_text
+
+    # Convert back to string
+    svg_data = ET.tostring(root, encoding="unicode")
+    svg_data = remove_namespace_prefixes(svg_data)
+
+    return svg_data
+
+
 def create_new_svg_data_krita5_2(svg_template, shape_id, text_segment) -> str:
     """
     Create new SVG data from a template with shape_id and text replacement.
@@ -156,6 +205,99 @@ def create_layer_groups(updates: list[dict]) -> dict:
     #     'layer_id_1': {'layer_name': 'Layer 1', 'layer_id': 'layer_id_1', 'shapes': [...]},
     #     'layer_id_2': {'layer_name': 'Layer 2', 'layer_id': 'layer_id_2', 'shapes': [...]}
     # }
+
+
+def update_existing_svg_data_krita5_3(svg_content, layer_shapes, changes) -> str:
+    """
+    Update existing SVG data with new text content for Krita 5.3.
+    Unlike Krita 5.2, Krita 5.3 does NOT use tspan tags. Text is set directly
+    on the <text> element with white-space: pre-wrap to handle line breaks.
+
+    :param svg_content: Original SVG content as a string.
+    :param layer_shapes: List of original parsed text data for the layer.
+    :param changes: List of changes containing new text from QTextEdit.
+    :return: Updated SVG data string, or False if no changes.
+
+    valid svg data example:
+    <text id="shape0" krita:textVersion="3" transform="translate(53.4, 60.820625)"
+    paint-order="stroke fill markers" fill="#000000" stroke="#000000"
+    stroke-width="0" stroke-linecap="square" stroke-linejoin="bevel"
+    style="inline-size: 152.76;text-align: left;
+    text-align-last: auto;font-size: 12;white-space: pre-wrap;">Placeholder Text</text>
+    """
+    import xml.etree.ElementTree as ET
+
+    has_changes = False
+
+    svg_content = _add_missing_namespaces(svg_content)
+    root = ET.fromstring(svg_content)
+    namespaces = {
+        "svg": "http://www.w3.org/2000/svg",
+        "krita": "http://krita.org/namespaces/svg/krita",
+    }
+
+    # Create a mapping of shapeId to new text for quick lookup
+    shape_id_to_new_text = {}
+    for change in changes:
+        shape_id = change["shape_id"]
+        new_text_widget = change["new_text"]
+        new_text = new_text_widget.toPlainText()
+        shape_id_to_new_text[shape_id] = new_text
+
+    # Create a mapping of shapeId to original text for comparison
+    shape_id_to_original_text = {}
+    for layer_shape in layer_shapes:
+        shape_id = layer_shape["element_id"]
+        original_text = layer_shape["text_content"]
+        shape_id_to_original_text[shape_id] = original_text
+
+    # Find all text elements in the SVG and update them if needed
+    text_elements = root.findall(".//svg:text", namespaces)
+    # Create a list to track elements to remove (can't modify list while iterating)
+    elements_to_remove = []
+
+    for text_elem in text_elements:
+        element_id = text_elem.get("id")
+
+        if element_id in shape_id_to_new_text:
+            new_text = shape_id_to_new_text[element_id]
+            original_text = shape_id_to_original_text.get(element_id, "")
+
+            # Only update if text is different
+            if new_text != original_text:
+                has_changes = True
+
+                # If new_text is empty, mark element for removal
+                if new_text == "":
+                    elements_to_remove.append(text_elem)
+                    continue
+
+                # Escape the new text for SVG
+                escaped_text = escape_text_for_svg(new_text)
+
+                # Krita 5.3 uses direct text content without tspan elements
+                # The white-space: pre-wrap style handles line breaks automatically
+
+                # Remove any existing child elements (like tspan) while preserving attributes
+                for child in list(text_elem):
+                    text_elem.remove(child)
+
+                # Set the text content directly
+                text_elem.text = escaped_text
+
+    # Remove text elements marked for deletion
+    for text_elem in elements_to_remove:
+        root.remove(text_elem)
+
+    # Only add to updates if there were actual changes
+    if has_changes:
+        # Convert the modified XML tree back to string
+        valid_svg_data = ET.tostring(root, encoding="unicode")
+        valid_svg_data = remove_namespace_prefixes(valid_svg_data)
+
+        return valid_svg_data
+    else:
+        return False
 
 
 def update_existing_svg_data_krita5_2(svg_content, layer_shapes, changes) -> str:

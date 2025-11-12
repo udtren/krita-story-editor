@@ -296,6 +296,20 @@ class StoryEditorAgentDocker(QDockWidget):
                 # write_log(f"all_docs_svg_data: {all_svg_data}")
                 client.write(json.dumps(response).encode("utf-8"))
 
+            case "save_all_opened_docs":
+                try:
+                    opened_docs = Krita.instance().documents()
+                    for doc in opened_docs:
+                        doc.save()
+                    response = {
+                        "success": True,
+                        "message": "All opened documents saved.",
+                    }
+                    client.write(json.dumps(response).encode("utf-8"))
+                except Exception as e:
+                    response = {"success": False, "error": str(e)}
+                    client.write(json.dumps(response).encode("utf-8"))
+
             case _:
                 # Unknown action
                 response = {

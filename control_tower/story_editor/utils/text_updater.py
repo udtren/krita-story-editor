@@ -13,6 +13,7 @@ from .svg_generator import (
     create_new_svg_data_krita5_2,
 )
 from .xml_formatter import remove_namespace_prefixes
+from .logs import write_log
 
 
 def create_svg_data_for_doc(
@@ -41,11 +42,15 @@ def create_svg_data_for_doc(
         # Widget内のテキストを取得
         current_text = item["widget"].toPlainText()
 
+        write_log(f"📝 Processing new text widget with current_text:\n{current_text}")
+
         ##########################################
         ## レイヤ単位で処理を実施
         ##########################################
         # ダブル改行でテキストを分割, 各テキストは別々の<text>要素として追加される
         text_segments: list[str] = split_text_by_double_linebreak(current_text)
+
+        write_log(f"📝 Split into {len(text_segments)} segments: {text_segments}")
 
         if text_segments:  # Only add if we have segments
             # テンプレート選択
@@ -85,6 +90,9 @@ def create_svg_data_for_doc(
             # Generate full SVG data
             svg_data = generate_full_svg_data(text_elements)
             svg_data = remove_namespace_prefixes(svg_data)
+
+            write_log(f"📝 Generated SVG data for new text:\n{svg_data}")
+
             final_result["new_texts_added"].append({"svg_data": svg_data})
         ##########################################
 
@@ -133,7 +141,7 @@ def split_text_by_double_linebreak(text):
     Returns:
         List of text segments
     """
-    segments = text.split("\n\n")
+    segments = text.split("\n\n\n")
     segments = [seg.strip() for seg in segments if seg.strip()]
     return segments
 

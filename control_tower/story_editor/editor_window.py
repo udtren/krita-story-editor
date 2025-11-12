@@ -7,6 +7,7 @@ from PyQt5.QtWidgets import (
     QLabel,
     QToolBar,
     QAction,
+    QScrollArea,
 )
 from PyQt5.QtSvg import QSvgWidget
 from PyQt5.QtCore import QByteArray, QTimer, QSize, Qt
@@ -129,6 +130,15 @@ class StoryEditorWindow:
         refresh_btn.triggered.connect(self.refresh_data)
         toolbar.addAction(refresh_btn)
 
+        save_btn = QAction(
+            QIcon(f"{os.path.join(icon_path_bath, 'disk.png')}"),
+            "Save All Opened Documents",
+            self.text_editor_window,
+        )
+        save_btn.setStatusTip("Save all opened Krita documents")
+        save_btn.triggered.connect(self.save_all_opened_docs)
+        toolbar.addAction(save_btn)
+
         update_btn = QAction(
             QIcon(f"{os.path.join(icon_path_bath, 'check.png')}"),
             "Update Krita",
@@ -175,10 +185,26 @@ class StoryEditorWindow:
 
         #################################
         thumbnail_and_text_layout = QHBoxLayout()
-        thumbnail_layout = QVBoxLayout()
+
+        # Create scroll area for thumbnails
+        thumbnail_scroll_area = QScrollArea()
+        thumbnail_scroll_area.setWidgetResizable(True)
+        thumbnail_scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        thumbnail_scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        thumbnail_scroll_area.setFrameShape(QScrollArea.NoFrame)
+        thumbnail_scroll_area.setFixedWidth(140)  # Fixed width for thumbnail column
+
+        # Create container widget for thumbnails
+        thumbnail_container = QWidget()
+        thumbnail_layout = QVBoxLayout(thumbnail_container)
+        thumbnail_layout.setContentsMargins(0, 0, 0, 0)
+
+        # Set the container as scroll area's widget
+        thumbnail_scroll_area.setWidget(thumbnail_container)
+
         text_edit_layout = QVBoxLayout()
 
-        thumbnail_and_text_layout.addLayout(thumbnail_layout)
+        thumbnail_and_text_layout.addWidget(thumbnail_scroll_area)
         thumbnail_and_text_layout.addLayout(text_edit_layout)
 
         write_log(f"all_docs_svg_data: {self.all_docs_svg_data}")
@@ -191,8 +217,19 @@ class StoryEditorWindow:
             opened = doc_data.get("opened", True)
             thumbnail = doc_data.get("thumbnail", None)
 
-            horizon_layout_for_active_and_texteditor = QHBoxLayout()
-            text_edit_layout.addLayout(horizon_layout_for_active_and_texteditor)
+            # Create a scroll area for this document's content
+            scroll_area = QScrollArea()
+            scroll_area.setWidgetResizable(True)
+            scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+            scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+            scroll_area.setFrameShape(QScrollArea.NoFrame)
+
+            # Create a container widget for the scroll area
+            scroll_container = QWidget()
+            scroll_content_layout = QHBoxLayout(scroll_container)
+            scroll_content_layout.setContentsMargins(0, 0, 0, 0)
+
+            text_edit_layout.addWidget(scroll_area)
 
             ###################################################
             # Thumbnail QVBoxLayout
@@ -289,7 +326,7 @@ class StoryEditorWindow:
                 activate_btn.setStyleSheet(get_activate_button_stylesheet())
             doc_header_layout.addWidget(activate_btn, alignment=Qt.AlignTop)
             doc_header_layout.addStretch()
-            horizon_layout_for_active_and_texteditor.addLayout(
+            scroll_content_layout.addLayout(
                 doc_header_layout, stretch=0
             )
 
@@ -375,10 +412,13 @@ class StoryEditorWindow:
 
                     doc_level_layers_layout.addLayout(svg_section_level_layout)
 
-            # Add each document container to main layout (AFTER all layers processed)
-            horizon_layout_for_active_and_texteditor.addWidget(doc_container, stretch=1)
+            # Add each document container to scroll content layout (AFTER all layers processed)
+            scroll_content_layout.addWidget(doc_container, stretch=1)
 
-        # Add stretch at the end of thumbnail layout
+            # Set the scroll container as the scroll area's widget
+            scroll_area.setWidget(scroll_container)
+
+        # Add stretch at the end of thumbnail layout (inside the container for proper scrolling)
         thumbnail_layout.addStretch()
 
         main_layout.addLayout(thumbnail_and_text_layout)
@@ -554,6 +594,11 @@ class StoryEditorWindow:
         self.socket_handler.log("🔄 Refreshing data from Krita")
         # Simply request new data, which will rebuild the window
         self.show_text_editor()
+
+    def save_all_opened_docs(self):
+        """Save all opened Krita documents"""
+        self.socket_handler.log("💾 Saving all opened documents")
+        self.socket_handler.send_request("save_all_opened_docs")
 
     def show_find_replace(self):
         """Show the find/replace dialog"""
