@@ -61,6 +61,8 @@ class StoryEditorWindow:
         self.doc_layouts = {}  # Store document layouts {doc_name: layout}
         self.active_doc_name = None  # Track which document is active for new text
         self.is_pinned = False  # Track window pin status
+        self.thumbnail_scroll_position = 0  # Track thumbnail scroll position
+        self.content_scroll_position = 0  # Track content scroll position
 
     def create_text_editor_window(self):
         """Create the text editor window with the received SVG data"""
@@ -70,10 +72,17 @@ class StoryEditorWindow:
             )
             return
 
-        # Store current window position and size if window exists
+        # Store current window position, size, and scroll positions if window exists
         window_geometry = None
         if self.text_editor_window:
             window_geometry = self.text_editor_window.geometry()
+
+            # Save scroll positions before closing
+            if hasattr(self, 'thumbnail_scroll_area_widget'):
+                self.thumbnail_scroll_position = self.thumbnail_scroll_area_widget.verticalScrollBar().value()
+            if hasattr(self, 'all_docs_scroll_area_widget'):
+                self.content_scroll_position = self.all_docs_scroll_area_widget.verticalScrollBar().value()
+
             self.text_editor_window.close()
             # Clear previous widget references
 
@@ -184,10 +193,15 @@ class StoryEditorWindow:
         # Store reference to pin button for later use
         self.pin_btn = pin_btn
 
-        # Restore pin status if it was previously pinned
+        # Restore pin status if it was previously pinned (set flag directly to avoid position shift)
         if self.is_pinned:
             pin_btn.setChecked(True)
-            self.toggle_window_pin(True)
+            # Set window flag directly without calling toggle_window_pin to avoid position shift
+            flags = self.text_editor_window.windowFlags()
+            self.text_editor_window.setWindowFlags(flags | Qt.WindowStaysOnTopHint)
+            # Update icon to dark thumbtack
+            icon_path_bath = os.path.join(os.path.dirname(__file__), "icons")
+            pin_btn.setIcon(QIcon(os.path.join(icon_path_bath, "thumbtack_dark.png")))
 
         #################################
         thumbnail_and_text_layout = QHBoxLayout()
@@ -208,6 +222,9 @@ class StoryEditorWindow:
         # Set the container as scroll area's widget
         thumbnail_scroll_area.setWidget(thumbnail_container)
 
+        # Store reference to thumbnail scroll area for saving position later
+        self.thumbnail_scroll_area_widget = thumbnail_scroll_area
+
         # Create scroll area for all documents' content
         all_docs_scroll_area = QScrollArea()
         all_docs_scroll_area.setWidgetResizable(True)
@@ -222,6 +239,9 @@ class StoryEditorWindow:
 
         # Set the container as scroll area's widget
         all_docs_scroll_area.setWidget(all_docs_container)
+
+        # Store reference to all docs scroll area for saving position later
+        self.all_docs_scroll_area_widget = all_docs_scroll_area
 
         thumbnail_and_text_layout.addWidget(thumbnail_scroll_area)
         thumbnail_and_text_layout.addWidget(all_docs_scroll_area)
@@ -433,6 +453,9 @@ class StoryEditorWindow:
         # Show the window
         self.text_editor_window.show()
 
+        # Restore scroll positions after window is shown (use QTimer to ensure scrollbars are ready)
+        QTimer.singleShot(100, self._restore_scroll_positions)
+
     def add_new_text_widget(self):
         """Add a new empty text editor widget for creating new text"""
         add_new_text_widget(
@@ -441,6 +464,14 @@ class StoryEditorWindow:
             self.all_docs_text_state,
             self.socket_handler,
         )
+
+    def _restore_scroll_positions(self):
+        """Restore saved scroll positions for both scroll areas"""
+        if hasattr(self, 'thumbnail_scroll_area_widget') and self.thumbnail_scroll_position > 0:
+            self.thumbnail_scroll_area_widget.verticalScrollBar().setValue(self.thumbnail_scroll_position)
+
+        if hasattr(self, 'all_docs_scroll_area_widget') and self.content_scroll_position > 0:
+            self.all_docs_scroll_area_widget.verticalScrollBar().setValue(self.content_scroll_position)
 
     def send_merged_svg_request(self):
         """Send update requests for all modified texts and add new texts"""
