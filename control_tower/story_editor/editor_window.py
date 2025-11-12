@@ -202,10 +202,23 @@ class StoryEditorWindow:
         # Set the container as scroll area's widget
         thumbnail_scroll_area.setWidget(thumbnail_container)
 
-        text_edit_layout = QVBoxLayout()
+        # Create scroll area for all documents' content
+        all_docs_scroll_area = QScrollArea()
+        all_docs_scroll_area.setWidgetResizable(True)
+        all_docs_scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        all_docs_scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        all_docs_scroll_area.setFrameShape(QScrollArea.NoFrame)
+
+        # Create container widget for all documents
+        all_docs_container = QWidget()
+        all_docs_layout = QVBoxLayout(all_docs_container)
+        all_docs_layout.setContentsMargins(0, 0, 0, 0)
+
+        # Set the container as scroll area's widget
+        all_docs_scroll_area.setWidget(all_docs_container)
 
         thumbnail_and_text_layout.addWidget(thumbnail_scroll_area)
-        thumbnail_and_text_layout.addLayout(text_edit_layout)
+        thumbnail_and_text_layout.addWidget(all_docs_scroll_area)
 
         write_log(f"all_docs_svg_data: {self.all_docs_svg_data}")
 
@@ -217,19 +230,9 @@ class StoryEditorWindow:
             opened = doc_data.get("opened", True)
             thumbnail = doc_data.get("thumbnail", None)
 
-            # Create a scroll area for this document's content
-            scroll_area = QScrollArea()
-            scroll_area.setWidgetResizable(True)
-            scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
-            scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
-            scroll_area.setFrameShape(QScrollArea.NoFrame)
-
-            # Create a container widget for the scroll area
-            scroll_container = QWidget()
-            scroll_content_layout = QHBoxLayout(scroll_container)
-            scroll_content_layout.setContentsMargins(0, 0, 0, 0)
-
-            text_edit_layout.addWidget(scroll_area)
+            # Create a horizontal layout for this document (activate button + content)
+            doc_horizontal_layout = QHBoxLayout()
+            all_docs_layout.addLayout(doc_horizontal_layout)
 
             ###################################################
             # Thumbnail QVBoxLayout
@@ -326,9 +329,7 @@ class StoryEditorWindow:
                 activate_btn.setStyleSheet(get_activate_button_stylesheet())
             doc_header_layout.addWidget(activate_btn, alignment=Qt.AlignTop)
             doc_header_layout.addStretch()
-            scroll_content_layout.addLayout(
-                doc_header_layout, stretch=0
-            )
+            doc_horizontal_layout.addLayout(doc_header_layout, stretch=0)
 
             # Store button and thumbnail references for later activation
             if not hasattr(self, "doc_buttons"):
@@ -412,11 +413,8 @@ class StoryEditorWindow:
 
                     doc_level_layers_layout.addLayout(svg_section_level_layout)
 
-            # Add each document container to scroll content layout (AFTER all layers processed)
-            scroll_content_layout.addWidget(doc_container, stretch=1)
-
-            # Set the scroll container as the scroll area's widget
-            scroll_area.setWidget(scroll_container)
+            # Add each document container to horizontal layout (AFTER all layers processed)
+            doc_horizontal_layout.addWidget(doc_container, stretch=1)
 
         # Add stretch at the end of thumbnail layout (inside the container for proper scrolling)
         thumbnail_layout.addStretch()
