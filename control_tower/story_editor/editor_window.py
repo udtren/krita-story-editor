@@ -8,6 +8,7 @@ from PyQt5.QtWidgets import (
     QToolBar,
     QAction,
     QScrollArea,
+    QMenu,
 )
 from PyQt5.QtSvg import QSvgWidget
 from PyQt5.QtCore import QByteArray, QTimer, QSize, Qt
@@ -56,152 +57,49 @@ class StoryEditorWindow:
         self.parent = parent
         self.socket_handler = socket_handler
         self.all_docs_svg_data = None
-        self.text_editor_window = None
+        self.parent_window = None  # Will be set by ControlTower
 
         self.doc_layouts = {}  # Store document layouts {doc_name: layout}
         self.active_doc_name = None  # Track which document is active for new text
-        self.is_pinned = False  # Track window pin status
         self.thumbnail_scroll_position = 0  # Track thumbnail scroll position
         self.content_scroll_position = 0  # Track content scroll position
 
+    def set_parent_window(self, parent_window):
+        """Set the persistent parent window"""
+        self.parent_window = parent_window
+        # Set close event handler on parent window
+        self.parent_window.closeEvent = lambda event: self._on_window_close(event)
+
     def create_text_editor_window(self):
-        """Create the text editor window with the received SVG data"""
+        """Create the content for the Story Editor"""
         if not self.all_docs_svg_data:
             self.socket_handler.log(
                 "⚠️ No SVG data available. Make sure the request succeeded."
             )
             return
 
-        # Store current window position, size, and scroll positions if window exists
-        window_geometry = None
-        if self.text_editor_window:
-            window_geometry = self.text_editor_window.geometry()
+        # Save scroll positions before clearing content
+        if hasattr(self, "thumbnail_scroll_area_widget"):
+            self.thumbnail_scroll_position = (
+                self.thumbnail_scroll_area_widget.verticalScrollBar().value()
+            )
+        if hasattr(self, "all_docs_scroll_area_widget"):
+            self.content_scroll_position = (
+                self.all_docs_scroll_area_widget.verticalScrollBar().value()
+            )
 
-            # Save scroll positions before closing
-            if hasattr(self, 'thumbnail_scroll_area_widget'):
-                self.thumbnail_scroll_position = self.thumbnail_scroll_area_widget.verticalScrollBar().value()
-            if hasattr(self, 'all_docs_scroll_area_widget'):
-                self.content_scroll_position = self.all_docs_scroll_area_widget.verticalScrollBar().value()
-
-            self.text_editor_window.close()
-            # Clear previous widget references
+        # Clear previous content in parent window's container
+        if self.parent_window:
+            # Remove all widgets from content_layout
+            while self.parent_window.content_layout.count():
+                child = self.parent_window.content_layout.takeAt(0)
+                if child.widget():
+                    child.widget().deleteLater()
 
         self.all_docs_text_state = {}
         self.new_text_widgets = []
         self.doc_layouts = {}
         self.active_doc_name = None
-
-        # Create new window
-        self.text_editor_window = QWidget()
-        self.text_editor_window.setWindowTitle("Story Editor")
-        self.text_editor_window.setStyleSheet(get_window_stylesheet())
-
-        # Add close event handler to re-enable the button
-        self.text_editor_window.closeEvent = lambda event: self._on_window_close(event)
-
-        # Restore previous geometry or use default size
-        if window_geometry:
-            self.text_editor_window.setGeometry(window_geometry)
-        else:
-            self.text_editor_window.resize(
-                STORY_EDITOR_WINDOW_WIDTH, STORY_EDITOR_WINDOW_HEIGHT
-            )
-
-        # Main layout
-        main_layout = QVBoxLayout(self.text_editor_window)
-
-        #################################
-        # Toolbar
-        toolbar = QToolBar("Main Toolbar")
-        toolbar.setIconSize(QSize(16, 16))
-        toolbar.setStyleSheet(get_toolbar_stylesheet())
-        main_layout.addWidget(toolbar)
-
-        # Get absolute path to icon
-        icon_path_bath = os.path.join(os.path.dirname(__file__), "icons")
-
-        new_text_btn = QAction(
-            QIcon(f"{os.path.join(icon_path_bath, 'plus.png')}"),
-            "Add New Text",
-            self.text_editor_window,
-        )
-        new_text_btn.setStatusTip("Add a new text widget to the active document")
-        new_text_btn.setShortcut(NEW_TEXT_SHORTCUT)
-        new_text_btn.triggered.connect(self.add_new_text_widget)
-        toolbar.addAction(new_text_btn)
-
-        refresh_btn = QAction(
-            QIcon(f"{os.path.join(icon_path_bath, 'refresh.png')}"),
-            "Refresh from Krita document",
-            self.text_editor_window,
-        )
-        refresh_btn.setStatusTip("Reload text data from Krita document")
-        refresh_btn.setShortcut(REFRESH_SHORTCUT)
-        refresh_btn.triggered.connect(self.refresh_data)
-        toolbar.addAction(refresh_btn)
-
-        save_btn = QAction(
-            QIcon(f"{os.path.join(icon_path_bath, 'disk.png')}"),
-            "Save All Opened Documents",
-            self.text_editor_window,
-        )
-        save_btn.setStatusTip("Save all opened Krita documents")
-        save_btn.triggered.connect(self.save_all_opened_docs)
-        toolbar.addAction(save_btn)
-
-        update_btn = QAction(
-            QIcon(f"{os.path.join(icon_path_bath, 'check.png')}"),
-            "Update Krita",
-            self.text_editor_window,
-        )
-        update_btn.setStatusTip("Update Krita document with modified and new texts")
-        update_btn.setShortcut(UPDATE_KRITA_SHORTCUT)
-        update_btn.triggered.connect(self.send_merged_svg_request)
-        toolbar.addAction(update_btn)
-
-        # Add separator
-        toolbar.addSeparator()
-
-        # Find/Replace button
-        find_replace_btn = QAction(
-            "Find/Replace",
-            self.text_editor_window,
-        )
-        find_replace_btn.setStatusTip("Find and replace text in all editors")
-        find_replace_btn.triggered.connect(self.show_find_replace)
-        toolbar.addAction(find_replace_btn)
-
-        # Add spacer to push pin button to the right
-        spacer = QWidget()
-        spacer.setSizePolicy(
-            QWidget().sizePolicy().Expanding, QWidget().sizePolicy().Preferred
-        )
-        toolbar.addWidget(spacer)
-
-        # Pin button to keep window on top
-        pin_btn = QAction(
-            QIcon(f"{os.path.join(icon_path_bath, 'thumbtack_light.png')}"),
-            "Pin Window on Top",
-            self.text_editor_window,
-        )
-        pin_btn.setCheckable(True)
-        pin_btn.setStatusTip("Keep Story Editor window on top of all windows")
-        pin_btn.setShortcut(PIN_WINDOW_SHORTCUT)
-        pin_btn.triggered.connect(self.toggle_window_pin)
-        toolbar.addAction(pin_btn)
-
-        # Store reference to pin button for later use
-        self.pin_btn = pin_btn
-
-        # Restore pin status if it was previously pinned (set flag directly to avoid position shift)
-        if self.is_pinned:
-            pin_btn.setChecked(True)
-            # Set window flag directly without calling toggle_window_pin to avoid position shift
-            flags = self.text_editor_window.windowFlags()
-            self.text_editor_window.setWindowFlags(flags | Qt.WindowStaysOnTopHint)
-            # Update icon to dark thumbtack
-            icon_path_bath = os.path.join(os.path.dirname(__file__), "icons")
-            pin_btn.setIcon(QIcon(os.path.join(icon_path_bath, "thumbtack_dark.png")))
 
         #################################
         thumbnail_and_text_layout = QHBoxLayout()
@@ -309,6 +207,14 @@ class StoryEditorWindow:
                 thumbnail_label.mousePressEvent = (
                     lambda _, name=doc_name: self.thumbnail_clicked(name)
                 )
+
+            # Enable custom context menu for right-click
+            thumbnail_label.setContextMenuPolicy(Qt.CustomContextMenu)
+            thumbnail_label.customContextMenuRequested.connect(
+                lambda pos, name=doc_name, label=thumbnail_label: self.show_thumbnail_context_menu(
+                    pos, name, label
+                )
+            )
 
             thumbnail_layout.addWidget(
                 thumbnail_label, alignment=Qt.AlignTop, stretch=0
@@ -448,13 +354,15 @@ class StoryEditorWindow:
         # Add stretch at the end of all_docs_layout (inside the container for proper scrolling)
         all_docs_layout.addStretch()
 
-        main_layout.addLayout(thumbnail_and_text_layout)
+        # Add content to parent window's container
+        if self.parent_window:
+            self.parent_window.content_layout.addLayout(thumbnail_and_text_layout)
 
-        # Show the window
-        self.text_editor_window.show()
+            # Show the parent window
+            self.parent_window.show()
 
-        # Restore scroll positions after window is shown (use QTimer to ensure scrollbars are ready)
-        QTimer.singleShot(100, self._restore_scroll_positions)
+            # Restore scroll positions after window is shown (use QTimer to ensure scrollbars are ready)
+            QTimer.singleShot(100, self._restore_scroll_positions)
 
     def add_new_text_widget(self):
         """Add a new empty text editor widget for creating new text"""
@@ -467,11 +375,21 @@ class StoryEditorWindow:
 
     def _restore_scroll_positions(self):
         """Restore saved scroll positions for both scroll areas"""
-        if hasattr(self, 'thumbnail_scroll_area_widget') and self.thumbnail_scroll_position > 0:
-            self.thumbnail_scroll_area_widget.verticalScrollBar().setValue(self.thumbnail_scroll_position)
+        if (
+            hasattr(self, "thumbnail_scroll_area_widget")
+            and self.thumbnail_scroll_position > 0
+        ):
+            self.thumbnail_scroll_area_widget.verticalScrollBar().setValue(
+                self.thumbnail_scroll_position
+            )
 
-        if hasattr(self, 'all_docs_scroll_area_widget') and self.content_scroll_position > 0:
-            self.all_docs_scroll_area_widget.verticalScrollBar().setValue(self.content_scroll_position)
+        if (
+            hasattr(self, "all_docs_scroll_area_widget")
+            and self.content_scroll_position > 0
+        ):
+            self.all_docs_scroll_area_widget.verticalScrollBar().setValue(
+                self.content_scroll_position
+            )
 
     def send_merged_svg_request(self):
         """Send update requests for all modified texts and add new texts"""
@@ -643,38 +561,22 @@ class StoryEditorWindow:
             self.socket_handler.log("⚠️ No text editors available")
             return
 
-        show_find_replace_dialog(self.text_editor_window, self.all_docs_text_state)
+        show_find_replace_dialog(self.parent_window, self.all_docs_text_state)
 
-    def toggle_window_pin(self, checked):
-        """Toggle window always-on-top state"""
-        if not self.text_editor_window:
-            return
+    def show_thumbnail_context_menu(self, pos, doc_name, thumbnail_label):
+        """Show context menu for thumbnail"""
+        menu = QMenu(self.parent_window)
 
-        # Store the pin state
-        self.is_pinned = checked
+        # Add "Close" action
+        close_action = menu.addAction("Close")
+        close_action.triggered.connect(
+            lambda: self.send_close_document_request(doc_name)
+        )
 
-        # Get current window flags
-        flags = self.text_editor_window.windowFlags()
+        # Show menu at global position
+        menu.exec_(thumbnail_label.mapToGlobal(pos))
 
-        # Get icon path
-        icon_path_bath = os.path.join(os.path.dirname(__file__), "icons")
-
-        if checked:
-            # Add WindowStaysOnTopHint flag
-            self.text_editor_window.setWindowFlags(flags | Qt.WindowStaysOnTopHint)
-            # Change icon to dark thumbtack
-            self.pin_btn.setIcon(
-                QIcon(os.path.join(icon_path_bath, "thumbtack_dark.png"))
-            )
-            self.socket_handler.log("📌 Story Editor window pinned on top")
-        else:
-            # Remove WindowStaysOnTopHint flag
-            self.text_editor_window.setWindowFlags(flags & ~Qt.WindowStaysOnTopHint)
-            # Change icon back to light thumbtack
-            self.pin_btn.setIcon(
-                QIcon(os.path.join(icon_path_bath, "thumbtack_light.png"))
-            )
-            self.socket_handler.log("📌 Story Editor window unpinned")
-
-        # Need to show the window again after changing flags
-        self.text_editor_window.show()
+    def send_close_document_request(self, doc_name):
+        """Send close_document request to the agent"""
+        self.socket_handler.log(f"❌ Requesting to close document: {doc_name}")
+        self.socket_handler.send_request("close_document", doc_name=doc_name)

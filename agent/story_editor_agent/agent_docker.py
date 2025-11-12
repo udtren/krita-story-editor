@@ -310,6 +310,31 @@ class StoryEditorAgentDocker(QDockWidget):
                     response = {"success": False, "error": str(e)}
                     client.write(json.dumps(response).encode("utf-8"))
 
+            case "close_document":
+                try:
+                    doc_name = request.get("doc_name", "")
+                    opened_docs = Krita.instance().documents()
+                    target_doc = None
+                    for doc in opened_docs:
+                        if krita_file_name_safe(doc) == doc_name:
+                            target_doc = doc
+                            break
+                    if target_doc:
+                        target_doc.close()
+                        response = {
+                            "success": True,
+                            "message": f"Document '{doc_name}' closed.",
+                        }
+                    else:
+                        response = {
+                            "success": False,
+                            "error": f"Document '{doc_name}' not found among opened documents.",
+                        }
+                    client.write(json.dumps(response).encode("utf-8"))
+                except Exception as e:
+                    response = {"success": False, "error": str(e)}
+                    client.write(json.dumps(response).encode("utf-8"))
+
             case _:
                 # Unknown action
                 response = {
