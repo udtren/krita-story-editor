@@ -228,6 +228,7 @@ class StoryEditorWindow:
                 "new_text_widgets": [],
                 "layer_groups": {},
                 "opened": opened,
+                "text_edit_widgets": [],  # For find/replace functionality
             }
 
             # Document header with clickable button to activate
@@ -339,6 +340,17 @@ class StoryEditorWindow:
                     ].append(
                         {
                             "new_text": text_edit,
+                            "shape_id": layer_shape["element_id"],
+                        }
+                    )
+
+                    # Add to text_edit_widgets list for find/replace functionality
+                    self.all_docs_text_state[doc_name]["text_edit_widgets"].append(
+                        {
+                            "widget": text_edit,
+                            "document_name": doc_name,
+                            "layer_name": layer_name,
+                            "layer_id": layer_id,
                             "shape_id": layer_shape["element_id"],
                         }
                     )
