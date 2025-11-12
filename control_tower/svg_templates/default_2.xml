@@ -1,1 +1,7 @@
-<text id="SHAPE_ID" krita:useRichText="true" text-rendering="auto" krita:textVersion="3" transform="translate(32.2096508010538, 122.436130598988)" fill="#0a0a00" stroke-opacity="0" stroke="#000000" stroke-width="0" stroke-linecap="square" stroke-linejoin="bevel" kerning="none" letter-spacing="0" word-spacing="0" style="text-align: start;text-align-last: auto;font-family: HG明朝B;font-size: 18;"><tspan x="0">TEXT_TO_REPLACE</tspan></text>
+<text id="SHAPE_ID" krita:useRichText="true" text-rendering="auto" krita:textVersion="3"
+    transform="translate(32.2096508010538, 122.436130598988)" fill="#0a0a00" stroke-opacity="0"
+    stroke="#000000" stroke-width="0" stroke-linecap="square" stroke-linejoin="bevel" kerning="none"
+    letter-spacing="0" word-spacing="0"
+    style="text-align: start;text-align-last: auto;font-family: HG明朝B;font-size: 18;">
+    <tspan x="0">TEXT_TO_REPLACE</tspan>
+</text>

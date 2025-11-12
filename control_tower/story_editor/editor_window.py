@@ -31,6 +31,12 @@ from configs.story_editor import (
     STORY_EDITOR_WINDOW_WIDTH,
     STORY_EDITOR_WINDOW_HEIGHT,
 )
+from configs.shortcuts import (
+    NEW_TEXT_SHORTCUT,
+    REFRESH_SHORTCUT,
+    UPDATE_KRITA_SHORTCUT,
+    PIN_WINDOW_SHORTCUT,
+)
 from story_editor.utils.text_updater import create_svg_data_for_doc
 from story_editor.utils.svg_parser import parse_krita_svg, extract_elements_from_svg
 from story_editor.utils.find_replace import show_find_replace_dialog
@@ -66,9 +72,7 @@ class StoryEditorWindow:
         self.socket_handler = socket_handler
         self.all_docs_svg_data = None
         self.text_editor_window = None
-        self.text_edit_widgets = (
-            []
-        )  # Store references to text edit widgets with metadata
+
         self.doc_layouts = {}  # Store document layouts {doc_name: layout}
         self.active_doc_name = None  # Track which document is active for new text
 
@@ -92,11 +96,11 @@ class StoryEditorWindow:
                         'document_name': 'Example.kra',
                         'document_path': '/path/to/Example.kra',
                         'has_text_changes':False,
-                        'text_edit_widgets':[]
+                        'new_text_widgets':[]
                         }
         """
         self.all_docs_text_state = {}
-        self.text_edit_widgets = []
+        self.new_text_widgets = []
         self.doc_layouts = {}
         self.active_doc_name = None
 
@@ -132,6 +136,7 @@ class StoryEditorWindow:
             self.text_editor_window,
         )
         new_text_btn.setStatusTip("Add a new text widget to the active document")
+        new_text_btn.setShortcut(NEW_TEXT_SHORTCUT)
         new_text_btn.triggered.connect(self.add_new_text_widget)
         toolbar.addAction(new_text_btn)
 
@@ -141,6 +146,7 @@ class StoryEditorWindow:
             self.text_editor_window,
         )
         refresh_btn.setStatusTip("Reload text data from Krita document")
+        refresh_btn.setShortcut(REFRESH_SHORTCUT)
         refresh_btn.triggered.connect(self.refresh_data)
         toolbar.addAction(refresh_btn)
 
@@ -150,6 +156,7 @@ class StoryEditorWindow:
             self.text_editor_window,
         )
         update_btn.setStatusTip("Update Krita document with modified and new texts")
+        update_btn.setShortcut(UPDATE_KRITA_SHORTCUT)
         update_btn.triggered.connect(self.send_merged_svg_request)
         toolbar.addAction(update_btn)
 
@@ -180,6 +187,7 @@ class StoryEditorWindow:
         )
         pin_btn.setCheckable(True)
         pin_btn.setStatusTip("Keep Story Editor window on top of all windows")
+        pin_btn.setShortcut(PIN_WINDOW_SHORTCUT)
         pin_btn.triggered.connect(self.toggle_window_pin)
         toolbar.addAction(pin_btn)
 
@@ -266,7 +274,8 @@ class StoryEditorWindow:
                 "document_name": doc_name,
                 "document_path": doc_path,
                 "has_text_changes": False,
-                "text_edit_widgets": [],
+                "new_text_widgets": [],
+                "layer_groups": {},
                 "opened": opened,
             }
 
@@ -341,6 +350,14 @@ class StoryEditorWindow:
                 if not parsed_svg_data["layer_shapes"]:
                     continue
 
+                self.all_docs_text_state[doc_name]["layer_groups"][layer_id] = {
+                    "layer_name": layer_name,
+                    "layer_id": layer_id,
+                    "layer_shapes": parsed_svg_data["layer_shapes"],
+                    "svg_content": svg_content,
+                    "changes": [],
+                }
+
                 # Add QTextEdit for each text element
                 for elem_idx, layer_shape in enumerate(parsed_svg_data["layer_shapes"]):
                     svg_section_level_layout = QHBoxLayout()
@@ -363,29 +380,38 @@ class StoryEditorWindow:
 
                     svg_section_level_layout.addWidget(text_edit)
 
-                    # Store reference with metadata
-                    self.all_docs_text_state[doc_name]["text_edit_widgets"].append(
+                    self.all_docs_text_state[doc_name]["layer_groups"][layer_id][
+                        "changes"
+                    ].append(
                         {
-                            "widget": text_edit,
-                            "document_name": doc_name,
-                            "document_path": doc_path,
-                            "layer_name": layer_name,
-                            "layer_id": layer_id,
+                            "new_text": text_edit,
                             "shape_id": layer_shape["element_id"],
-                            "original_text": layer_shape["text_content"],
                         }
                     )
+
+                    # Store reference with metadata
+                    # self.all_docs_text_state[doc_name]["new_text_widgets"].append(
+                    #     {
+                    #         "widget": text_edit,
+                    #         "document_name": doc_name,
+                    #         "document_path": doc_path,
+                    #         "layer_name": layer_name,
+                    #         "layer_id": layer_id,
+                    #         "shape_id": layer_shape["element_id"],
+                    #         "original_text": layer_shape["text_content"],
+                    #     }
+                    # )
 
                     #################################################
                     # Add metadata label
                     #################################################
-                    # metadata_label = QLabel(
-                    #     f"Layer: {layer_name} | Layer Id: {layer_id} | Shape ID: {layer_shape['element_id']}")
-                    # metadata_label.setStyleSheet(
-                    #     "color: gray; font-size: 10pt;")
-                    # metadata_label.setMaximumWidth(100)
-                    # metadata_label.setWordWrap(True)
-                    # svg_section_level_layout.addWidget(metadata_label)
+                    metadata_label = QLabel(
+                        f"Layer: {layer_name} | Layer Id: {layer_id} | Shape ID: {layer_shape['element_id']}"
+                    )
+                    metadata_label.setStyleSheet("color: black; font-size: 12pt;")
+                    metadata_label.setMaximumWidth(300)
+                    metadata_label.setWordWrap(True)
+                    svg_section_level_layout.addWidget(metadata_label)
 
                     #################################################
 
@@ -503,7 +529,7 @@ class StoryEditorWindow:
         active_layout.setAlignment(svg_section_level_layout, Qt.AlignTop)
 
         # Store reference with metadata marking it as new
-        self.all_docs_text_state[self.active_doc_name]["text_edit_widgets"].append(
+        self.all_docs_text_state[self.active_doc_name]["new_text_widgets"].append(
             {
                 "widget": text_edit,
                 "is_new": True,  # Flag to identify new text
@@ -570,14 +596,42 @@ class StoryEditorWindow:
         for doc_name, doc_state in self.all_docs_text_state.items():
             self.socket_handler.log(f"⏳ Creating update data for document: {doc_name}")
 
+            doc_path = doc_state["document_path"]
+            # layer_groups Contains all changes for the existing layers
+            layer_groups = doc_state["layer_groups"]
+            # new_text_widgets Contains all new text widgets added by the user
+            new_text_widgets = doc_state["new_text_widgets"]
+
             result = create_svg_data_for_doc(
                 doc_name=doc_name,
-                text_edit_widgets=doc_state["text_edit_widgets"],
+                doc_path=doc_path,
+                layer_groups=layer_groups,
+                new_text_widgets=new_text_widgets,
                 socket_handler=self.socket_handler,
                 opened=doc_state.get("opened"),
             )
-            if result.get("success"):
-                merged_requests.append(result.get("requests"))
+
+            """
+            final_result = {
+                "doc_name": doc_name,
+                "doc_path": doc_path,
+                "existing_texts_updated": [],
+                "new_texts_added": [],
+                "has_changes": False,
+                "opened": opened,
+            }
+            final_result["new_texts_added"].append({"svg_data": svg_data})
+            final_result["existing_texts_updated"].append(
+                    {
+                        "layer_name": layer_name,
+                        "layer_id": layer_id,
+                        "svg_data": valid_svg_data,
+                    }
+                )
+            """
+
+            if result.get("has_changes"):
+                merged_requests.append(result)
                 self.socket_handler.log(
                     f"✅ Update data for document: {doc_name} added to the merged requests"
                 )

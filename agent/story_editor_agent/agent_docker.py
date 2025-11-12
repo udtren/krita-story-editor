@@ -141,6 +141,9 @@ class StoryEditorAgentDocker(QDockWidget):
                     ############################################################
                     opened_docs_requests = []
                     offline_docs_requests = []
+                    existing_layer_update_count = 0
+                    new_layer_add_count = 0
+                    offline_existing_layer_update_count = 0
 
                     for doc_data in merged_requests:
                         if doc_data.get("opened", False):
@@ -149,14 +152,14 @@ class StoryEditorAgentDocker(QDockWidget):
                             offline_docs_requests.append(doc_data)
 
                     # Sort both lists by document_name
-                    opened_docs_requests.sort(key=lambda x: x.get("document_name", ""))
-                    offline_docs_requests.sort(key=lambda x: x.get("document_name", ""))
+                    opened_docs_requests.sort(key=lambda x: x.get("doc_name", ""))
+                    offline_docs_requests.sort(key=lambda x: x.get("doc_name", ""))
 
                     write_log(
-                        f"Opened documents: {[d.get('document_name') for d in opened_docs_requests]}"
+                        f"Opened documents: {[d.get('doc_name') for d in opened_docs_requests]}"
                     )
                     write_log(
-                        f"Offline documents: {[d.get('document_name') for d in offline_docs_requests]}"
+                        f"Offline documents: {[d.get('doc_name') for d in offline_docs_requests]}"
                     )
                     ############################################################
 
@@ -167,65 +170,42 @@ class StoryEditorAgentDocker(QDockWidget):
 
                     for doc in opened_docs:
                         for doc_data in opened_docs_requests:
-
                             write_log(f"[DEBUG] Document: {krita_file_name_safe(doc)}")
-                            if krita_file_name_safe(doc) == doc_data.get(
-                                "document_name"
-                            ):
+                            if krita_file_name_safe(doc) == doc_data.get("doc_name"):
 
-                                for doc_layers_data in doc_data.get("requests", []):
+                                existing_texts_updated = doc_data.get(
+                                    "existing_texts_updated", []
+                                )
+                                new_texts_added = doc_data.get("new_texts_added", [])
 
-                                    text_edit_type = doc_layers_data.get(
-                                        "text_edit_type", None
+                                if len(existing_texts_updated) > 0:
+
+                                    result = update_doc_layers_svg(
+                                        doc, existing_texts_updated
                                     )
 
-                                    if text_edit_type == "existing_texts_updated":
-                                        """updates_with_doc_info = {
-                                            'document_name': doc_name,
-                                            'layer_groups': layer_groups
-                                        }"""
-                                        updates_with_doc_info = doc_layers_data["data"]
-
-                                        result = update_doc_layers_svg(
-                                            doc,
-                                            updates_with_doc_info.get(
-                                                "layer_groups", []
-                                            ),
-                                            client,
-                                        )
-
-                                        if result["success"]:
-                                            if result.get("removed_shapes_count") == 0:
-                                                online_progress_messages.append(
-                                                    f"{krita_file_name_safe(doc)}: Updated existing texts.\n   {result.get('updated_layer_count')} layers modified."
-                                                )
-
-                                            elif result.get("removed_shapes_count") > 0:
-                                                online_progress_messages.append(
-                                                    f"{krita_file_name_safe(doc)}: Updated existing texts.\n   {result.get('updated_layer_count')} layers modified.\n   Removed {result.get('removed_shapes_count')} shapes."
-                                                )
-                                        else:
-                                            online_progress_messages.append(
-                                                f"{krita_file_name_safe(doc)}: Updating existing texts failed."
-                                            )
-
-                                    elif text_edit_type == "new_texts_added":
-                                        """new_texts_with_doc_info = {
-                                            'document_name': doc_name,
-                                            'new_texts': new_texts
-                                        }"""
-                                        new_texts_with_doc_info = doc_layers_data[
-                                            "data"
-                                        ]
-
-                                        for new_text in new_texts_with_doc_info.get(
-                                            "new_texts", []
-                                        ):
-                                            svg_data = new_text.get("svg_data", "")
-
-                                            add_svg_layer_to_doc(doc, svg_data)
+                                    if result["success"]:
                                         online_progress_messages.append(
-                                            f"{krita_file_name_safe(doc)}: New texts created.\n   Added {len(new_texts_with_doc_info.get('new_texts', []))} new layers."
+                                            f"{krita_file_name_safe(doc)}: Updated existing texts."
+                                        )
+                                        existing_layer_update_count += result.get(
+                                            "count", 0
+                                        )
+                                    else:
+                                        online_progress_messages.append(
+                                            f"{krita_file_name_safe(doc)}: Updating existing texts failed."
+                                        )
+                                if len(new_texts_added) > 0:
+
+                                    result = add_svg_layer_to_doc(doc, new_texts_added)
+                                    if result["success"]:
+                                        online_progress_messages.append(
+                                            f"{krita_file_name_safe(doc)}: New texts created."
+                                        )
+                                        new_layer_add_count += result.get("count", 0)
+                                    else:
+                                        online_progress_messages.append(
+                                            f"{krita_file_name_safe(doc)}: Creating new texts failed."
                                         )
 
                     ############################################################
@@ -233,66 +213,30 @@ class StoryEditorAgentDocker(QDockWidget):
                     ############################################################
                     offline_progress_messages = []
 
-                    if (
-                        request.get("krita_files_folder", None)
-                        and offline_docs_requests
-                    ):
-                        krita_files_folder = request.get("krita_files_folder")
+                    if len(offline_docs_requests) > 0:
 
                         write_log(
-                            f"Updating offline .kra files in folder: {[d.get('document_name') for d in offline_docs_requests]}"
+                            f"Updating offline .kra files: {[d.get('doc_path') for d in offline_docs_requests]}"
                         )
 
                         for doc_data in offline_docs_requests:
-                            doc_name = doc_data.get("document_name")
-                            kra_path = os.path.join(krita_files_folder, doc_name)
+                            doc_name = doc_data.get("doc_name")
+                            doc_path = doc_data.get("doc_path")
+                            existing_texts_updated = doc_data.get(
+                                "existing_texts_updated", []
+                            )
 
                             # Check if file exists
-                            if not os.path.exists(kra_path):
-                                write_log(f"[WARNING] File not found: {kra_path}")
+                            if not os.path.exists(doc_path):
+                                write_log(f"[WARNING] File not found: {doc_path}")
                                 continue
 
-                            try:
-                                # Process each text edit request for this document
-                                for doc_layers_data in doc_data.get("requests", []):
-                                    text_edit_type = doc_layers_data.get(
-                                        "text_edit_type", None
-                                    )
-
-                                    if text_edit_type == "existing_texts_updated":
-                                        updates_with_doc_info = doc_layers_data["data"]
-                                        layer_groups = updates_with_doc_info.get(
-                                            "layer_groups", {}
-                                        )
-
-                                        result = update_offline_kra_file(
-                                            kra_path, layer_groups
-                                        )
-
-                                        if result["success"]:
-                                            if result.get("removed_shapes_count") == 0:
-                                                offline_progress_messages.append(
-                                                    f"{doc_name} (offline): Updated existing texts.\n   {result.get('updated_layer_count')} layers modified."
-                                                )
-
-                                            elif result.get("removed_shapes_count") > 0:
-                                                offline_progress_messages.append(
-                                                    f"{doc_name} (offline): Updated existing texts.\n   {result.get('updated_layer_count')} layers modified.\n   Removed {result.get('removed_shapes_count')} shapes."
-                                                )
-                                        else:
-                                            offline_progress_messages.append(
-                                                f"{doc_name} (offline): Updating existing texts failed."
-                                            )
-
-                                    else:
-                                        write_log(
-                                            f"[INFO] text_edit_type is {text_edit_type}. Skipping."
-                                        )
-
-                            except Exception as e:
-                                write_log(
-                                    f"[ERROR] Failed to update offline file {doc_name}: {e}"
-                                )
+                            result = update_offline_kra_file(
+                                doc_path, existing_texts_updated
+                            )
+                            offline_existing_layer_update_count += result.get(
+                                "count", 0
+                            )
 
                     ############################################################
                     final_message = "Text update applied successfully"
