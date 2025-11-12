@@ -134,7 +134,8 @@ class ControlTower(QMainWindow):
             """
             background-color: black; 
             color: #c8c8c8; 
-            padding: 5px;
+            padding: 3px;
+            qproperty-alignment: 'AlignCenter';
             border-radius: 8px;
             """
         )
@@ -178,6 +179,24 @@ class ControlTower(QMainWindow):
         self.krita_files_path_btn.setFixedSize(250, 40)
         folder_layout.addWidget(self.krita_files_path_btn)
         layout.addLayout(folder_layout)
+
+        # Template Management button (aligned to the right)
+        edit_templates_layout = QHBoxLayout()
+        edit_templates_layout.addStretch()  # Push button to the right
+        self.edit_templates_btn = QPushButton("Edit Templates")
+        self.edit_templates_btn.setFont(get_button_font())
+        self.edit_templates_btn.setStyleSheet(
+            """
+            color: #4b281c; 
+            background-color: #9e6658;
+            padding: 5px;
+            border-radius: 8px;
+            """
+        )
+
+        self.edit_templates_btn.setFixedSize(250, 40)
+        edit_templates_layout.addWidget(self.edit_templates_btn)
+        layout.addLayout(edit_templates_layout)
 
         # Add spacing between buttons #c8c8c8
         layout.addSpacing(20)  # 20 pixels of space

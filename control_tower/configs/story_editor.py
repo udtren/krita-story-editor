@@ -66,6 +66,7 @@ ACTIVATE_BTN_CHECKED_COLOR = "#393939"
 
 # Template Combo Box Color
 TEMPLATE_COMBO_COLOR = "black"
+TEMPLATE_COMBO_BACKGROUND_COLOR = "#8e764e"
 
 # Find/Replace Button Colors
 FIND_REPLACE_BTN_COLOR = "#221c13"
@@ -244,9 +245,8 @@ def get_activate_button_disabled_stylesheet():
     """Get the stylesheet for disabled activate buttons"""
     return f"""
         QPushButton {{
-            font-style: italic;
             padding-top: 2px;
-            padding-bottom: 0px;
+            padding-bottom: 2px;
             padding-left: 2px;
             padding-right: 2px;
             font-weight: bold;
@@ -264,7 +264,7 @@ def get_activate_button_stylesheet():
         QPushButton {{
             text-align: center;
             padding-top: 2px;
-            padding-bottom: 0px;
+            padding-bottom: 2px;
             padding-left: 2px;
             padding-right: 2px;
             font-weight: bold;
@@ -281,4 +281,7 @@ def get_activate_button_stylesheet():
 
 def get_template_combo_stylesheet():
     """Get the stylesheet for template combo box"""
-    return f"color: {TEMPLATE_COMBO_COLOR};"
+    return f"""
+    color: {TEMPLATE_COMBO_COLOR};
+    background-color: {TEMPLATE_COMBO_BACKGROUND_COLOR};
+    """

@@ -263,8 +263,10 @@ class StoryEditorWindow:
 
             # Activate button for this document
             # Add line breaks between each character for vertical text
-            vertical_text = "\n".join(f"{doc_name}")
-            activate_btn = QPushButton(vertical_text)
+            vertical_text = lambda: (
+                "\n".join(f"{doc_name}") if opened else "\n".join(f"{doc_name}-closed-")
+            )
+            activate_btn = QPushButton(vertical_text())
             activate_btn.setFixedWidth(40)  # Make button thin
             activate_btn.setMinimumHeight(200)  # Make button tall
 
@@ -370,19 +372,6 @@ class StoryEditorWindow:
                             "shape_id": layer_shape["element_id"],
                         }
                     )
-
-                    #################################################
-                    # Add metadata label
-                    #################################################
-                    # metadata_label = QLabel(
-                    #     f"Layer: {layer_name} | Layer Id: {layer_id} | Shape ID: {layer_shape['element_id']}"
-                    # )
-                    # metadata_label.setStyleSheet("color: black; font-size: 12pt;")
-                    # metadata_label.setMaximumWidth(300)
-                    # metadata_label.setWordWrap(True)
-                    # svg_section_level_layout.addWidget(metadata_label)
-
-                    #################################################
 
                     doc_level_layers_layout.addLayout(svg_section_level_layout)
 
