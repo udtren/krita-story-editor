@@ -192,6 +192,11 @@ class StoryEditorWindow:
 
                     # Set the pixmap to label
                     thumbnail_label.setPixmap(pixmap)
+
+                    # Set tooltip with document info
+                    thumbnail_label.setToolTip(
+                        f"Document: {doc_name}\nPath: {doc_path}"
+                    )
                 except Exception as e:
                     # If loading fails, show placeholder text
                     thumbnail_label.setText("No\nPreview")
@@ -247,12 +252,12 @@ class StoryEditorWindow:
                 activate_btn.setStyleSheet(get_activate_button_disabled_stylesheet())
                 activate_btn.setEnabled(False)  # Make button unclickable
                 activate_btn.setToolTip(
-                    f"This document is not currently open in Krita\nPath: {doc_path}"
+                    f"Document: {doc_name} (offline)\nPath: {doc_path}"
                 )
             else:
                 activate_btn.setCheckable(True)
                 activate_btn.setToolTip(
-                    f"Click to activate this document for adding new text\nPath: {doc_path}"
+                    f"Document: {doc_name} (click to activate)\nPath: {doc_path}"
                 )
                 activate_btn.clicked.connect(
                     lambda checked, name=doc_name, btn=activate_btn: self.activate_document(
@@ -579,6 +584,12 @@ class StoryEditorWindow:
         """Show context menu for thumbnail"""
         menu = QMenu(self.parent_window)
 
+        # Add "Activate" action
+        activate_action = menu.addAction("Activate")
+        activate_action.triggered.connect(
+            lambda: self.send_activate_document_request(doc_name)
+        )
+
         # Add "Close" action
         close_action = menu.addAction("Close")
         close_action.triggered.connect(
@@ -592,3 +603,8 @@ class StoryEditorWindow:
         """Send close_document request to the agent"""
         self.socket_handler.log(f"❌ Requesting to close document: {doc_name}")
         self.socket_handler.send_request("close_document", doc_name=doc_name)
+
+    def send_activate_document_request(self, doc_name):
+        """Send activate_document request to the agent"""
+        self.socket_handler.log(f"➡️ Requesting to activate document: {doc_name}")
+        self.socket_handler.send_request("activate_document", doc_name=doc_name)
