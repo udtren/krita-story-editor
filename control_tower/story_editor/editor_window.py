@@ -60,6 +60,7 @@ class StoryEditorWindow:
 
         self.doc_layouts = {}  # Store document layouts {doc_name: layout}
         self.active_doc_name = None  # Track which document is active for new text
+        self.is_pinned = False  # Track window pin status
 
     def create_text_editor_window(self):
         """Create the text editor window with the received SVG data"""
@@ -182,6 +183,11 @@ class StoryEditorWindow:
 
         # Store reference to pin button for later use
         self.pin_btn = pin_btn
+
+        # Restore pin status if it was previously pinned
+        if self.is_pinned:
+            pin_btn.setChecked(True)
+            self.toggle_window_pin(True)
 
         #################################
         thumbnail_and_text_layout = QHBoxLayout()
@@ -612,6 +618,9 @@ class StoryEditorWindow:
         """Toggle window always-on-top state"""
         if not self.text_editor_window:
             return
+
+        # Store the pin state
+        self.is_pinned = checked
 
         # Get current window flags
         flags = self.text_editor_window.windowFlags()
