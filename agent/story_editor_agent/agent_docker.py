@@ -303,7 +303,8 @@ class StoryEditorAgentDocker(QDockWidget):
                         doc.save()
                     response = {
                         "success": True,
-                        "message": "All opened documents saved.",
+                        "response_type": "save_all_opened_docs",
+                        "result": "All opened documents saved.",
                     }
                     client.write(json.dumps(response).encode("utf-8"))
                 except Exception as e:
@@ -323,11 +324,13 @@ class StoryEditorAgentDocker(QDockWidget):
                         target_doc.close()
                         response = {
                             "success": True,
-                            "message": f"Document '{doc_name}' closed.",
+                            "response_type": "close_document",
+                            "result": f"Document '{doc_name}' closed.",
                         }
                     else:
                         response = {
                             "success": False,
+                            "response_type": "close_document",
                             "error": f"Document '{doc_name}' not found among opened documents.",
                         }
                     client.write(json.dumps(response).encode("utf-8"))

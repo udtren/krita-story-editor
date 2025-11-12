@@ -443,26 +443,35 @@ class ControlTower(QMainWindow):
         try:
             response = json.loads(data)
 
-            # Only log non-SVG responses (SVG data is too large)
-            if "docs_svg_update_result" in response and response.get("success"):
-                self.log(
-                    f"✔️ Text Update Request Finishied: {response['docs_svg_update_result']}"
-                )
-                self.text_editor_handler.refresh_data()
+            # Determine response type and handle accordingly
+            match response:
+                case {"docs_svg_update_result": result, "success": True}:
+                    self.log(f"✔️ Text Update Request Finishied: {result}")
+                    self.text_editor_handler.refresh_data()
 
-            elif "all_docs_svg_data" in response and response.get("success"):
-                self.log(f"📥 All docs svg data received from agent")
+                case {"all_docs_svg_data": svg_data, "success": True}:
+                    self.log(f"📥 All docs svg data received from agent")
+                    # Route to the appropriate handler based on which one is waiting
+                    if self._waiting_for_svg == "text_editor":
+                        self.text_editor_handler.set_svg_data(svg_data)
+                    self._waiting_for_svg = None
 
-                # Route to the appropriate handler based on which one is waiting
-                if self._waiting_for_svg == "text_editor":
-                    self.text_editor_handler.set_svg_data(response["all_docs_svg_data"])
-                self._waiting_for_svg = None
+                case {
+                    "response_type": "save_all_opened_docs",
+                    "success": True,
+                }:
+                    result = response.get("result", "Unknown")
+                    self.log(f"💾 {result}")
 
-            elif "progress" in response:
-                self.log(f"📋 Agent Progress: {response['progress']}")
+                case {"response_type": "close_document", "success": True}:
+                    result = response.get("result", "Unknown")
+                    self.log(f"🗑️ {result}")
 
-            else:
-                self.log(f"Other Response: {response}")
+                case {"progress": progress}:
+                    self.log(f"📋 Agent Progress: {progress}")
+
+                case _:
+                    self.log(f"Other Response: {response}")
 
         except json.JSONDecodeError as e:
             self.log(f"⚠️ Failed to parse JSON: {e}")
@@ -512,7 +521,10 @@ class ControlTower(QMainWindow):
         )
 
         # Refresh the Story Editor window if it exists
-        if self.story_editor_parent_window and self.story_editor_parent_window.isVisible():
+        if (
+            self.story_editor_parent_window
+            and self.story_editor_parent_window.isVisible()
+        ):
             self.text_editor_handler.refresh_data()
 
 
