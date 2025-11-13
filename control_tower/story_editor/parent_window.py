@@ -1,20 +1,11 @@
 from PyQt5.QtWidgets import (
-    QApplication,
-    QMainWindow,
-    QPushButton,
-    QVBoxLayout,
-    QHBoxLayout,
     QWidget,
-    QTextEdit,
-    QLabel,
-    QInputDialog,
-    QFileDialog,
+    QVBoxLayout,
     QToolBar,
     QAction,
 )
-from PyQt5.QtNetwork import QLocalSocket, QLocalServer
-from PyQt5.QtCore import QTimer, Qt, QSize
-from PyQt5.QtGui import QFont, QFontDatabase, QIcon
+from PyQt5.QtCore import QSize, Qt
+from PyQt5.QtGui import QIcon
 import os
 from config.story_editor_loader import (
     get_window_stylesheet,
@@ -52,7 +43,7 @@ class StoryEditorParentWindow(QWidget):
 
         # Get absolute path to icon
         icon_path_bath = os.path.join(
-            os.path.dirname(__file__), "story_editor", "icons"
+            os.path.dirname(__file__), "icons"
         )
 
         new_text_btn = QAction(
@@ -138,7 +129,7 @@ class StoryEditorParentWindow(QWidget):
 
         # Get icon path
         icon_path_bath = os.path.join(
-            os.path.dirname(__file__), "story_editor", "icons"
+            os.path.dirname(__file__), "icons"
         )
 
         if checked:

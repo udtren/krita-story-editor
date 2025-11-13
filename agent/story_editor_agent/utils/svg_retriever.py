@@ -197,12 +197,6 @@ def get_svg_from_activenode():
         print(f"Number of shapes: {len(shapes)}\n")
         print("=" * 60)
 
-        for idx, shape in enumerate(shapes):
-            print(f"\n--- Shape {idx + 1} ---")
-            print(f"Name: {shape.name()}")
-            print(f"\nSVG Content:")
-            print(shape.toSvg())
-            print("=" * 60)
     else:
         print(f"Active node is not a vector layer. Type: {active_node.type()}")
 
