@@ -2,6 +2,8 @@
 
 A tool for editing text layers across multiple Krita documents, whether they are open or closed. Edit all your text content in one place and sync changes back to your files.
 
+**Note:** This tool is designed for Krita 5.3.0, which features a refactored text tool. Currently, Krita 5.3.0 is only available as a pre-alpha version, and its text tool still contains bugs that need to be fixed. This tool may be updated in the future to accommodate changes in the text tool's behavior.
+
 ## Architecture
 ![alt text](images/architecture.png)
 
@@ -16,7 +18,7 @@ The main editing window where you work with text content. It receives text data 
 
 **Toolbar buttons:**
 
- <img src="images/toolbar.png" alt="toolbar" width="300">
+ <img src="images/toolbar.png" alt="toolbar" width="500">
 
 
 - **Add New Text Widget**  
@@ -62,7 +64,7 @@ When adding new text using "Add New Text Widget", you can create multiple shapes
 
 **Advanced editing with tspan:**
 
-<img src="images/text_box4.png" alt="text_box4" width="300">
+<img src="images/text_box4.png" alt="text_box4" width="400">
 
 In later stages of your work, you may want to style parts of the text differently (different color, font size, etc.). These edits place each text section into separate `<tspan>` tags in the SVG. 
 
