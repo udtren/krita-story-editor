@@ -11,27 +11,20 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtCore import QByteArray, QTimer, Qt
 from PyQt5.QtGui import QPixmap
-from config.story_editor import (
+from story_editor.utils.text_updater import create_svg_data_for_doc
+from story_editor.utils.svg_parser import parse_krita_svg
+from story_editor.widgets.find_replace import show_find_replace_dialog
+from story_editor.utils.logs import write_log
+from story_editor.widgets.new_text_edit import add_new_text_widget
+
+from config.story_editor_loader import (
     get_text_editor_font,
     get_tspan_editor_stylesheet,
     get_activate_button_disabled_stylesheet,
     get_activate_button_stylesheet,
     TEXT_EDITOR_MIN_HEIGHT,
     TEXT_EDITOR_MAX_HEIGHT,
-    STORY_EDITOR_WINDOW_WIDTH,
-    STORY_EDITOR_WINDOW_HEIGHT,
 )
-from config.shortcuts import (
-    NEW_TEXT_SHORTCUT,
-    REFRESH_SHORTCUT,
-    UPDATE_KRITA_SHORTCUT,
-    PIN_WINDOW_SHORTCUT,
-)
-from story_editor.utils.text_updater import create_svg_data_for_doc
-from story_editor.utils.svg_parser import parse_krita_svg
-from story_editor.widgets.find_replace import show_find_replace_dialog
-from story_editor.utils.logs import write_log
-from story_editor.widgets.new_text_edit import add_new_text_widget
 
 
 class StoryEditorWindow:

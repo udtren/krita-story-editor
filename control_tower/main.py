@@ -15,33 +15,30 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtNetwork import QLocalSocket
 from PyQt5.QtCore import QTimer, Qt, QSize
 from PyQt5.QtGui import QFont, QFontDatabase, QIcon
-from config.main_window import (
+
+from config.template_manager import show_template_manager
+from config.config_dialog import ConfigDialog
+from story_editor import StoryEditorWindow
+import json
+import sys
+import os
+from config.main_window_loader import (
     setup_dark_palette,
-    WINDOW_WIDTH,
-    WINDOW_HEIGHT,
-    WINDOW_TITLE,
-    BUTTON_HEIGHT,
-    BUTTON_MIN_WIDTH,
     get_button_font,
     get_log_font,
 )
-from utils.template_manager import show_template_manager
-from story_editor import StoryEditorWindow
-from config.story_editor import (
+from config.story_editor_loader import (
     get_window_stylesheet,
     get_toolbar_stylesheet,
     STORY_EDITOR_WINDOW_WIDTH,
     STORY_EDITOR_WINDOW_HEIGHT,
 )
-from config.shortcuts import (
+from config.shortcuts_loader import (
     NEW_TEXT_SHORTCUT,
     REFRESH_SHORTCUT,
     UPDATE_KRITA_SHORTCUT,
     PIN_WINDOW_SHORTCUT,
 )
-import json
-import sys
-import os
 
 
 class StoryEditorParentWindow(QWidget):
@@ -183,8 +180,8 @@ class StoryEditorParentWindow(QWidget):
 class ControlTower(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle(WINDOW_TITLE)
-        self.setFixedSize(WINDOW_WIDTH, WINDOW_HEIGHT)
+        self.setWindowTitle("Story Editor Control Tower")
+        self.setFixedSize(800, 600)
 
         # Initialize text editor window handler
         self.text_editor_handler = StoryEditorWindow(self, self)
@@ -352,6 +349,25 @@ class ControlTower(QMainWindow):
         edit_templates_layout.addWidget(self.edit_templates_btn)
         layout.addLayout(edit_templates_layout)
 
+        # Settings button (aligned to the right)
+        settings_layout = QHBoxLayout()
+        settings_layout.addStretch()  # Push button to the right
+        self.settings_btn = QPushButton("Settings")
+        self.settings_btn.clicked.connect(self.open_settings)
+        self.settings_btn.setFont(get_button_font())
+        self.settings_btn.setStyleSheet(
+            """
+            color: #4b281c;
+            background-color: #9e6658;
+            padding: 5px;
+            border-radius: 8px;
+            """
+        )
+
+        self.settings_btn.setFixedSize(250, 40)
+        settings_layout.addWidget(self.settings_btn)
+        layout.addLayout(settings_layout)
+
         # Add spacing between buttons #c8c8c8
         layout.addSpacing(20)  # 20 pixels of space
 
@@ -500,6 +516,15 @@ class ControlTower(QMainWindow):
         """Open the template manager window"""
         self.log("📝 Opening Template Manager...")
         self.template_manager_window = show_template_manager(self)
+
+    def open_settings(self):
+        """Open the settings dialog"""
+        self.log("⚙️ Opening Settings...")
+        settings_dialog = ConfigDialog(self)
+        if settings_dialog.exec_():
+            self.log("✅ Settings saved successfully")
+        else:
+            self.log("❌ Settings changes cancelled")
 
     def set_krita_files_folder_path(self):
         """Set the folder path where Krita files are located"""

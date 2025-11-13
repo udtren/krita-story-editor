@@ -4,6 +4,7 @@ Provides a GUI for managing SVG text templates
 """
 
 import os
+import json
 from PyQt5.QtWidgets import (
     QWidget,
     QVBoxLayout,
@@ -31,12 +32,16 @@ class TemplateManagerWindow(QWidget):
         self.setWindowFlags(Qt.Window | Qt.WindowCloseButtonHint)
 
         self.template_dir = os.path.join(
-            os.path.dirname(os.path.dirname(__file__)), "utils", "user_templates"
+            os.path.dirname(os.path.dirname(__file__)), "config", "user_templates"
+        )
+        self.config_file = os.path.join(
+            os.path.dirname(os.path.dirname(__file__)), "config", "template.json"
         )
         self.current_template = None
         self.default_template_index = None
         self.init_ui()
         self.load_template_list()
+        self.load_default_template_from_config()
 
     def init_ui(self):
         """Initialize the user interface"""
@@ -458,8 +463,59 @@ class TemplateManagerWindow(QWidget):
                 item.setForeground(QColor("#ccb9b9"))
 
     def update_default_template_index(self, index):
-        """Update the default template index"""
+        """Update the default template index and save to config"""
         self.default_template_index = index
+
+        # Get the template filename at this index
+        if 0 <= index < self.template_list.count():
+            template_name = self.template_list.item(index).text()
+            self.save_default_template_to_config(template_name)
+
+    def save_default_template_to_config(self, template_name):
+        """Save the default template name to the config file"""
+        try:
+            config_data = {"default_template_name": template_name}
+            with open(self.config_file, "w", encoding="utf-8") as f:
+                json.dump(config_data, f, indent=4)
+        except Exception as e:
+            QMessageBox.warning(
+                self, "Warning", f"Failed to save default template to config:\n{str(e)}"
+            )
+
+    def load_default_template_from_config(self):
+        """Load the default template name from config and set the index"""
+        try:
+            if os.path.exists(self.config_file):
+                with open(self.config_file, "r", encoding="utf-8") as f:
+                    config_data = json.load(f)
+                    default_name = config_data.get("default_template_name", "")
+
+                    if default_name:
+                        # Find the index of this template in the list
+                        for i in range(self.template_list.count()):
+                            if self.template_list.item(i).text() == default_name:
+                                self.default_template_index = i
+                                self.update_template_colors()
+                                break
+                    else:
+                        self.default_template_index = 0
+                        self.update_template_colors()
+        except Exception:
+            # Silently fail on init, config might not exist yet
+            pass
+
+    def get_default_template_name(self):
+        """Return the default template name for external use"""
+        if (
+            self.default_template_index is not None
+            and 0 <= self.default_template_index < self.template_list.count()
+        ):
+            return self.template_list.item(self.default_template_index).text()
+        return None
+
+    def get_default_template_index(self):
+        """Return the default template index for external use"""
+        return self.default_template_index
 
 
 def show_template_manager(parent=None):

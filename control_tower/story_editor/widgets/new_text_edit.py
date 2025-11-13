@@ -7,13 +7,14 @@ from PyQt5.QtWidgets import QTextEdit, QComboBox, QHBoxLayout
 from PyQt5.QtCore import Qt
 import os
 import glob
-from config.story_editor import (
+from config.story_editor_loader import (
     get_text_editor_font,
     get_tspan_editor_stylesheet,
     get_template_combo_stylesheet,
     TEXT_EDITOR_MIN_HEIGHT,
     TEXT_EDITOR_MAX_HEIGHT,
 )
+from config.template_loader import get_default_template_name
 
 
 def add_new_text_widget(
@@ -68,7 +69,7 @@ def add_new_text_widget(
     # Find all XML files in user_templates directory
     template_dir = os.path.join(
         os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
-        "utils",
+        "config",
         "user_templates",
     )
     template_files = []
@@ -86,7 +87,8 @@ def add_new_text_widget(
         socket_handler.log(f"No template files found in {template_dir}")
 
     # Set default selection
-    default_index = 0
+    default_template_name = get_default_template_name()
+    default_index = choose_template_combo.findText(default_template_name)
     if default_index >= 0:
         choose_template_combo.setCurrentIndex(default_index)
 
