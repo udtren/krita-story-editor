@@ -15,6 +15,7 @@ The tool has 3 main parts: the Story Editor for editing text, the Agent running 
 The main editing window where you work with text content. It receives text data from the Agent and displays it in editable text boxes.
 
 **Toolbar buttons:**
+
  <img src="images/toolbar.png" alt="toolbar" width="300">
 
 
@@ -39,12 +40,14 @@ The main editing window where you work with text content. It receives text data 
   Pins the Story Editor window on top of all other windows. 
 
 **Thumbnail:**
+
 <img src="images/story_editor2.png" alt="story_editor2" width="300">
 
 Each document's thumbnail will be displayed at the left. You can right click the thumbnail to activate or close the opened document.
 The Activate button can not make krita auto change its active view to the target document, hence what this action do is add a new view of the selected document. This will not affect the text display in the story editor because no matter the number of views, the number of opened document is unchanged.
 
 **Text Edit Box:**
+
 <img src="images/text_box1.png" alt="text_box1" width="400">
 
 In Krita, each text layer is a vector layer containing SVG data. A vector layer can have one or more text shapes. For example, if you create a text in a vector layer, that's one shape. Adding another text to the same layer creates a second shape.
@@ -57,7 +60,9 @@ The Story Editor creates one text box for each shape in each document. If a Krit
 When adding new text using "Add New Text Widget", you can create multiple shapes in a single Krita layer by separating them with three line breaks (press Enter three times).
 
 **Advanced editing with tspan:**
+
 <img src="images/text_box4.png" alt="text_box4" width="300">
+
 In later stages of your work, you may want to style parts of the text differently (different color, font size, etc.). These edits place each text section into separate `<tspan>` tags in the SVG. 
 
 The text edit box uses a safe approach: when receiving text data from the Agent, it converts the entire tspan section into raw text. When sending text back to the Agent, it converts the tspan part back into valid SVG data.
@@ -76,6 +81,7 @@ When you update text, it writes the changes back to your Krita files.
 The Agent includes a button that opens a window displaying the selected vector layer's SVG data, which you can use to create custom template files.
 
 ### Story Editor Control Tower
+
 <img src="images/control_tower.png" alt="control_tower" width="400">
 
 The launcher application that connects everything together.
@@ -104,6 +110,7 @@ If your workflow involves using the same text style repeatedly, templates can sa
 Each shape in a text layer has a unique ID. When the Story Editor sends updates to the Agent, it automatically replaces `SHAPE_ID` with a unique identifier and `TEXT_TO_REPLACE` with your actual text content.
 
 #### Template Manager
+
 <img src="images/template_manager.png" alt="template_manager" width="400">
 
 You can create, edit, and delete templates in the Template Manager. Right-click a template to mark it as the Default Template. Widgets added via "Add New Text Widget" will use the default template initially. When creating template, replace the id and text with `SHAPE_ID` and `TEXT_TO_REPLACE`.
