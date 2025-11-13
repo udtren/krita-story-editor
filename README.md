@@ -10,7 +10,7 @@ The tool has 3 main parts: the Story Editor for editing text, the Agent running 
 ## Components
 
 ### Story Editor
- <img src="images/story_editor.png" alt="story_editor" width="300">
+ <img src="images/story_editor.png" alt="story_editor" width="500">
 
 The main editing window where you work with text content. It receives text data from the Agent and displays it in editable text boxes.
 
