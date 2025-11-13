@@ -13,6 +13,7 @@ The tool has 3 main parts: the Story Editor for editing text, the Agent running 
 The main editing window where you work with text content. It receives text data from the Agent and displays it in editable text boxes.
 
 **Toolbar buttons:**
+
 ![alt text](images/toolbar.png)
 - **Add New Text Widget**  
   The target document must be saved first. Activate your target document by clicking its name bar or thumbnail, then click the Add button to create a new empty text widget at the bottom of that document's section. You can choose a template from the dropdown menu or use the default.
@@ -52,6 +53,7 @@ When you update text, it writes the changes back to your Krita files.
 The Agent includes a button that opens a window displaying the selected vector layer's SVG data, which you can use to create custom template files.
 
 ### Story Editor Control Tower
+
 ![alt text](images/control_tower.png)
 The launcher application that connects everything together.
 
