@@ -62,6 +62,8 @@ The Story Editor creates one text box for each shape in each document. If a Krit
 
 When adding new text using "Add New Text Widget", you can create multiple shapes in a single Krita layer by separating them with three line breaks (press Enter three times).
 
+If you remove the whole text in a text box, the shape will be remove from the target layer during text update process. Right now the vector layer itself will not be deleted even all shapes are removed.
+
 **Advanced editing with tspan:**
 
 <img src="images/text_box4.png" alt="text_box4" width="400">
