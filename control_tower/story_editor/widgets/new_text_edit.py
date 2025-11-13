@@ -44,7 +44,7 @@ def add_new_text_widget(
 
     # Get the active document's layout
     active_layout = doc_layouts[active_doc_name]
-    placeholder_text = """If you want multiple paragraphs within different text elements, separate them with double line breaks."""
+    placeholder_text = """If you want multiple paragraphs within different text elements, separate them with triple line breaks."""
 
     # Create new layout for this text element
     svg_section_level_layout = QHBoxLayout()
