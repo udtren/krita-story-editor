@@ -43,14 +43,6 @@ def add_new_text_widget(
 
     # Get the active document's layout
     active_layout = doc_layouts[active_doc_name]
-
-    # Default template path
-    default_template = os.path.join(
-        os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
-        "utils",
-        "user_templates",
-        "default_1.xml",
-    )
     placeholder_text = """If you want multiple paragraphs within different text elements, separate them with double line breaks."""
 
     # Create new layout for this text element
@@ -92,11 +84,9 @@ def add_new_text_widget(
 
     if not template_files:
         socket_handler.log(f"No template files found in {template_dir}")
-        # Add default as fallback
-        choose_template_combo.addItem("default_1.xml", default_template)
 
     # Set default selection
-    default_index = choose_template_combo.findText("default_1.xml")
+    default_index = 0
     if default_index >= 0:
         choose_template_combo.setCurrentIndex(default_index)
 

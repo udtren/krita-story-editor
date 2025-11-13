@@ -15,8 +15,10 @@ from PyQt5.QtWidgets import (
     QInputDialog,
     QMessageBox,
     QFileDialog,
+    QMenu,
 )
 from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QColor
 
 
 class TemplateManagerWindow(QWidget):
@@ -32,6 +34,7 @@ class TemplateManagerWindow(QWidget):
             os.path.dirname(os.path.dirname(__file__)), "utils", "user_templates"
         )
         self.current_template = None
+        self.default_template_index = None
         self.init_ui()
         self.load_template_list()
 
@@ -98,6 +101,8 @@ class TemplateManagerWindow(QWidget):
 
         self.template_list = QListWidget()
         self.template_list.currentItemChanged.connect(self.on_template_selected)
+        self.template_list.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.template_list.customContextMenuRequested.connect(self.show_context_menu)
         left_layout.addWidget(self.template_list)
 
         # Buttons for template list operations
@@ -172,6 +177,9 @@ class TemplateManagerWindow(QWidget):
         for filename in xml_files:
             self.template_list.addItem(filename)
 
+        # Update colors based on default template
+        self.update_template_colors()
+
     def on_template_selected(self, current, previous):
         """Handle template selection from the list"""
         if current is None:
@@ -199,9 +207,7 @@ class TemplateManagerWindow(QWidget):
             self.delete_btn.setEnabled(True)
 
         except Exception as e:
-            QMessageBox.warning(
-                self, "Error", f"Failed to load template:\n{str(e)}"
-            )
+            QMessageBox.warning(self, "Error", f"Failed to load template:\n{str(e)}")
 
     def on_text_changed(self):
         """Handle text editor changes"""
@@ -264,9 +270,7 @@ class TemplateManagerWindow(QWidget):
             )
 
         except Exception as e:
-            QMessageBox.critical(
-                self, "Error", f"Failed to create template:\n{str(e)}"
-            )
+            QMessageBox.critical(self, "Error", f"Failed to create template:\n{str(e)}")
 
     def rename_template(self):
         """Rename the selected template"""
@@ -322,9 +326,7 @@ class TemplateManagerWindow(QWidget):
             )
 
         except Exception as e:
-            QMessageBox.critical(
-                self, "Error", f"Failed to rename template:\n{str(e)}"
-            )
+            QMessageBox.critical(self, "Error", f"Failed to rename template:\n{str(e)}")
 
     def delete_template(self):
         """Delete the selected template"""
@@ -357,9 +359,7 @@ class TemplateManagerWindow(QWidget):
             )
 
         except Exception as e:
-            QMessageBox.critical(
-                self, "Error", f"Failed to delete template:\n{str(e)}"
-            )
+            QMessageBox.critical(self, "Error", f"Failed to delete template:\n{str(e)}")
 
     def save_template(self):
         """Save changes to the current template"""
@@ -401,9 +401,7 @@ class TemplateManagerWindow(QWidget):
             )
 
         except Exception as e:
-            QMessageBox.critical(
-                self, "Error", f"Failed to save template:\n{str(e)}"
-            )
+            QMessageBox.critical(self, "Error", f"Failed to save template:\n{str(e)}")
 
     def revert_changes(self):
         """Revert changes and reload the current template"""
@@ -420,13 +418,48 @@ class TemplateManagerWindow(QWidget):
 
         if reply == QMessageBox.Yes:
             # Reload the template
-            items = self.template_list.findItems(
-                self.current_template, Qt.MatchExactly
-            )
+            items = self.template_list.findItems(self.current_template, Qt.MatchExactly)
             if items:
                 self.on_template_selected(items[0], None)
             self.save_btn.setEnabled(False)
             self.revert_btn.setEnabled(False)
+
+    def show_context_menu(self, position):
+        """Show context menu for template list"""
+        item = self.template_list.itemAt(position)
+        if item is None:
+            return
+
+        menu = QMenu(self)
+        set_default_action = menu.addAction("Set as Default")
+
+        action = menu.exec_(self.template_list.mapToGlobal(position))
+
+        if action == set_default_action:
+            # Get the index of the selected item
+            index = self.template_list.row(item)
+            self.update_default_template_index(index)
+            self.update_template_colors()
+            QMessageBox.information(
+                self,
+                "Default Template Set",
+                f"'{item.text()}' has been set as the default template.",
+            )
+
+    def update_template_colors(self):
+        """Update the colors of template items based on default status"""
+        for i in range(self.template_list.count()):
+            item = self.template_list.item(i)
+            if i == self.default_template_index:
+                # Lighter color for default template
+                item.setForeground(QColor("#d1eca4"))
+            else:
+                # Normal color for other templates
+                item.setForeground(QColor("#ccb9b9"))
+
+    def update_default_template_index(self, index):
+        """Update the default template index"""
+        self.default_template_index = index
 
 
 def show_template_manager(parent=None):
