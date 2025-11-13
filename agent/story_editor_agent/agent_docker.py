@@ -24,7 +24,7 @@ from .utils import (
     update_offline_kra_file,
     krita_file_name_safe,
 )
-from .configs.story_editor_agent import (
+from .config.story_editor_agent import (
     DIALOG_WIDTH,
     DIALOG_HEIGHT,
     get_output_dialog_stylesheet,

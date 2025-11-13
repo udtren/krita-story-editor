@@ -15,7 +15,7 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtNetwork import QLocalSocket
 from PyQt5.QtCore import QTimer, Qt, QSize
 from PyQt5.QtGui import QFont, QFontDatabase, QIcon
-from configs.main_window import (
+from config.main_window import (
     setup_dark_palette,
     WINDOW_WIDTH,
     WINDOW_HEIGHT,
@@ -27,13 +27,13 @@ from configs.main_window import (
 )
 from utils.template_manager import show_template_manager
 from story_editor import StoryEditorWindow
-from configs.story_editor import (
+from config.story_editor import (
     get_window_stylesheet,
     get_toolbar_stylesheet,
     STORY_EDITOR_WINDOW_WIDTH,
     STORY_EDITOR_WINDOW_HEIGHT,
 )
-from configs.shortcuts import (
+from config.shortcuts import (
     NEW_TEXT_SHORTCUT,
     REFRESH_SHORTCUT,
     UPDATE_KRITA_SHORTCUT,

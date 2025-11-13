@@ -7,7 +7,7 @@ from PyQt5.QtWidgets import QTextEdit, QComboBox, QHBoxLayout
 from PyQt5.QtCore import Qt
 import os
 import glob
-from configs.story_editor import (
+from config.story_editor import (
     get_text_editor_font,
     get_tspan_editor_stylesheet,
     get_template_combo_stylesheet,

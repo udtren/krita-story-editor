@@ -11,7 +11,7 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtCore import QByteArray, QTimer, Qt
 from PyQt5.QtGui import QPixmap
-from configs.story_editor import (
+from config.story_editor import (
     get_text_editor_font,
     get_tspan_editor_stylesheet,
     get_activate_button_disabled_stylesheet,
@@ -21,7 +21,7 @@ from configs.story_editor import (
     STORY_EDITOR_WINDOW_WIDTH,
     STORY_EDITOR_WINDOW_HEIGHT,
 )
-from configs.shortcuts import (
+from config.shortcuts import (
     NEW_TEXT_SHORTCUT,
     REFRESH_SHORTCUT,
     UPDATE_KRITA_SHORTCUT,
