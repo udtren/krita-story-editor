@@ -39,7 +39,18 @@ In Krita, each text layer is a vector layer containing SVG data. A vector layer 
 
 The Story Editor creates one text box for each shape in each document. If a Krita document has 2 text layers—one with 2 shapes and another with 1 shape—the Story Editor will display 3 text boxes.
 
+![alt text](images/text_box1.png)![alt text](images/text_box2.png)![alt text](images/text_box3.png)
+
 When adding new text using "Add New Text Widget", you can create multiple shapes in a single Krita layer by separating them with three line breaks (press Enter three times).
+
+**Advanced editing with tspan:**
+![alt text](images/text_box4.png)
+
+In later stages of your work, you may want to style parts of the text differently (different color, font size, etc.). These edits place each text section into separate `<tspan>` tags in the SVG. 
+
+The text edit box uses a safe approach: when receiving text data from the Agent, it converts the entire tspan section into raw text. When sending text back to the Agent, it converts the tspan part back into valid SVG data.
+
+You can edit either plain text or tspan data as long as the data is valid. If you know the SVG parameters, you can add tspan tags yourself to change text styles.
 
 **Closed Documents:**
 
