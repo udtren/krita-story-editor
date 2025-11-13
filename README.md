@@ -43,8 +43,9 @@ The main editing window where you work with text content. It receives text data 
 
 <img src="images/story_editor2.png" alt="story_editor2" width="300">
 
-Each document's thumbnail will be displayed at the left. You can right click the thumbnail to activate or close the opened document.
-The Activate button can not make krita auto change its active view to the target document, hence what this action do is add a new view of the selected document. This will not affect the text display in the story editor because no matter the number of views, the number of opened document is unchanged.
+Each document's thumbnail is displayed on the left. Right-click a thumbnail to activate or close the opened document.
+
+Note: The Activate button creates a new view of the selected document in Krita rather than switching to an existing view. This doesn't affect the text display in the Story Editor, as the number of opened documents remains unchanged regardless of the number of views.
 
 **Text Edit Box:**
 
