@@ -12,7 +12,7 @@ from PyQt5.QtWidgets import (
     QToolBar,
     QAction,
 )
-from PyQt5.QtNetwork import QLocalSocket
+from PyQt5.QtNetwork import QLocalSocket, QLocalServer
 from PyQt5.QtCore import QTimer, Qt, QSize
 from PyQt5.QtGui import QFont, QFontDatabase, QIcon
 
@@ -39,6 +39,39 @@ from config.shortcuts_loader import (
     UPDATE_KRITA_SHORTCUT,
     PIN_WINDOW_SHORTCUT,
 )
+
+
+class SingleInstanceChecker:
+    """Ensures only one instance of the application runs at a time"""
+
+    def __init__(self, app_id="krita_story_editor_control_tower"):
+        self.app_id = app_id
+        self.server = QLocalServer()
+        self.socket = QLocalSocket()
+
+    def is_already_running(self):
+        """Check if another instance is already running"""
+        # Try to connect to an existing server
+        self.socket.connectToServer(self.app_id)
+
+        # If connection succeeds, another instance is running
+        if self.socket.waitForConnected(500):
+            return True
+
+        # No existing instance, so create a server for this instance
+        # Remove any stale server first
+        QLocalServer.removeServer(self.app_id)
+
+        # Start listening
+        if not self.server.listen(self.app_id):
+            return True  # Failed to start server, assume another instance exists
+
+        return False
+
+    def cleanup(self):
+        """Clean up the server"""
+        if self.server.isListening():
+            self.server.close()
 
 
 class StoryEditorParentWindow(QWidget):
@@ -393,6 +426,15 @@ class ControlTower(QMainWindow):
 
         self.log("Application started. Click 'Connect to Story Editor Agent' to begin.")
 
+    def closeEvent(self, event):
+        """Handle main window close event - close all child windows"""
+        # Close the Story Editor Parent Window if it exists
+        if self.story_editor_parent_window:
+            self.story_editor_parent_window.close()
+
+        # Accept the close event to allow the main window to close
+        event.accept()
+
     def log(self, message):
         """Add a message to the log output"""
         self.log_output.append(f" {message}")
@@ -563,11 +605,21 @@ class ControlTower(QMainWindow):
 def main():
     app = QApplication(sys.argv)
 
+    # Check for existing instance
+    instance_checker = SingleInstanceChecker()
+    if instance_checker.is_already_running():
+        print("Another instance of Story Editor Control Tower is already running.")
+        sys.exit(0)
+
     # Set dark color scheme
     setup_dark_palette(app)
 
     window = ControlTower()
     window.show()
+
+    # Clean up the instance checker on exit
+    app.aboutToQuit.connect(instance_checker.cleanup)
+
     sys.exit(app.exec())
 
 

@@ -45,7 +45,7 @@ def get_tspan_editor_stylesheet():
             color: {tspan['text_color']};
             font-size: {tspan['font_size']}px;
             border: 2px solid {tspan['border_color']};
-            border-radius: 2px;
+            border-radius: 8px;
             padding: 2px;
             selection-background-color: {tspan['selection_color']};
             selection-color: {tspan['selection_text_color']};
@@ -223,6 +223,7 @@ def get_activate_button_disabled_stylesheet():
             font-weight: bold;
             text-align: center;
             font-size: 10pt;
+            border-radius: 8px;
             color: {btn['disabled_color']};
             background-color: {btn['disabled_bg']};
         }}
@@ -242,6 +243,7 @@ def get_activate_button_stylesheet():
             padding-right: 2px;
             font-weight: bold;
             font-size: 10pt;
+            border-radius: 8px;
             background-color: {btn['bg']};
             color: {btn['color']};
         }}
