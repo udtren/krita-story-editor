@@ -1,3 +1,3 @@
-from .editor_window import StoryEditorWindow
+from .main_editor_window import StoryEditorWindow
 
-__all__ = ['StoryEditorWindow']
+__all__ = ["StoryEditorWindow"]

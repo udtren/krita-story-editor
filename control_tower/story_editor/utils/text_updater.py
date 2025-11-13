@@ -8,9 +8,8 @@ import uuid
 import html
 from .svg_generator import (
     generate_full_svg_data,
-    update_existing_svg_data_krita5_2,
-    create_layer_groups,
-    create_new_svg_data_krita5_2,
+    update_existing_svg_data,
+    create_new_svg_data,
 )
 from .xml_formatter import remove_namespace_prefixes
 from .logs import write_log
@@ -39,6 +38,9 @@ def create_svg_data_for_doc(
 
     # Process new text widgets
     for item in new_text_widgets:
+
+        # write_log(f"Item in new_text_widgets: {str(item)}")
+
         # Widget内のテキストを取得
         current_text = item["widget"].toPlainText()
 
@@ -47,8 +49,8 @@ def create_svg_data_for_doc(
         ##########################################
         ## レイヤ単位で処理を実施
         ##########################################
-        # ダブル改行でテキストを分割, 各テキストは別々の<text>要素として追加される
-        text_segments: list[str] = split_text_by_double_linebreak(current_text)
+        # トリプル改行でテキストを分割, 各テキストは別々の<text>要素として追加される
+        text_segments: list[str] = split_text_by_triple_linebreak(current_text)
 
         write_log(f"📝 Split into {len(text_segments)} segments: {text_segments}")
 
@@ -79,10 +81,11 @@ def create_svg_data_for_doc(
                 shape_id = f"{shape_id_base}{index}"
 
                 # Escape special characters to prevent breaking SVG structure
-                escaped_segment = escape_text_for_svg(segment)
+                # escaped_segment = escape_text_for_svg(segment)
+                escaped_segment = segment
 
                 # Replace placeholders in template
-                text_section_data = create_new_svg_data_krita5_2(
+                text_section_data = create_new_svg_data(
                     template_text, shape_id, escaped_segment
                 )
                 text_elements.append(text_section_data)
@@ -106,10 +109,11 @@ def create_svg_data_for_doc(
         layer_shapes = layer_data["layer_shapes"]
         changes = layer_data["changes"]
 
-        valid_svg_data = update_existing_svg_data_krita5_2(
-            svg_content, layer_shapes, changes
-        )
+        write_log(f"Item in layer_shapes: {layer_shapes}")
+
+        valid_svg_data = update_existing_svg_data(svg_content, layer_shapes, changes)
         if valid_svg_data:
+            write_log(f"svg_data added to final result: {valid_svg_data}")
             final_result["existing_texts_updated"].append(
                 {
                     "layer_name": layer_name,
@@ -131,9 +135,9 @@ def create_svg_data_for_doc(
         return final_result
 
 
-def split_text_by_double_linebreak(text):
+def split_text_by_triple_linebreak(text):
     """
-    Split text into a list by double linebreaks (two consecutive newlines)
+    Split text into a list by triple linebreaks (three consecutive newlines)
 
     Args:
         text: The input text string

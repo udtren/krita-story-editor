@@ -25,7 +25,6 @@ from configs.main_window import (
     get_button_font,
     get_log_font,
 )
-from utils.kra_reader import extract_text_from_kra
 from utils.template_manager import show_template_manager
 from story_editor import StoryEditorWindow
 from configs.story_editor import (

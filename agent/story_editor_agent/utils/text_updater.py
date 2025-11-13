@@ -1,7 +1,5 @@
 from krita import Krita
 from .logs import write_log
-from .update_text_in_kra import update_svg_text
-from .xml_formatter import remove_namespace_prefixes
 import xml.etree.ElementTree as ET
 from PyQt5.QtCore import QUuid
 import uuid

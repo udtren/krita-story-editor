@@ -144,7 +144,7 @@ class StoryEditorWindow:
         thumbnail_and_text_layout.addWidget(thumbnail_scroll_area)
         thumbnail_and_text_layout.addWidget(all_docs_scroll_area)
 
-        write_log(f"all_docs_svg_data: {self.all_docs_svg_data}")
+        # write_log(f"all_docs_svg_data: {self.all_docs_svg_data}")
 
         # VBoxLayout for all layers
         for doc_data in self.all_docs_svg_data:
@@ -449,7 +449,6 @@ class StoryEditorWindow:
                     }
                 )
             """
-
             if result.get("has_changes"):
                 merged_requests.append(result)
                 self.socket_handler.log(
@@ -457,6 +456,7 @@ class StoryEditorWindow:
                 )
 
         if len(merged_requests) > 0:
+            # write_log(f"merged_requests before send to agent: {merged_requests}")
             self.socket_handler.log(
                 f"--- {len(merged_requests)} documents to update ---"
             )
