@@ -8,38 +8,6 @@ from PyQt5.QtCore import QByteArray, QBuffer, QIODevice
 from .logs import write_log
 
 
-def qimage_to_base64(qimage):
-    """Convert QImage to base64-encoded PNG string"""
-    if qimage is None or qimage.isNull():
-        return None
-
-    byte_array = QByteArray()
-    buffer = QBuffer(byte_array)
-    buffer.open(QIODevice.WriteOnly)
-    qimage.save(buffer, "PNG")
-    buffer.close()
-
-    # Convert to base64 string
-    base64_str = base64.b64encode(byte_array.data()).decode("utf-8")
-    return f"data:image/png;base64,{base64_str}"
-
-
-def krita_file_name_safe(doc):
-    if doc.name() == "":
-        if doc.fileName():
-            doc_path = doc.fileName()
-            doc_name = (
-                os.path.basename(doc_path).replace(".kra", "")
-                if doc
-                else "krita_file_not_saved"
-            )
-        else:
-            doc_name = "krita_file_not_saved"
-    else:
-        doc_name = doc.name()
-    return doc_name
-
-
 def get_opened_doc_svg_data(doc):
     """Extract text content from all vector layers using Krita API"""
     try:
@@ -229,12 +197,6 @@ def get_svg_from_activenode():
         print(f"Number of shapes: {len(shapes)}\n")
         print("=" * 60)
 
-        for idx, shape in enumerate(shapes):
-            print(f"\n--- Shape {idx + 1} ---")
-            print(f"Name: {shape.name()}")
-            print(f"\nSVG Content:")
-            print(shape.toSvg())
-            print("=" * 60)
     else:
         print(f"Active node is not a vector layer. Type: {active_node.type()}")
 
@@ -277,33 +239,33 @@ def extract_text_from_svg(svg_content):
         return ""
 
 
-# def _extract_text_from_svg(svg_content):
-#     """Extract text elements from SVG content string"""
-#     try:
-#         # Parse SVG
-#         root = ET.fromstring(svg_content)
+def qimage_to_base64(qimage):
+    """Convert QImage to base64-encoded PNG string"""
+    if qimage is None or qimage.isNull():
+        return None
 
-#         # Collect text elements with their HTML
-#         text_elements = []
+    byte_array = QByteArray()
+    buffer = QBuffer(byte_array)
+    buffer.open(QIODevice.WriteOnly)
+    qimage.save(buffer, "PNG")
+    buffer.close()
 
-#         # Search for text elements
-#         for elem in root.iter():
-#             tag_lower = elem.tag.lower()
-#             if 'text' in tag_lower and elem.tag.endswith('text'):
-#                 # Get the text content
-#                 elem_text = ''.join(elem.itertext()).strip()
+    # Convert to base64 string
+    base64_str = base64.b64encode(byte_array.data()).decode("utf-8")
+    return f"data:image/png;base64,{base64_str}"
 
-#                 if elem_text:
-#                     # Convert element to HTML string (outer HTML)
-#                     outer_html = ET.tostring(
-#                         elem, encoding='unicode', method='xml')
 
-#                     text_elements.append({
-#                         'text': elem_text,
-#                         'html': outer_html
-#                     })
-
-#         return text_elements
-
-#     except Exception as e:
-#         raise Exception(f"Error parsing SVG: {e}")
+def krita_file_name_safe(doc):
+    if doc.name() == "":
+        if doc.fileName():
+            doc_path = doc.fileName()
+            doc_name = (
+                os.path.basename(doc_path).replace(".kra", "")
+                if doc
+                else "krita_file_not_saved"
+            )
+        else:
+            doc_name = "krita_file_not_saved"
+    else:
+        doc_name = doc.name()
+    return doc_name

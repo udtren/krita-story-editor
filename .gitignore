@@ -33,3 +33,7 @@ Thumbs.db
 # Krita test files
 *.kra
 *.kra~
+
+# User templates (ignore all except default templates)
+control_tower/utils/user_templates/*
+!control_tower/utils/user_templates/default*
