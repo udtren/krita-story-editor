@@ -1,5 +1,4 @@
 import xml.etree.ElementTree as ET
-import html
 import re
 from .xml_formatter import remove_namespace_prefixes
 from .logs import write_log

@@ -1,7 +1,6 @@
 import xml.etree.ElementTree as ET
-import uuid
 import re
-from .xml_formatter import remove_namespace_prefixes, restore_tspan_tags
+from .xml_formatter import remove_namespace_prefixes
 from .svg_parser import _add_missing_namespaces
 
 

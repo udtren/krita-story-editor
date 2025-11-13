@@ -5,24 +5,15 @@ from PyQt5.QtWidgets import (
     QPushButton,
     QTextEdit,
     QLabel,
-    QToolBar,
-    QAction,
     QScrollArea,
     QMenu,
+    QSizePolicy,
 )
-from PyQt5.QtSvg import QSvgWidget
-from PyQt5.QtCore import QByteArray, QTimer, QSize, Qt
-from PyQt5.QtGui import QIcon, QTransform, QPixmap
-import xml.etree.ElementTree as ET
-import re
-import uuid
-import os
+from PyQt5.QtCore import QByteArray, QTimer, Qt
+from PyQt5.QtGui import QPixmap
 from configs.story_editor import (
     get_text_editor_font,
     get_tspan_editor_stylesheet,
-    get_layer_header_stylesheet,
-    get_window_stylesheet,
-    get_toolbar_stylesheet,
     get_activate_button_disabled_stylesheet,
     get_activate_button_stylesheet,
     TEXT_EDITOR_MIN_HEIGHT,
@@ -37,7 +28,7 @@ from configs.shortcuts import (
     PIN_WINDOW_SHORTCUT,
 )
 from story_editor.utils.text_updater import create_svg_data_for_doc
-from story_editor.utils.svg_parser import parse_krita_svg, extract_elements_from_svg
+from story_editor.utils.svg_parser import parse_krita_svg
 from story_editor.widgets.find_replace import show_find_replace_dialog
 from story_editor.utils.logs import write_log
 from story_editor.widgets.new_text_edit import add_new_text_widget
@@ -167,7 +158,7 @@ class StoryEditorWindow:
             thumbnail_label.setFixedSize(128, 128)
             thumbnail_label.setScaledContents(True)
             thumbnail_label.setStyleSheet(
-                "border: 2px solid #555; background-color: #2b2b2b;"
+                "border: 2px solid #555; background-color: #aa805a; color: #000000;"
             )
             thumbnail_label.setProperty("default_border", "#555")
             thumbnail_label.setProperty("active_border", "#aaa")
@@ -265,8 +256,8 @@ class StoryEditorWindow:
                     )
                 )
                 activate_btn.setStyleSheet(get_activate_button_stylesheet())
-            doc_header_layout.addWidget(activate_btn, alignment=Qt.AlignTop)
-            doc_header_layout.addStretch()
+                activate_btn.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)
+            doc_header_layout.addWidget(activate_btn)
             doc_horizontal_layout.addLayout(doc_header_layout, stretch=0)
 
             # Store button and thumbnail references for later activation
@@ -542,9 +533,7 @@ class StoryEditorWindow:
                     if hasattr(self, "doc_thumbnails") and name in self.doc_thumbnails:
                         thumbnail = self.doc_thumbnails[name]
                         default_border = thumbnail.property("default_border")
-                        thumbnail.setStyleSheet(
-                            f"border: 2px solid {default_border}; background-color: #2b2b2b;"
-                        )
+                        thumbnail.setStyleSheet(f"border: 2px solid {default_border};")
 
         # Check the clicked button and update its thumbnail
         if hasattr(self, "doc_buttons") and doc_name in self.doc_buttons:
@@ -554,7 +543,7 @@ class StoryEditorWindow:
             thumbnail = self.doc_thumbnails[doc_name]
             active_border = thumbnail.property("active_border")
             thumbnail.setStyleSheet(
-                f"border: 2px solid {active_border}; background-color: #2b2b2b;"
+                f"border: 3px solid {active_border}; border-color: blue;"
             )
 
         # Set active document
