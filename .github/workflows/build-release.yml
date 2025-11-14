@@ -1,12 +1,12 @@
 name: Build Multi-Platform Release
 
 on:
-  # push:
-  #   branches:
-  #     - main
-  #     - master
-  #   tags:
-  #     - 'v*'
+  push:
+    branches:
+      - main
+      - master
+    tags:
+      - 'v*'
   pull_request:
     branches:
       - main
@@ -19,13 +19,13 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [windows-latest, ubuntu-20.04]
+        os: [windows-latest, ubuntu-latest]
         include:
           - os: windows-latest
             exe_name: StoryEditor.exe
             build_script: scripts\build.bat
             artifact_name: StoryEditor-Windows
-          - os: ubuntu-20.04
+          - os: ubuntu-latest
             exe_name: StoryEditor
             build_script: bash scripts/build.sh
             artifact_name: StoryEditor-Linux
@@ -46,7 +46,7 @@ jobs:
           python -m venv venv
 
       - name: Create virtual environment (Linux)
-        if: matrix.os == 'ubuntu-20.04'
+        if: matrix.os == 'ubuntu-latest'
         run: |
           cd control_tower
           python -m venv venv
@@ -61,7 +61,7 @@ jobs:
           pip install pyinstaller pillow
 
       - name: Install dependencies (Linux)
-        if: matrix.os == 'ubuntu-20.04'
+        if: matrix.os == 'ubuntu-latest'
         run: |
           cd control_tower
           source venv/bin/activate
@@ -78,7 +78,7 @@ jobs:
           python scripts\build_executable.py
 
       - name: Build executable (Linux)
-        if: matrix.os == 'ubuntu-20.04'
+        if: matrix.os == 'ubuntu-latest'
         run: |
           cd control_tower
           source venv/bin/activate
@@ -94,7 +94,7 @@ jobs:
           python scripts\create_distribution.py
 
       - name: Create distribution package (Linux)
-        if: matrix.os == 'ubuntu-20.04'
+        if: matrix.os == 'ubuntu-latest'
         run: |
           cd control_tower
           source venv/bin/activate
@@ -111,7 +111,7 @@ jobs:
           echo "zip_name=$($zipFile.Name)" >> $env:GITHUB_OUTPUT
 
       - name: Find release zip (Linux)
-        if: matrix.os == 'ubuntu-20.04'
+        if: matrix.os == 'ubuntu-latest'
         id: find-zip-linux
         run: |
           zip_file=$(ls -t release/StoryEditor_*.zip | head -1)
@@ -127,7 +127,7 @@ jobs:
           retention-days: 30
 
       - name: Upload artifact (Linux)
-        if: matrix.os == 'ubuntu-20.04'
+        if: matrix.os == 'ubuntu-latest'
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact_name }}

@@ -19,7 +19,7 @@ def create_distribution_zip():
     dist_dir = os.path.join(project_root, "dist")
     user_data_dir = os.path.join(project_root, "user_data")
 
-    dist_folder_name_profix = "prealpha"
+    dist_folder_name_profix = "v0.9.0-beta"
 
     # Check if executable exists (platform-specific name)
     if sys.platform == "win32":
