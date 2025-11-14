@@ -16,74 +16,31 @@ def create_distribution_zip():
     # Get paths
     script_dir = os.path.dirname(os.path.abspath(__file__))  # scripts folder at root
     project_root = os.path.dirname(script_dir)  # project root
-    control_tower_dir = os.path.join(project_root, "control_tower")
     dist_dir = os.path.join(project_root, "dist")
     user_data_dir = os.path.join(project_root, "user_data")
 
-    # Check if executable exists
-    exe_path = os.path.join(dist_dir, "StoryEditor.exe")
+    # Check if executable exists (platform-specific name)
+    if sys.platform == "win32":
+        exe_name = "StoryEditor.exe"
+        build_script = "build.bat"
+    else:
+        exe_name = "StoryEditor"
+        build_script = "build.sh"
+
+    exe_path = os.path.join(dist_dir, exe_name)
     if not os.path.exists(exe_path):
-        print("❌ Error: StoryEditor.exe not found in dist folder")
-        print("   Please run build.bat first to create the executable")
+        print(f"❌ Error: {exe_name} not found in dist folder")
+        print(f"   Please run scripts/{build_script} first to create the executable")
         return False
 
-    # Check if user_data exists, if not create it with default configs and templates
+    # Create empty user_data structure if it doesn't exist
+    # (The executable will populate configs and templates on first run via app_paths.py)
     if not os.path.exists(user_data_dir):
         print("⚠️ Warning: user_data folder not found")
-        print("   Creating user_data folder with default configs and templates...")
+        print("   Creating empty user_data folder structure...")
         os.makedirs(os.path.join(user_data_dir, "templates"))
         os.makedirs(os.path.join(user_data_dir, "config"))
-
-        # Copy default config files from control_tower/config
-        config_files = ["template.json", "main_window.json", "shortcuts.json", "story_editor.json"]
-        src_config_dir = os.path.join(control_tower_dir, "config")
-
-        for config_file in config_files:
-            src = os.path.join(src_config_dir, config_file)
-            dst = os.path.join(user_data_dir, "config", config_file)
-            if os.path.exists(src):
-                shutil.copy2(src, dst)
-                print(f"   Copied default config: {config_file}")
-
-        # Copy default templates from control_tower/config/user_templates
-        src_templates_dir = os.path.join(control_tower_dir, "config", "user_templates")
-        dst_templates_dir = os.path.join(user_data_dir, "templates")
-
-        if os.path.exists(src_templates_dir):
-            for filename in os.listdir(src_templates_dir):
-                if filename.endswith(".xml"):
-                    src = os.path.join(src_templates_dir, filename)
-                    dst = os.path.join(dst_templates_dir, filename)
-                    shutil.copy2(src, dst)
-                    print(f"   Copied default template: {filename}")
-    else:
-        # Ensure config files exist in user_data
-        config_files = ["template.json", "main_window.json", "shortcuts.json", "story_editor.json"]
-        src_config_dir = os.path.join(control_tower_dir, "config")
-        user_config_dir = os.path.join(user_data_dir, "config")
-
-        for config_file in config_files:
-            dst = os.path.join(user_config_dir, config_file)
-            if not os.path.exists(dst):
-                src = os.path.join(src_config_dir, config_file)
-                if os.path.exists(src):
-                    shutil.copy2(src, dst)
-                    print(f"   Added missing config: {config_file}")
-
-        # Ensure templates exist in user_data (copy if folder is empty)
-        user_templates_dir = os.path.join(user_data_dir, "templates")
-        if not os.path.exists(user_templates_dir):
-            os.makedirs(user_templates_dir)
-
-        if not os.listdir(user_templates_dir):
-            src_templates_dir = os.path.join(control_tower_dir, "config", "user_templates")
-            if os.path.exists(src_templates_dir):
-                for filename in os.listdir(src_templates_dir):
-                    if filename.endswith(".xml"):
-                        src = os.path.join(src_templates_dir, filename)
-                        dst = os.path.join(user_templates_dir, filename)
-                        shutil.copy2(src, dst)
-                        print(f"   Copied default template: {filename}")
+        print("   (Configs and templates will be auto-created on first run)")
 
     # Create distribution folder name with timestamp
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -102,7 +59,7 @@ def create_distribution_zip():
     print(f"   Output: {dist_folder}")
 
     # Copy executable
-    print("   Copying StoryEditor.exe...")
+    print(f"   Copying {exe_name}...")
     shutil.copy2(exe_path, dist_folder)
 
     # Copy user_data folder
@@ -114,20 +71,21 @@ def create_distribution_zip():
     )
 
     # Create README for distribution
-    readme_content = """# Story Editor - Installation Guide
+    app_name = exe_name if sys.platform == "win32" else f"./{exe_name}"
+    readme_content = f"""# Story Editor - Installation Guide
 
 ## What's Included
-- StoryEditor.exe - The main application
+- {exe_name} - The main application
 - user_data/ - Configuration and template files (persists between updates)
 
 ## Installation
 
 1. Extract this entire folder to any location on your computer
-2. Run StoryEditor.exe
+2. Run {app_name}
 
 ## Important Notes
 
-- **DO NOT** move StoryEditor.exe without the user_data folder
+- **DO NOT** move {exe_name} without the user_data folder
 - The user_data folder contains:
   - templates/ - Your custom text templates
   - config/ - Application configuration files
@@ -143,7 +101,7 @@ On first run, the application will:
 
 1. Open Krita
 2. Load the Story Editor Agent docker
-3. Run StoryEditor.exe
+3. Run {app_name}
 4. Click "Connect to Agent"
 5. Click "Open Story Editor" to start editing
 
@@ -184,7 +142,7 @@ Generated: """ + datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     print(f"📦 Zip file: {zip_path}")
     print(f"📊 Size: {zip_size_mb:.2f} MB")
     print("\nYou can distribute the .zip file to users.")
-    print("Users should extract the entire folder and run StoryEditor.exe")
+    print(f"Users should extract the entire folder and run {exe_name}")
 
     return True
 

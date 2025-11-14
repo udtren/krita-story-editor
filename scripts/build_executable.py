@@ -67,6 +67,7 @@ if icon_file:
     args.insert(4, f"--icon={icon_file}")
 
 print("Building Control Tower executable...")
+print(f"Platform: {sys.platform}")
 print(f"Main file: {main_file}")
 print(f"Control Tower directory: {control_tower_dir}")
 print(f"Project root: {project_root}")
@@ -75,7 +76,14 @@ print("\nThis may take a few minutes...\n")
 try:
     PyInstaller.__main__.run(args)
     print("\n✅ Build complete!")
-    print(f"Executable location: {os.path.join(project_root, 'dist', 'StoryEditor.exe')}")
+
+    # Platform-specific executable name
+    if sys.platform == "win32":
+        exe_name = "StoryEditor.exe"
+    else:
+        exe_name = "StoryEditor"
+
+    print(f"Executable location: {os.path.join(project_root, 'dist', exe_name)}")
 except Exception as e:
     print(f"\n❌ Build failed: {e}")
     sys.exit(1)
