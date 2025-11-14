@@ -144,7 +144,10 @@ def update_offline_kra_file(doc_path, existing_texts_updated: [dict]):
                     "make "test2/layers/layer2.shapelayer/content.svg" to
                          "layers/layer2.shapelayer/content.svg"
                     """
-                    file_path_ = file_path.split("/", 1)[1]
+                    try:
+                        file_path_ = file_path.split("/", 1)[1]
+                    except:
+                        file_path_ = file_path
 
                     if file_path_ in modified_files:
                         # Write the modified SVG
