@@ -92,14 +92,14 @@ try:
     dist_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "dist")
 
     if os.path.exists(agent_dir):
-        print("\n📦 Creating agent.zip...")
+        print("\n📦 Creating story-editor-agent.zip...")
         agent_zip_path = os.path.join(dist_dir, "story-editor-agent.zip")
 
         # Remove existing zip if it exists
         if os.path.exists(agent_zip_path):
             os.remove(agent_zip_path)
 
-        # Create zip file
+        # Create zip file with parent "agent" folder included
         with zipfile.ZipFile(agent_zip_path, "w", zipfile.ZIP_DEFLATED) as zipf:
             for root, dirs, files in os.walk(agent_dir):
                 for file in files:
@@ -109,7 +109,7 @@ try:
 
         # Get file size
         zip_size_kb = os.path.getsize(agent_zip_path) / 1024
-        print(f"✅ agent.zip created: {agent_zip_path}")
+        print(f"✅ story-editor-agent.zip created: {agent_zip_path}")
         print(f"   Size: {zip_size_kb:.2f} KB")
     else:
         print("\n⚠️ Warning: agent folder not found, skipping agent.zip creation")

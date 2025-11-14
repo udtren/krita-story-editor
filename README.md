@@ -32,7 +32,9 @@ The main editing window where you work with text content. It receives text data 
 
 - **Update Krita**  
   Sends all text data from the Story Editor to the Agent in Krita. The Agent then updates any Krita documents where text has been changed and automatically sends the latest Krita document data back to the Story Editor.
+  ##### Only document that has name will be updated. If you create a new document, save it first.
 
+ 
 - **Find/Replace** 
  <img src="images/search_replace.png" alt="Search and Replace" width="300">
 
