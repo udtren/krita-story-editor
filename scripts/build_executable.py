@@ -5,6 +5,8 @@ Script to build Control Tower as a standalone executable using PyInstaller
 import PyInstaller.__main__
 import os
 import sys
+import zipfile
+import shutil
 
 # Get the directory where this script is located (scripts folder at project root)
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -84,6 +86,35 @@ try:
         exe_name = "StoryEditor"
 
     print(f"Executable location: {os.path.join(project_root, 'dist', exe_name)}")
+
+    # Zip the agent folder contents (without root "agent" folder) and place in dist
+    agent_dir = os.path.join(project_root, "agent")
+    dist_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "dist")
+
+    if os.path.exists(agent_dir):
+        print("\n📦 Creating agent.zip...")
+        agent_zip_path = os.path.join(dist_dir, "agent.zip")
+
+        # Remove existing zip if it exists
+        if os.path.exists(agent_zip_path):
+            os.remove(agent_zip_path)
+
+        # Create zip file with contents directly at root (no "agent" parent folder)
+        with zipfile.ZipFile(agent_zip_path, "w", zipfile.ZIP_DEFLATED) as zipf:
+            for root, dirs, files in os.walk(agent_dir):
+                for file in files:
+                    file_path = os.path.join(root, file)
+                    # Use relative path from agent_dir (not project_root) to exclude "agent" folder
+                    arcname = os.path.relpath(file_path, agent_dir)
+                    zipf.write(file_path, arcname)
+
+        # Get file size
+        zip_size_kb = os.path.getsize(agent_zip_path) / 1024
+        print(f"✅ agent.zip created: {agent_zip_path}")
+        print(f"   Size: {zip_size_kb:.2f} KB")
+    else:
+        print("\n⚠️ Warning: agent folder not found, skipping agent.zip creation")
+
 except Exception as e:
     print(f"\n❌ Build failed: {e}")
     sys.exit(1)
