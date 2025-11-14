@@ -4,6 +4,11 @@ A tool for editing text layers across multiple Krita documents, whether they are
 
 **Note:** This tool is designed for Krita 5.3.0, which features a refactored text tool. Currently, Krita 5.3.0 is only available as a pre-alpha version, and its text tool still contains bugs that need to be fixed. This tool may be updated in the future to accommodate changes in the text tool's behavior.
 
+## Demo Video
+[![Demo Video 1](https://img.shields.io/badge/▶️-Watch%20Demo%201-red?style=for-the-badge&logo=googledrive)](https://drive.google.com/file/d/1kjFO4D6dCvNa54noltes0VpDZH8QPvxR/view?usp=drive_link)
+[![Demo Video 2](https://img.shields.io/badge/▶️-Watch%20Demo%202-red?style=for-the-badge&logo=googledrive)](https://drive.google.com/file/d/1zQiSK8cJaAA9ZEAIkqVEp4Lo3uOkvzs3/view?usp=drive_link)
+[![Demo Video 3](https://img.shields.io/badge/▶️-Watch%20Demo%203-red?style=for-the-badge&logo=googledrive)](https://drive.google.com/file/d/13MC3m5JBw0M3iQB5ss9ld0YMOesbSwUa/view?usp=drive_link)
+
 ## Support
 
 If you find this tool helpful, you can support its development:
