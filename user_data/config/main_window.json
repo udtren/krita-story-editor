@@ -1,0 +1,28 @@
+{
+    "font": {
+        "family": "Segoe UI",
+        "size": 12,
+        "button_size": 11,
+        "log_family": "Consolas",
+        "log_size": 10
+    },
+    "button": {
+        "height": 40,
+        "min_width": 150
+    },
+    "dark_palette": {
+        "window": "#353535",
+        "window_text": "#FFFFFF",
+        "base": "#191919",
+        "alternate_base": "#353535",
+        "tooltip_base": "#FFFFFF",
+        "tooltip_text": "#FFFFFF",
+        "text": "#FFFFFF",
+        "button": "#353535",
+        "button_text": "#FFFFFF",
+        "bright_text": "#FF0000",
+        "link": "#2A82DA",
+        "highlight": "#2A82DA",
+        "highlighted_text": "#000000"
+    }
+}

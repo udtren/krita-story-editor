@@ -5,12 +5,17 @@ Loads shortcuts from JSON
 
 import json
 import os
+from config.app_paths import get_config_path
 
 
 # Load configuration from JSON file
-_config_path = os.path.join(os.path.dirname(__file__), "template.json")
-with open(_config_path, "r", encoding="utf-8") as f:
-    _config = json.load(f)
+_config_path = get_config_path()
+try:
+    with open(_config_path, "r", encoding="utf-8") as f:
+        _config = json.load(f)
+except FileNotFoundError:
+    # Config doesn't exist yet, use defaults
+    _config = {}
 
 
 def get_config():
