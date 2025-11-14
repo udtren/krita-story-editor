@@ -14,9 +14,10 @@ def create_distribution_zip():
     """Create a distribution zip file with the executable and user_data folder"""
 
     # Get paths
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    project_root = os.path.dirname(script_dir)
-    dist_dir = os.path.join(script_dir, "dist")
+    script_dir = os.path.dirname(os.path.abspath(__file__))  # scripts folder at root
+    project_root = os.path.dirname(script_dir)  # project root
+    control_tower_dir = os.path.join(project_root, "control_tower")
+    dist_dir = os.path.join(project_root, "dist")
     user_data_dir = os.path.join(project_root, "user_data")
 
     # Check if executable exists
@@ -35,7 +36,7 @@ def create_distribution_zip():
 
         # Copy default config files from control_tower/config
         config_files = ["template.json", "main_window.json", "shortcuts.json", "story_editor.json"]
-        src_config_dir = os.path.join(script_dir, "config")
+        src_config_dir = os.path.join(control_tower_dir, "config")
 
         for config_file in config_files:
             src = os.path.join(src_config_dir, config_file)
@@ -46,7 +47,7 @@ def create_distribution_zip():
     else:
         # Ensure config files exist in user_data
         config_files = ["template.json", "main_window.json", "shortcuts.json", "story_editor.json"]
-        src_config_dir = os.path.join(script_dir, "config")
+        src_config_dir = os.path.join(control_tower_dir, "config")
         user_config_dir = os.path.join(user_data_dir, "config")
 
         for config_file in config_files:
@@ -60,7 +61,8 @@ def create_distribution_zip():
     # Create distribution folder name with timestamp
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     dist_folder_name = f"StoryEditor_v1.0_{timestamp}"
-    dist_folder = os.path.join(script_dir, "release", dist_folder_name)
+    release_dir = os.path.join(project_root, "release")
+    dist_folder = os.path.join(release_dir, dist_folder_name)
 
     # Clean up old release folder if it exists
     if os.path.exists(dist_folder):

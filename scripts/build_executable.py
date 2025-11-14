@@ -6,15 +6,19 @@ import PyInstaller.__main__
 import os
 import sys
 
-# Get the directory where this script is located
+# Get the directory where this script is located (scripts folder at project root)
 script_dir = os.path.dirname(os.path.abspath(__file__))
+# Get the project root directory (parent of scripts)
+project_root = os.path.dirname(script_dir)
+# Get the control_tower directory
+control_tower_dir = os.path.join(project_root, "control_tower")
 
-# Define paths relative to script directory
-main_file = os.path.join(script_dir, "main.py")
+# Define paths
+main_file = os.path.join(control_tower_dir, "main.py")
 
 # Check for .ico file, if not available, try to convert .png to .ico
-icon_file = os.path.join(script_dir, "images", "book.ico")
-png_icon = os.path.join(script_dir, "images", "book.png")
+icon_file = os.path.join(control_tower_dir, "images", "book.ico")
+png_icon = os.path.join(control_tower_dir, "images", "book.png")
 
 # Try to convert PNG to ICO if .ico doesn't exist
 if not os.path.exists(icon_file) and os.path.exists(png_icon):
@@ -49,10 +53,10 @@ args = [
     "--windowed",  # No console window (GUI app)
     "--name=StoryEditor",  # Name of the executable
     # Add data files (non-Python files that need to be included)
-    f'--add-data={os.path.join(script_dir, "config")}{os.pathsep}config',
-    f'--add-data={os.path.join(script_dir, "fonts")}{os.pathsep}fonts',
-    f'--add-data={os.path.join(script_dir, "images")}{os.pathsep}images',
-    f'--add-data={os.path.join(script_dir, "story_editor")}{os.pathsep}story_editor',
+    f'--add-data={os.path.join(control_tower_dir, "config")}{os.pathsep}config',
+    f'--add-data={os.path.join(control_tower_dir, "fonts")}{os.pathsep}fonts',
+    f'--add-data={os.path.join(control_tower_dir, "images")}{os.pathsep}images',
+    f'--add-data={os.path.join(control_tower_dir, "story_editor")}{os.pathsep}story_editor',
     # Additional options
     "--clean",  # Clean PyInstaller cache before building
     "--noconfirm",  # Overwrite output directory without asking
@@ -64,13 +68,14 @@ if icon_file:
 
 print("Building Control Tower executable...")
 print(f"Main file: {main_file}")
-print(f"Build directory: {script_dir}")
+print(f"Control Tower directory: {control_tower_dir}")
+print(f"Project root: {project_root}")
 print("\nThis may take a few minutes...\n")
 
 try:
     PyInstaller.__main__.run(args)
     print("\n✅ Build complete!")
-    print(f"Executable location: {os.path.join(script_dir, 'dist', 'StoryEditor.exe')}")
+    print(f"Executable location: {os.path.join(project_root, 'dist', 'StoryEditor.exe')}")
 except Exception as e:
     print(f"\n❌ Build failed: {e}")
     sys.exit(1)

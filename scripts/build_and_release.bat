@@ -9,6 +9,9 @@ echo 2. Create distribution package
 echo.
 pause
 
+REM Change to scripts directory where this file is located
+cd /d "%~dp0"
+
 echo.
 echo ====================================
 echo Step 1: Building Executable
