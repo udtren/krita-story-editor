@@ -18,7 +18,6 @@ ENV/
 
 # Logs
 *.log
-logs/
 log.txt
 
 # PyInstaller

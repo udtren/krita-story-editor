@@ -93,7 +93,7 @@ try:
 
     if os.path.exists(agent_dir):
         print("\n📦 Creating story-editor-agent.zip...")
-        agent_zip_path = os.path.join(dist_dir, "story-editor-agent.zip")
+        agent_zip_path = os.path.join(dist_dir, "agent.zip")
 
         # Remove existing zip if it exists
         if os.path.exists(agent_zip_path):
