@@ -36,16 +36,16 @@ if not os.path.exists(icon_file) and os.path.exists(png_icon):
             format="ICO",
             sizes=[(256, 256), (128, 128), (64, 64), (48, 48), (32, 32), (16, 16)],
         )
-        print(f"✅ Icon converted successfully: {icon_file}")
+        print(f"[SUCCESS] Icon converted successfully: {icon_file}")
     except ImportError:
-        print("⚠️ Pillow not installed. Building without icon.")
+        print("[WARNING] Pillow not installed. Building without icon.")
         print("   To add an icon, install Pillow: pip install Pillow")
         icon_file = None
     except Exception as e:
-        print(f"⚠️ Failed to convert icon: {e}")
+        print(f"[WARNING] Failed to convert icon: {e}")
         icon_file = None
 elif not os.path.exists(icon_file):
-    print("⚠️ No icon file found. Building without icon.")
+    print("[WARNING] No icon file found. Building without icon.")
     icon_file = None
 
 # PyInstaller arguments
@@ -77,7 +77,7 @@ print("\nThis may take a few minutes...\n")
 
 try:
     PyInstaller.__main__.run(args)
-    print("\n✅ Build complete!")
+    print("\n[SUCCESS] Build complete!")
 
     # Platform-specific executable name
     if sys.platform == "win32":
@@ -89,10 +89,10 @@ try:
 
     # Zip the agent folder and place in dist
     agent_dir = os.path.join(project_root, "agent")
-    dist_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "dist")
+    dist_dir = os.path.join(project_root, "dist")
 
     if os.path.exists(agent_dir):
-        print("\n📦 Creating story-editor-agent.zip...")
+        print("\nCreating story-editor-agent.zip...")
         agent_zip_path = os.path.join(dist_dir, "agent.zip")
 
         # Remove existing zip if it exists
@@ -109,11 +109,11 @@ try:
 
         # Get file size
         zip_size_kb = os.path.getsize(agent_zip_path) / 1024
-        print(f"✅ story-editor-agent.zip created: {agent_zip_path}")
+        print(f"[SUCCESS] story-editor-agent.zip created: {agent_zip_path}")
         print(f"   Size: {zip_size_kb:.2f} KB")
     else:
-        print("\n⚠️ Warning: agent folder not found, skipping agent.zip creation")
+        print("\n[WARNING] agent folder not found, skipping agent.zip creation")
 
 except Exception as e:
-    print(f"\n❌ Build failed: {e}")
+    print(f"\n[ERROR] Build failed: {e}")
     sys.exit(1)

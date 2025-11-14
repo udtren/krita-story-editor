@@ -29,14 +29,14 @@ def create_distribution_zip():
 
     exe_path = os.path.join(dist_dir, exe_name)
     if not os.path.exists(exe_path):
-        print(f"❌ Error: {exe_name} not found in dist folder")
+        print(f"Error: {exe_name} not found in dist folder")
         print(f"   Please run scripts/{build_script} first to create the executable")
         return False
 
     # Create empty user_data structure if it doesn't exist
     # (The executable will populate configs and templates on first run via app_paths.py)
     if not os.path.exists(user_data_dir):
-        print("⚠️ Warning: user_data folder not found")
+        print("Warning: user_data folder not found")
         print("   Creating empty user_data folder structure...")
         os.makedirs(os.path.join(user_data_dir, "templates"))
         os.makedirs(os.path.join(user_data_dir, "config"))
@@ -55,7 +55,7 @@ def create_distribution_zip():
     # Create release folder structure
     os.makedirs(dist_folder, exist_ok=True)
 
-    print(f"📦 Creating distribution package...")
+    print(f"Creating distribution package...")
     print(f"   Output: {dist_folder}")
 
     # Copy executable
@@ -65,9 +65,7 @@ def create_distribution_zip():
     # Copy user_data folder
     print("   Copying user_data folder...")
     shutil.copytree(
-        user_data_dir,
-        os.path.join(dist_folder, "user_data"),
-        dirs_exist_ok=True
+        user_data_dir, os.path.join(dist_folder, "user_data"), dirs_exist_ok=True
     )
 
     # Create README for distribution
@@ -111,7 +109,9 @@ For issues or questions, please visit:
 https://github.com/your-repo/krita-story-editor
 
 ---
-Generated: """ + datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+Generated: """ + datetime.now().strftime(
+        "%Y-%m-%d %H:%M:%S"
+    )
 
     readme_path = os.path.join(dist_folder, "README.txt")
     with open(readme_path, "w", encoding="utf-8") as f:
@@ -126,7 +126,7 @@ Generated: """ + datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     print(f"   Creating zip file: {os.path.basename(zip_path)}")
 
-    with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+    with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zipf:
         # Add all files from dist_folder
         for root, dirs, files in os.walk(dist_folder):
             for file in files:
@@ -137,10 +137,10 @@ Generated: """ + datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     # Get file size
     zip_size_mb = os.path.getsize(zip_path) / (1024 * 1024)
 
-    print("\n✅ Distribution package created successfully!")
-    print(f"\n📁 Folder: {dist_folder}")
-    print(f"📦 Zip file: {zip_path}")
-    print(f"📊 Size: {zip_size_mb:.2f} MB")
+    print("\nDistribution package created successfully!")
+    print(f"\nFolder: {dist_folder}")
+    print(f"Zip file: {zip_path}")
+    print(f"Size: {zip_size_mb:.2f} MB")
     print("\nYou can distribute the .zip file to users.")
     print(f"Users should extract the entire folder and run {exe_name}")
 
@@ -152,7 +152,8 @@ if __name__ == "__main__":
         success = create_distribution_zip()
         sys.exit(0 if success else 1)
     except Exception as e:
-        print(f"\n❌ Error creating distribution: {e}")
+        print(f"\nError creating distribution: {e}")
         import traceback
+
         traceback.print_exc()
         sys.exit(1)
