@@ -117,14 +117,16 @@ def get_template_config_path():
 
 def copy_default_configs():
     """
-    Copy default config files from bundled resources to user_data
-    Only copies if config files don't exist
+    Copy default config files and templates from bundled resources to user_data
+    - Copies config files if they don't exist
+    - Copies template files if templates folder is empty
     """
     import shutil
 
     config_dir = get_config_dir()
+    templates_dir = get_user_templates_path()
 
-    # List of config files to copy
+    # Copy config files
     config_files = [
         "template.json",
         "main_window.json",
@@ -145,9 +147,28 @@ def copy_default_configs():
                 if os.path.exists(src_path):
                     shutil.copy2(src_path, dest_path)
                     print(f"Copied default config: {config_file}")
-    except Exception as e:
+    except Exception:
         # If copying fails, that's okay - configs may already exist
         pass  # Silent fail - configs may already exist
+
+    # Copy default templates if templates folder is empty
+    try:
+        # Check if templates directory is empty
+        if not os.listdir(templates_dir):
+            # Get bundled templates directory
+            bundled_templates = get_resource_path(os.path.join("config", "user_templates"))
+
+            if os.path.exists(bundled_templates):
+                # Copy all .xml files from bundled templates
+                for filename in os.listdir(bundled_templates):
+                    if filename.endswith(".xml"):
+                        src_path = os.path.join(bundled_templates, filename)
+                        dest_path = os.path.join(templates_dir, filename)
+                        shutil.copy2(src_path, dest_path)
+                        print(f"Copied default template: {filename}")
+    except Exception:
+        # If copying fails, that's okay - user can create their own templates
+        pass  # Silent fail
 
 
 # Initialize and copy default configs on first import

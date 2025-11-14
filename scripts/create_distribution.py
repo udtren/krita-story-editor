@@ -27,10 +27,10 @@ def create_distribution_zip():
         print("   Please run build.bat first to create the executable")
         return False
 
-    # Check if user_data exists, if not create it with default configs
+    # Check if user_data exists, if not create it with default configs and templates
     if not os.path.exists(user_data_dir):
         print("⚠️ Warning: user_data folder not found")
-        print("   Creating user_data folder with default configs...")
+        print("   Creating user_data folder with default configs and templates...")
         os.makedirs(os.path.join(user_data_dir, "templates"))
         os.makedirs(os.path.join(user_data_dir, "config"))
 
@@ -44,6 +44,18 @@ def create_distribution_zip():
             if os.path.exists(src):
                 shutil.copy2(src, dst)
                 print(f"   Copied default config: {config_file}")
+
+        # Copy default templates from control_tower/config/user_templates
+        src_templates_dir = os.path.join(control_tower_dir, "config", "user_templates")
+        dst_templates_dir = os.path.join(user_data_dir, "templates")
+
+        if os.path.exists(src_templates_dir):
+            for filename in os.listdir(src_templates_dir):
+                if filename.endswith(".xml"):
+                    src = os.path.join(src_templates_dir, filename)
+                    dst = os.path.join(dst_templates_dir, filename)
+                    shutil.copy2(src, dst)
+                    print(f"   Copied default template: {filename}")
     else:
         # Ensure config files exist in user_data
         config_files = ["template.json", "main_window.json", "shortcuts.json", "story_editor.json"]
@@ -57,6 +69,21 @@ def create_distribution_zip():
                 if os.path.exists(src):
                     shutil.copy2(src, dst)
                     print(f"   Added missing config: {config_file}")
+
+        # Ensure templates exist in user_data (copy if folder is empty)
+        user_templates_dir = os.path.join(user_data_dir, "templates")
+        if not os.path.exists(user_templates_dir):
+            os.makedirs(user_templates_dir)
+
+        if not os.listdir(user_templates_dir):
+            src_templates_dir = os.path.join(control_tower_dir, "config", "user_templates")
+            if os.path.exists(src_templates_dir):
+                for filename in os.listdir(src_templates_dir):
+                    if filename.endswith(".xml"):
+                        src = os.path.join(src_templates_dir, filename)
+                        dst = os.path.join(user_templates_dir, filename)
+                        shutil.copy2(src, dst)
+                        print(f"   Copied default template: {filename}")
 
     # Create distribution folder name with timestamp
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
