@@ -132,10 +132,6 @@ You can create, edit, and delete templates in the Template Manager. Right-click 
 ## Installation
 
 **Installing the Agent:**
-1. Zip the `agent` folder
-2. Install the plugin in Krita using Settings → Manage Resources → Import Bundle
-3. After installation, you can delete the `agent` folder
+1. Install the "agent.zip" using krita's Tool - Scripts - Import Python plugin from file
 
-**Running the Control Tower:**
-- On Windows: Run `run.ps1`
-- On Linux/Mac: Run `run.sh`
+2. After krita starts with agent, run "StoryEditor.exe" for windows or "StoryEditor" for linux.
