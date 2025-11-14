@@ -54,6 +54,9 @@ args = [
     "--onefile",  # Create a single executable
     "--windowed",  # No console window (GUI app)
     "--name=StoryEditor",  # Name of the executable
+    f"--distpath={os.path.join(project_root, 'dist')}",  # Output directory
+    f"--workpath={os.path.join(project_root, 'build')}",  # Build directory
+    f"--specpath={os.path.join(project_root, 'build')}",  # Spec file directory
     # Add data files (non-Python files that need to be included)
     f'--add-data={os.path.join(control_tower_dir, "config")}{os.pathsep}config',
     f'--add-data={os.path.join(control_tower_dir, "fonts")}{os.pathsep}fonts',
