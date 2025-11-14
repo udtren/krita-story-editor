@@ -13,13 +13,15 @@ def get_app_root():
     - When running as .exe: the directory where the .exe is located
     - When running as .py: the project root (parent of control_tower)
     """
-    if getattr(sys, 'frozen', False):
+    if getattr(sys, "frozen", False):
         # Running as compiled executable
         return os.path.dirname(sys.executable)
     else:
         # Running in normal Python environment
         # Go up two levels: config -> control_tower -> project_root
-        return os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        return os.path.dirname(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        )
 
 
 def get_resource_path(relative_path):
@@ -131,7 +133,7 @@ def copy_default_configs():
         "template.json",
         "main_window.json",
         "shortcuts.json",
-        "story_editor.json"
+        "story_editor.json",
     ]
 
     try:
@@ -156,7 +158,9 @@ def copy_default_configs():
         # Check if templates directory is empty
         if not os.listdir(templates_dir):
             # Get bundled templates directory
-            bundled_templates = get_resource_path(os.path.join("config", "user_templates"))
+            bundled_templates = get_resource_path(
+                os.path.join("config", "user_templates")
+            )
 
             if os.path.exists(bundled_templates):
                 # Copy all .xml files from bundled templates
