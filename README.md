@@ -78,8 +78,9 @@ You can edit either plain text or tspan data as long as the data is valid. If yo
 
 **Closed Documents:**
 
-Closed documents in the selected folder (set via Control Tower) will also be displayed in the Story Editor. You can edit existing text the same way as in opened documents, but you cannot add new text widgets to closed documents.
-##### Do not create new file by duplicating existing file. The layer folder name inside the document file still using original file name which will make story editor unable to find the target because story editor using file name to find the inner folder.
+Documents in the selected folder (set via Control Tower) will appear in the Story Editor even when closed in Krita. You can edit existing text in closed documents the same way as opened documents, but you cannot add new text widgets to closed documents.
+
+**Important:** When creating new Krita files, do not duplicate existing files. Duplicated files retain the original file's internal layer folder name, which causes the Story Editor to fail when locating layers. Instead, create new files from scratch or use Krita's "Save As" function with a new name.
 
 ### Story Editor Agent
 A plugin that runs inside Krita. It waits for requests from the Control Tower to perform various tasks, including reading text data from your Krita documents and sending it to the Story Editor, saving documents, closing documents, and more.

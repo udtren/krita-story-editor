@@ -122,7 +122,8 @@ def update_offline_kra_file(doc_path, existing_texts_updated: [dict]):
             svg_data = layer_data.get("svg_data")
 
             # Build the expected SVG file path inside the .kra
-            svg_path_in_kra = f"{doc_name}/layers/{layer_id}/content.svg"
+            # svg_path_in_kra = f"{doc_name}/layers/{layer_id}/content.svg"
+            svg_path_in_kra = f"layers/{layer_id}/content.svg"
             modified_files[svg_path_in_kra] = svg_data
 
         # Create a temporary file for the new .kra
@@ -135,10 +136,22 @@ def update_offline_kra_file(doc_path, existing_texts_updated: [dict]):
             with zipfile.ZipFile(temp_kra_path, "w", zipfile.ZIP_DEFLATED) as new_kra:
                 # Copy all files from original, replacing modified ones
                 for file_path in original_kra.namelist():
-                    if file_path in modified_files:
+                    """
+                    If user duplicate krita file,
+                    the name inside kra will have prefix of old file name.
+                    Which need to be removed when matching file paths.
+
+                    "make "test2/layers/layer2.shapelayer/content.svg" to
+                         "layers/layer2.shapelayer/content.svg"
+                    """
+                    file_path_ = file_path.split("/", 1)[1]
+
+                    if file_path_ in modified_files:
                         # Write the modified SVG
+                        # No matter the folder name inside the document
+                        # We will use original file_path to update
                         new_kra.writestr(
-                            file_path, modified_files[file_path].encode("utf-8")
+                            file_path, modified_files[file_path_].encode("utf-8")
                         )
                         layer_updated_count += 1
                     else:
