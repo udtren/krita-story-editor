@@ -96,8 +96,8 @@ try:
         agent_zip_path = os.path.join(dist_dir, "agent.zip")
 
         # Remove existing zip if it exists
-        if os.path.exists(agent_zip_path):
-            os.remove(agent_zip_path)
+        # if os.path.exists(agent_zip_path):
+        #     os.remove(agent_zip_path)
 
         # Create zip file with parent "agent" folder included
         with zipfile.ZipFile(agent_zip_path, "w", zipfile.ZIP_DEFLATED) as zipf:
