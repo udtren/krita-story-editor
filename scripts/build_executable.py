@@ -89,15 +89,15 @@ try:
 
     # Zip the agent folder and place in dist
     agent_dir = os.path.join(project_root, "agent")
-    dist_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "dist")
+    dist_dir = os.path.join(project_root, "dist")
 
     if os.path.exists(agent_dir):
         print("\n📦 Creating story-editor-agent.zip...")
         agent_zip_path = os.path.join(dist_dir, "agent.zip")
 
         # Remove existing zip if it exists
-        # if os.path.exists(agent_zip_path):
-        #     os.remove(agent_zip_path)
+        if os.path.exists(agent_zip_path):
+            os.remove(agent_zip_path)
 
         # Create zip file with parent "agent" folder included
         with zipfile.ZipFile(agent_zip_path, "w", zipfile.ZIP_DEFLATED) as zipf:
