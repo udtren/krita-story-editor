@@ -44,9 +44,9 @@ def create_distribution_zip():
     #     os.makedirs(os.path.join(user_data_dir, "config"))
     #     print("   (Configs and templates will be auto-created on first run)")
 
-    # Create distribution folder name
-
-    dist_folder_name = f"StoryEditor_{dist_folder_name_profix}"
+    # Create distribution folder name with platform suffix
+    platform_suffix = "Windows" if sys.platform == "win32" else "Linux"
+    dist_folder_name = f"StoryEditor_{dist_folder_name_profix}_{platform_suffix}"
     release_dir = os.path.join(project_root, "release")
     dist_folder = os.path.join(release_dir, dist_folder_name)
 
