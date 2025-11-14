@@ -107,6 +107,14 @@ def get_story_editor_config_path():
     return os.path.join(get_config_dir(), "story_editor.json")
 
 
+def get_template_config_path():
+    """
+    Get the path for the template config file (alias for get_config_path)
+    Location: {app_root}/user_data/config/template.json
+    """
+    return get_config_path()
+
+
 def copy_default_configs():
     """
     Copy default config files from bundled resources to user_data
