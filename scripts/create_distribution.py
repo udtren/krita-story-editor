@@ -19,6 +19,8 @@ def create_distribution_zip():
     dist_dir = os.path.join(project_root, "dist")
     user_data_dir = os.path.join(project_root, "user_data")
 
+    dist_folder_name_profix = "v0.9.0-beta"
+
     # Check if executable exists (platform-specific name)
     if sys.platform == "win32":
         exe_name = "StoryEditor.exe"
@@ -35,16 +37,16 @@ def create_distribution_zip():
 
     # Create empty user_data structure if it doesn't exist
     # (The executable will populate configs and templates on first run via app_paths.py)
-    if not os.path.exists(user_data_dir):
-        print("Warning: user_data folder not found")
-        print("   Creating empty user_data folder structure...")
-        os.makedirs(os.path.join(user_data_dir, "templates"))
-        os.makedirs(os.path.join(user_data_dir, "config"))
-        print("   (Configs and templates will be auto-created on first run)")
+    # if not os.path.exists(user_data_dir):
+    #     print("Warning: user_data folder not found")
+    #     print("   Creating empty user_data folder structure...")
+    #     os.makedirs(os.path.join(user_data_dir, "templates"))
+    #     os.makedirs(os.path.join(user_data_dir, "config"))
+    #     print("   (Configs and templates will be auto-created on first run)")
 
-    # Create distribution folder name with timestamp
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    dist_folder_name = f"StoryEditor_v1.0_{timestamp}"
+    # Create distribution folder name
+
+    dist_folder_name = f"StoryEditor_{dist_folder_name_profix}"
     release_dir = os.path.join(project_root, "release")
     dist_folder = os.path.join(release_dir, dist_folder_name)
 
@@ -62,62 +64,19 @@ def create_distribution_zip():
     print(f"   Copying {exe_name}...")
     shutil.copy2(exe_path, dist_folder)
 
+    # Copy agent.zip if it exists
+    agent_zip_path = os.path.join(dist_dir, "agent.zip")
+    if os.path.exists(agent_zip_path):
+        print("   Copying agent.zip...")
+        shutil.copy2(agent_zip_path, dist_folder)
+    else:
+        print("   Warning: agent.zip not found, skipping...")
+
     # Copy user_data folder
-    print("   Copying user_data folder...")
-    shutil.copytree(
-        user_data_dir, os.path.join(dist_folder, "user_data"), dirs_exist_ok=True
-    )
-
-    # Create README for distribution
-    app_name = exe_name if sys.platform == "win32" else f"./{exe_name}"
-    readme_content = f"""# Story Editor - Installation Guide
-
-## What's Included
-- {exe_name} - The main application
-- user_data/ - Configuration and template files (persists between updates)
-
-## Installation
-
-1. Extract this entire folder to any location on your computer
-2. Run {app_name}
-
-## Important Notes
-
-- **DO NOT** move {exe_name} without the user_data folder
-- The user_data folder contains:
-  - templates/ - Your custom text templates
-  - config/ - Application configuration files
-- When updating to a new version, keep your existing user_data folder
-
-## First Run
-
-On first run, the application will:
-1. Create necessary folders in user_data/ if they don't exist
-2. Load any existing templates from user_data/templates/
-
-## Usage
-
-1. Open Krita
-2. Load the Story Editor Agent docker
-3. Run {app_name}
-4. Click "Connect to Agent"
-5. Click "Open Story Editor" to start editing
-
-## Support
-
-For issues or questions, please visit:
-https://github.com/your-repo/krita-story-editor
-
----
-Generated: """ + datetime.now().strftime(
-        "%Y-%m-%d %H:%M:%S"
-    )
-
-    readme_path = os.path.join(dist_folder, "README.txt")
-    with open(readme_path, "w", encoding="utf-8") as f:
-        f.write(readme_content)
-
-    print("   Creating README.txt...")
+    # print("   Copying user_data folder...")
+    # shutil.copytree(
+    #     user_data_dir, os.path.join(dist_folder, "user_data"), dirs_exist_ok=True
+    # )
 
     # Create zip file
     zip_path = dist_folder + ".zip"

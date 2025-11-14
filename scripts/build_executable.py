@@ -54,6 +54,9 @@ args = [
     "--onefile",  # Create a single executable
     "--windowed",  # No console window (GUI app)
     "--name=StoryEditor",  # Name of the executable
+    f"--distpath={os.path.join(project_root, 'dist')}",  # Output directory
+    f"--workpath={os.path.join(project_root, 'build')}",  # Build directory
+    f"--specpath={os.path.join(project_root, 'build')}",  # Spec file directory
     # Add data files (non-Python files that need to be included)
     f'--add-data={os.path.join(control_tower_dir, "config")}{os.pathsep}config',
     f'--add-data={os.path.join(control_tower_dir, "fonts")}{os.pathsep}fonts',
@@ -99,13 +102,25 @@ try:
         if os.path.exists(agent_zip_path):
             os.remove(agent_zip_path)
 
-        # Create zip file with parent "agent" folder included
+        # Create zip file without parent "agent" folder
         with zipfile.ZipFile(agent_zip_path, "w", zipfile.ZIP_DEFLATED) as zipf:
             for root, dirs, files in os.walk(agent_dir):
+                # Add directories with proper attributes
+                for dir in dirs:
+                    dir_path = os.path.join(root, dir)
+                    arcname = os.path.relpath(dir_path, agent_dir) + "/"
+                    zipinfo = zipfile.ZipInfo(arcname)
+                    zipinfo.external_attr = 0o040755 << 16  # Directory attribute
+                    zipf.writestr(zipinfo, "")
+
+                # Add files with proper attributes
                 for file in files:
                     file_path = os.path.join(root, file)
-                    arcname = os.path.relpath(file_path, project_root)
-                    zipf.write(file_path, arcname)
+                    arcname = os.path.relpath(file_path, agent_dir)
+                    zipinfo = zipfile.ZipInfo.from_file(file_path, arcname)
+                    zipinfo.external_attr = 0o100644 << 16  # Regular file attribute
+                    with open(file_path, "rb") as f:
+                        zipf.writestr(zipinfo, f.read())
 
         # Get file size
         zip_size_kb = os.path.getsize(agent_zip_path) / 1024
