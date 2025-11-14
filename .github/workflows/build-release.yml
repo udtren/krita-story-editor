@@ -106,7 +106,7 @@ jobs:
         id: find-zip-windows
         shell: powershell
         run: |
-          $zipFile = Get-ChildItem -Path "release" -Filter "StoryEditor_v1.0_*.zip" | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+          $zipFile = Get-ChildItem -Path "release" -Filter "StoryEditor_*.zip" | Sort-Object LastWriteTime -Descending | Select-Object -First 1
           echo "zip_path=$($zipFile.FullName)" >> $env:GITHUB_OUTPUT
           echo "zip_name=$($zipFile.Name)" >> $env:GITHUB_OUTPUT
 
@@ -114,7 +114,7 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         id: find-zip-linux
         run: |
-          zip_file=$(ls -t release/StoryEditor_v1.0_*.zip | head -1)
+          zip_file=$(ls -t release/StoryEditor_*.zip | head -1)
           echo "zip_path=$zip_file" >> $GITHUB_OUTPUT
           echo "zip_name=$(basename $zip_file)" >> $GITHUB_OUTPUT
 
