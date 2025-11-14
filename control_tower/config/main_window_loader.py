@@ -7,12 +7,27 @@ import json
 import os
 from PyQt5.QtGui import QPalette, QColor, QFont
 from PyQt5.QtCore import Qt
+from config.app_paths import get_main_window_config_path
 
 
 # Load configuration from JSON file
-_config_path = os.path.join(os.path.dirname(__file__), "main_window.json")
-with open(_config_path, "r", encoding="utf-8") as f:
-    _config = json.load(f)
+_config_path = get_main_window_config_path()
+try:
+    with open(_config_path, "r", encoding="utf-8") as f:
+        _config = json.load(f)
+except FileNotFoundError:
+    # Config doesn't exist yet, use minimal defaults
+    _config = {
+        "font": {"family": "Arial", "size": 10, "button_size": 12, "log_family": "Consolas", "log_size": 9},
+        "button": {"height": 40, "min_width": 100},
+        "dark_palette": {
+            "window": "#2b2b2b", "window_text": "#e0e0e0", "base": "#1e1e1e",
+            "alternate_base": "#2b2b2b", "tooltip_base": "#ffffff", "tooltip_text": "#ffffff",
+            "text": "#e0e0e0", "button": "#353535", "button_text": "#e0e0e0",
+            "bright_text": "#ff0000", "link": "#42a5f5", "highlight": "#42a5f5",
+            "highlighted_text": "#000000"
+        }
+    }
 
 
 def get_config():

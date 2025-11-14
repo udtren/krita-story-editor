@@ -18,7 +18,6 @@ ENV/
 
 # Logs
 *.log
-logs/
 log.txt
 
 # PyInstaller
@@ -37,3 +36,6 @@ Thumbs.db
 # User templates (ignore all except default templates)
 control_tower/utils/user_templates/*
 !control_tower/utils/user_templates/default*
+
+# Other
+.claude/

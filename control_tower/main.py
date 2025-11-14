@@ -11,7 +11,7 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtNetwork import QLocalSocket, QLocalServer
 from PyQt5.QtCore import QTimer, Qt
-from PyQt5.QtGui import QFont, QFontDatabase
+from PyQt5.QtGui import QFont, QFontDatabase, QIcon
 
 from config.template_manager import show_template_manager
 from config.config_dialog import ConfigDialog
@@ -31,6 +31,11 @@ class ControlTower(QMainWindow):
         super().__init__()
         self.setWindowTitle("Story Editor Control Tower")
         self.setFixedSize(800, 600)
+
+        # Set window icon (for taskbar and title bar)
+        icon_path = os.path.join(os.path.dirname(__file__), "images", "book_128.png")
+        if os.path.exists(icon_path):
+            self.setWindowIcon(QIcon(icon_path))
 
         # Initialize text editor window handler
         self.text_editor_handler = StoryEditorWindow(self, self)
@@ -453,6 +458,11 @@ class SingleInstanceChecker:
 
 def main():
     app = QApplication(sys.argv)
+
+    # Set application-wide icon (important for Windows taskbar)
+    icon_path = os.path.join(os.path.dirname(__file__), "images", "book_128.png")
+    if os.path.exists(icon_path):
+        app.setWindowIcon(QIcon(icon_path))
 
     # Check for existing instance
     instance_checker = SingleInstanceChecker()

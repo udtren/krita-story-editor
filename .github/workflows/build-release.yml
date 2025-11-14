@@ -1,0 +1,166 @@
+name: Build Multi-Platform Release
+
+on:
+  push:
+    branches:
+      - main
+      - master
+    tags:
+      - 'v*'
+  pull_request:
+    branches:
+      - main
+      - master
+  workflow_dispatch:  # Allows manual trigger
+
+jobs:
+  build:
+    name: Build on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+        include:
+          - os: windows-latest
+            exe_name: StoryEditor.exe
+            build_script: scripts\build.bat
+            artifact_name: StoryEditor-Windows
+          - os: ubuntu-latest
+            exe_name: StoryEditor
+            build_script: bash scripts/build.sh
+            artifact_name: StoryEditor-Linux
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Create virtual environment (Windows)
+        if: matrix.os == 'windows-latest'
+        run: |
+          cd control_tower
+          python -m venv venv
+
+      - name: Create virtual environment (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          cd control_tower
+          python -m venv venv
+
+      - name: Install dependencies (Windows)
+        if: matrix.os == 'windows-latest'
+        run: |
+          cd control_tower
+          .\venv\Scripts\activate
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller pillow
+
+      - name: Install dependencies (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          cd control_tower
+          source venv/bin/activate
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller pillow
+
+      - name: Build executable (Windows)
+        if: matrix.os == 'windows-latest'
+        run: |
+          cd control_tower
+          .\venv\Scripts\activate
+          cd ..
+          python scripts\build_executable.py
+
+      - name: Build executable (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          cd control_tower
+          source venv/bin/activate
+          cd ..
+          python scripts/build_executable.py
+
+      - name: Create distribution package (Windows)
+        if: matrix.os == 'windows-latest'
+        run: |
+          cd control_tower
+          .\venv\Scripts\activate
+          cd ..
+          python scripts\create_distribution.py
+
+      - name: Create distribution package (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          cd control_tower
+          source venv/bin/activate
+          cd ..
+          python scripts/create_distribution.py
+
+      - name: Find release zip (Windows)
+        if: matrix.os == 'windows-latest'
+        id: find-zip-windows
+        shell: powershell
+        run: |
+          $zipFile = Get-ChildItem -Path "release" -Filter "StoryEditor_v1.0_*.zip" | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+          echo "zip_path=$($zipFile.FullName)" >> $env:GITHUB_OUTPUT
+          echo "zip_name=$($zipFile.Name)" >> $env:GITHUB_OUTPUT
+
+      - name: Find release zip (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        id: find-zip-linux
+        run: |
+          zip_file=$(ls -t release/StoryEditor_v1.0_*.zip | head -1)
+          echo "zip_path=$zip_file" >> $GITHUB_OUTPUT
+          echo "zip_name=$(basename $zip_file)" >> $GITHUB_OUTPUT
+
+      - name: Upload artifact (Windows)
+        if: matrix.os == 'windows-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: ${{ steps.find-zip-windows.outputs.zip_path }}
+          retention-days: 30
+
+      - name: Upload artifact (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: ${{ steps.find-zip-linux.outputs.zip_path }}
+          retention-days: 30
+
+  create-release:
+    name: Create GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download Windows artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: StoryEditor-Windows
+          path: ./artifacts
+
+      - name: Download Linux artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: StoryEditor-Linux
+          path: ./artifacts
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: ./artifacts/*.zip
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

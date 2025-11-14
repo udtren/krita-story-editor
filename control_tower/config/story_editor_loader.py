@@ -6,12 +6,28 @@ Loads configuration from JSON and provides helper functions
 import json
 import os
 from PyQt5.QtGui import QFont
+from config.app_paths import get_story_editor_config_path
 
 
 # Load configuration from JSON file
-_config_path = os.path.join(os.path.dirname(__file__), "story_editor.json")
-with open(_config_path, "r", encoding="utf-8") as f:
-    _config = json.load(f)
+_config_path = get_story_editor_config_path()
+try:
+    with open(_config_path, "r", encoding="utf-8") as f:
+        _config = json.load(f)
+except FileNotFoundError:
+    # Config doesn't exist yet, use defaults
+    _config = {
+        "text_editor": {"font_family": "Arial", "font_size": 14},
+        "tspan": {
+            "background_color": "#2b2b2b", "text_color": "#e0e0e0", "font_size": 12,
+            "border_color": "#555555", "selection_color": "#42a5f5", "min_height": 80, "max_height": 300
+        },
+        "template_combo": {
+            "background_color": "#353535", "text_color": "#e0e0e0", "font_size": 11,
+            "border_color": "#555555", "hover_background": "#414141"
+        },
+        "tooltip": {"background_color": "#1e1e1e", "text_color": "#e0e0e0", "border_color": "#555555"}
+    }
 
 
 def get_config():

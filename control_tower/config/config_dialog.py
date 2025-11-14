@@ -16,6 +16,7 @@ from PyQt5.QtCore import Qt
 
 # Import all config loaders to refresh them after save
 from . import main_window_loader, shortcuts_loader, story_editor_loader
+from .app_paths import get_config_dir
 
 
 class ConfigDialog(QDialog):
@@ -26,8 +27,8 @@ class ConfigDialog(QDialog):
         self.setWindowTitle("Settings")
         self.resize(800, 700)
 
-        # Configuration file paths
-        config_dir = os.path.join(os.path.dirname(__file__))
+        # Configuration file paths - use user_data/config with fallback
+        config_dir = get_config_dir()
         self.config_files = {
             "Main Window": os.path.join(config_dir, "main_window.json"),
             "Story Editor": os.path.join(config_dir, "story_editor.json"),

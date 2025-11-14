@@ -15,6 +15,7 @@ from config.story_editor_loader import (
     TEXT_EDITOR_MAX_HEIGHT,
 )
 from config.template_loader import get_default_template_name
+from config.app_paths import get_user_templates_path
 
 
 def add_new_text_widget(
@@ -67,11 +68,7 @@ def add_new_text_widget(
     choose_template_combo.setStyleSheet(get_template_combo_stylesheet())
 
     # Find all XML files in user_templates directory
-    template_dir = os.path.join(
-        os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
-        "config",
-        "user_templates",
-    )
+    template_dir = get_user_templates_path()
     template_files = []
 
     if os.path.exists(template_dir):

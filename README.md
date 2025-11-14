@@ -32,7 +32,9 @@ The main editing window where you work with text content. It receives text data 
 
 - **Update Krita**  
   Sends all text data from the Story Editor to the Agent in Krita. The Agent then updates any Krita documents where text has been changed and automatically sends the latest Krita document data back to the Story Editor.
+  ##### Only document that has name will be updated. If you create a new document, save it first.
 
+ 
 - **Find/Replace** 
  <img src="images/search_replace.png" alt="Search and Replace" width="300">
 
@@ -76,7 +78,8 @@ You can edit either plain text or tspan data as long as the data is valid. If yo
 
 **Closed Documents:**
 
-Closed documents in the selected folder (set via Control Tower) will also be displayed in the Story Editor. You can edit existing text the same way as in opened documents, but you cannot add new text widgets to closed documents.
+Documents in the selected folder (set via Control Tower) will appear in the Story Editor even when closed in Krita. You can edit existing text in closed documents the same way as opened documents, but you cannot add new text widgets to closed documents.
+
 
 ### Story Editor Agent
 A plugin that runs inside Krita. It waits for requests from the Control Tower to perform various tasks, including reading text data from your Krita documents and sending it to the Story Editor, saving documents, closing documents, and more.

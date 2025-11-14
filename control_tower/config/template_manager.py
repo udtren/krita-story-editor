@@ -20,6 +20,7 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QColor
+from config.app_paths import get_user_templates_path, get_template_config_path
 
 
 class TemplateManagerWindow(QWidget):
@@ -31,12 +32,9 @@ class TemplateManagerWindow(QWidget):
         # Set window flags to make it a proper popup window
         self.setWindowFlags(Qt.Window | Qt.WindowCloseButtonHint)
 
-        self.template_dir = os.path.join(
-            os.path.dirname(os.path.dirname(__file__)), "config", "user_templates"
-        )
-        self.config_file = os.path.join(
-            os.path.dirname(os.path.dirname(__file__)), "config", "template.json"
-        )
+        # Use persistent user data paths
+        self.template_dir = get_user_templates_path()
+        self.config_file = get_template_config_path()
         self.current_template = None
         self.default_template_index = None
         self.init_ui()
