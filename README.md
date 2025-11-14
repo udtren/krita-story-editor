@@ -131,7 +131,41 @@ You can create, edit, and delete templates in the Template Manager. Right-click 
 
 ## Installation
 
+### Option 1: Pre-built Releases
+
 **Installing the Agent:**
 1. Install the "agent.zip" using krita's Tool - Scripts - Import Python plugin from file
 
 2. After krita starts with agent, run "StoryEditor.exe" for windows or "StoryEditor" for linux.
+
+### Option 2: Manual Build for Linux
+
+If the pre-built Linux executable doesn't work on your system (due to GLIBC compatibility issues), you can build it manually:
+
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/YOUR_USERNAME/krita-story-editor.git
+   cd krita-story-editor
+   ```
+
+2. **Create and activate virtual environment:**
+   ```bash
+   cd control_tower
+   python3 -m venv venv
+   source venv/bin/activate
+   ```
+
+3. **Install dependencies:**
+   ```bash
+   pip install --upgrade pip
+   pip install -r requirements.txt
+   ```
+
+4. **Build the executable:**
+   ```bash
+   cd ..
+   python scripts/build_executable.py
+   ```
+
+5. **Find your build:**
+   The distribution package will be in the `scripts\dist` folder
