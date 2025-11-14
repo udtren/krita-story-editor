@@ -87,25 +87,24 @@ try:
 
     print(f"Executable location: {os.path.join(project_root, 'dist', exe_name)}")
 
-    # Zip the agent folder contents (without root "agent" folder) and place in dist
+    # Zip the agent folder and place in dist
     agent_dir = os.path.join(project_root, "agent")
     dist_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "dist")
 
     if os.path.exists(agent_dir):
         print("\n📦 Creating agent.zip...")
-        agent_zip_path = os.path.join(dist_dir, "agent.zip")
+        agent_zip_path = os.path.join(dist_dir, "story-editor-agent.zip")
 
         # Remove existing zip if it exists
         if os.path.exists(agent_zip_path):
             os.remove(agent_zip_path)
 
-        # Create zip file with contents directly at root (no "agent" parent folder)
+        # Create zip file
         with zipfile.ZipFile(agent_zip_path, "w", zipfile.ZIP_DEFLATED) as zipf:
             for root, dirs, files in os.walk(agent_dir):
                 for file in files:
                     file_path = os.path.join(root, file)
-                    # Use relative path from agent_dir (not project_root) to exclude "agent" folder
-                    arcname = os.path.relpath(file_path, agent_dir)
+                    arcname = os.path.relpath(file_path, project_root)
                     zipf.write(file_path, arcname)
 
         # Get file size
