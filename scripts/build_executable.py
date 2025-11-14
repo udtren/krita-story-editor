@@ -102,12 +102,12 @@ try:
         if os.path.exists(agent_zip_path):
             os.remove(agent_zip_path)
 
-        # Create zip file with parent "agent" folder included
+        # Create zip file without parent "agent" folder
         with zipfile.ZipFile(agent_zip_path, "w", zipfile.ZIP_DEFLATED) as zipf:
             for root, dirs, files in os.walk(agent_dir):
                 for file in files:
                     file_path = os.path.join(root, file)
-                    arcname = os.path.relpath(file_path, project_root)
+                    arcname = os.path.relpath(file_path, agent_dir)
                     zipf.write(file_path, arcname)
 
         # Get file size
