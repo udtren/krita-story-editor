@@ -167,7 +167,9 @@ class StoryEditorAgentDocker(QDockWidget):
 
                     for doc in opened_docs:
                         for doc_data in opened_docs_requests:
-                            write_log(f"[DEBUG] Document: {krita_file_name_safe(doc)}")
+                            write_log(
+                                f"[DEBUG] agent_docker compare Document name: {krita_file_name_safe(doc)}"
+                            )
                             if krita_file_name_safe(doc) == doc_data.get("doc_name"):
 
                                 existing_texts_updated = doc_data.get(
