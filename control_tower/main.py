@@ -348,6 +348,11 @@ class ControlTower(QMainWindow):
                     result = response.get("result", "Unknown")
                     self.log(f"💾 {result}")
 
+                case {"response_type": "open_document", "success": True}:
+                    result = response.get("result", "Unknown")
+                    self.log(f"📂 {result}")
+                    self.text_editor_handler.refresh_data()
+
                 case {"response_type": "close_document", "success": True}:
                     result = response.get("result", "Unknown")
                     self.log(f"🗑️ {result}")

@@ -341,6 +341,30 @@ class StoryEditorAgentDocker(QDockWidget):
                     response = {"success": False, "error": str(e)}
                     client.write(json.dumps(response).encode("utf-8"))
 
+            case "open_document":
+                try:
+                    doc_path = request.get("doc_path", "")
+                    if os.path.exists(doc_path):
+                        opened_doc = Krita.instance().openDocument(doc_path)
+                        if opened_doc:
+                            Krita.instance().setActiveDocument(opened_doc)
+                            Application.activeWindow().addView(opened_doc)
+                        response = {
+                            "success": True,
+                            "response_type": "open_document",
+                            "result": f"Document '{doc_path}' opened.",
+                        }
+                    else:
+                        response = {
+                            "success": False,
+                            "response_type": "open_document",
+                            "error": f"File '{doc_path}' does not exist.",
+                        }
+                    client.write(json.dumps(response).encode("utf-8"))
+                except Exception as e:
+                    response = {"success": False, "error": str(e)}
+                    client.write(json.dumps(response).encode("utf-8"))
+
             case "close_document":
                 try:
                     doc_name = request.get("doc_name", "")

@@ -8,6 +8,7 @@ from PyQt5.QtWidgets import (
     QScrollArea,
     QMenu,
     QSizePolicy,
+    QGridLayout,
 )
 from PyQt5.QtCore import QByteArray, QTimer, Qt
 from PyQt5.QtGui import QPixmap
@@ -94,11 +95,11 @@ class StoryEditorWindow:
         thumbnail_scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
         thumbnail_scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
         thumbnail_scroll_area.setFrameShape(QScrollArea.NoFrame)
-        thumbnail_scroll_area.setFixedWidth(140)  # Fixed width for thumbnail column
+        thumbnail_scroll_area.setMaximumWidth(300)  # Fixed width for thumbnail column
 
         # Create container widget for thumbnails
         thumbnail_container = QWidget()
-        thumbnail_layout = QVBoxLayout(thumbnail_container)
+        thumbnail_layout = QGridLayout(thumbnail_container)
         thumbnail_layout.setContentsMargins(0, 0, 0, 0)
 
         # Set the container as scroll area's widget
@@ -117,7 +118,7 @@ class StoryEditorWindow:
         # Create container widget for all documents
         all_docs_container = QWidget()
         all_docs_layout = QVBoxLayout(all_docs_container)
-        all_docs_layout.setContentsMargins(0, 0, 0, 0)
+        all_docs_layout.setContentsMargins(0, 0, 15, 0)
 
         # Set the container as scroll area's widget
         all_docs_scroll_area.setWidget(all_docs_container)
@@ -127,11 +128,12 @@ class StoryEditorWindow:
 
         thumbnail_and_text_layout.addWidget(thumbnail_scroll_area)
         thumbnail_and_text_layout.addWidget(all_docs_scroll_area)
+        thumbnail_and_text_layout.setContentsMargins(0, 0, 10, 20)
 
         # write_log(f"all_docs_svg_data: {self.all_docs_svg_data}")
 
         # VBoxLayout for all layers
-        for doc_data in self.all_docs_svg_data:
+        for index, doc_data in enumerate(self.all_docs_svg_data):
             doc_name = doc_data.get("document_name", "unknown")
             doc_path = doc_data.get("document_path", "unknown")
             self.svg_data = doc_data.get("svg_data", [])
@@ -200,14 +202,15 @@ class StoryEditorWindow:
             # Enable custom context menu for right-click
             thumbnail_label.setContextMenuPolicy(Qt.CustomContextMenu)
             thumbnail_label.customContextMenuRequested.connect(
-                lambda pos, name=doc_name, label=thumbnail_label: self.show_thumbnail_context_menu(
-                    pos, name, label
+                lambda pos, name=doc_name, doc_path=doc_path, label=thumbnail_label: self.show_thumbnail_context_menu(
+                    pos, name, label, doc_path
                 )
             )
 
-            thumbnail_layout.addWidget(
-                thumbnail_label, alignment=Qt.AlignTop, stretch=0
-            )
+            row = index // 2
+            col = index % 2
+
+            thumbnail_layout.addWidget(thumbnail_label, row, col)
             ###################################################
 
             self.all_docs_text_state[doc_name] = {
@@ -350,7 +353,7 @@ class StoryEditorWindow:
             doc_horizontal_layout.addWidget(doc_container, stretch=1)
 
         # Add stretch at the end of thumbnail layout (inside the container for proper scrolling)
-        thumbnail_layout.addStretch()
+        thumbnail_layout.setRowStretch(thumbnail_layout.rowCount(), 1)
 
         # Add stretch at the end of all_docs_layout (inside the container for proper scrolling)
         all_docs_layout.addStretch()
@@ -565,7 +568,7 @@ class StoryEditorWindow:
 
         show_find_replace_dialog(self.parent_window, self.all_docs_text_state)
 
-    def show_thumbnail_context_menu(self, pos, doc_name, thumbnail_label):
+    def show_thumbnail_context_menu(self, pos, doc_name, thumbnail_label, doc_path):
         """Show context menu for thumbnail"""
         menu = QMenu(self.parent_window)
 
@@ -575,6 +578,10 @@ class StoryEditorWindow:
             lambda: self.send_activate_document_request(doc_name)
         )
 
+        # Add "Open" action
+        open_action = menu.addAction(f"Open")
+        open_action.triggered.connect(lambda: self.send_open_document_request(doc_path))
+
         # Add "Close" action
         close_action = menu.addAction("Close")
         close_action.triggered.connect(
@@ -583,6 +590,11 @@ class StoryEditorWindow:
 
         # Show menu at global position
         menu.exec_(thumbnail_label.mapToGlobal(pos))
+
+    def send_open_document_request(self, doc_path):
+        """Send open_document request to the agent"""
+        self.socket_handler.log(f"📂 Requesting to open document: {doc_path}")
+        self.socket_handler.send_request("open_document", doc_path=doc_path)
 
     def send_close_document_request(self, doc_name):
         """Send close_document request to the agent"""
