@@ -397,8 +397,11 @@ class StoryEditorWindow:
 
         merged_requests = []
 
+        self.socket_handler.log(f"⏳ Processing update data for documents...")
+
         for doc_name, doc_state in self.all_docs_text_state.items():
-            self.socket_handler.log(f"⏳ Creating update data for document: {doc_name}")
+
+            write_log(f"Processing document: {doc_name}")
 
             doc_path = doc_state["document_path"]
             # layer_groups Contains all changes for the existing layers
