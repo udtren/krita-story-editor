@@ -318,6 +318,50 @@ def get_template_combo_stylesheet():
     """
 
 
+def get_thumbnail_right_click_menu_stylesheet():
+    """Get the stylesheet for thumbnail right-click menu"""
+
+    return """
+        QMenu {
+            background-color: #2b2b2b;      /* Menu background */
+            border: 1px solid #555;         /* Border */
+            padding: 5px;                   /* Space around items */
+            border-radius: 4px;             /* Rounded corners */
+        }
+
+        QMenu::item {
+            padding: 5px 25px 5px 10px;     /* Item padding */
+            color: #ffffff;                 /* Text color */
+            min-width: 150px;               /* Minimum width */
+        }
+
+        QMenu::item:selected {
+            background-color: #3d8ec9;      /* Hover background */
+            color: white;
+        }
+
+        QMenu::item:disabled {
+            color: #808080;                 /* Disabled text color */
+        }
+
+        QMenu::separator {
+            height: 1px;
+            background-color: #555;
+            margin: 5px 0px;
+        }
+
+        QMenu::indicator {
+            width: 13px;
+            height: 13px;
+            /* For checkable menu items */
+        }
+
+        QMenu::icon {
+            padding-left: 10px;
+        }
+    """
+
+
 # Export configuration values as module-level constants for backward compatibility
 STORY_EDITOR_WINDOW_WIDTH = _config["window"]["width"]
 STORY_EDITOR_WINDOW_HEIGHT = _config["window"]["height"]

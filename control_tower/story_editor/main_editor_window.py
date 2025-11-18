@@ -28,6 +28,7 @@ from config.story_editor_loader import (
     get_activate_button_stylesheet,
     get_thumbnail_status_label_stylesheet,
     get_thumbnail_status_label_disabled_stylesheet,
+    get_thumbnail_right_click_menu_stylesheet,
     TEXT_EDITOR_MIN_HEIGHT,
     TEXT_EDITOR_MAX_HEIGHT,
 )
@@ -621,6 +622,7 @@ class StoryEditorWindow:
     ):
         """Show context menu for thumbnail"""
         menu = QMenu(self.parent_window)
+        menu.setStyleSheet(get_thumbnail_right_click_menu_stylesheet())
 
         # Add "Activate" action
         activate_action = menu.addAction("Activate")
@@ -657,6 +659,9 @@ class StoryEditorWindow:
                 if template_files:
                     add_new_action = menu.addAction("Add From Template")
                     select_template_menu = QMenu(self.parent_window)
+                    select_template_menu.setStyleSheet(
+                        get_thumbnail_right_click_menu_stylesheet()
+                    )
 
                     for template in template_files:
                         template_action = QAction(template, self.parent_window)
