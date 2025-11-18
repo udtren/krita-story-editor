@@ -1,4 +1,5 @@
 from pathlib import Path
+import os
 from PyQt5.QtWidgets import (
     QWidget,
     QVBoxLayout,
@@ -664,7 +665,8 @@ class StoryEditorWindow:
                     )
 
                     for template in template_files:
-                        template_action = QAction(template, self.parent_window)
+                        template_name = os.path.basename(template)
+                        template_action = QAction(template_name, self.parent_window)
                         template_action.triggered.connect(
                             lambda checked, t=template: self.send_add_new_document_from_template_request(
                                 doc_path, t, config_filepath
