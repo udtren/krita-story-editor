@@ -662,7 +662,7 @@ class StoryEditorWindow:
                         template_action = QAction(template, self.parent_window)
                         template_action.triggered.connect(
                             lambda checked, t=template: self.send_add_new_document_from_template_request(
-                                t
+                                doc_path, t, config_filepath
                             )
                         )
                         select_template_menu.addAction(template_action)
@@ -672,13 +672,17 @@ class StoryEditorWindow:
                 # Add "Duplicate" action
                 duplicate_action = menu.addAction("Duplicate")
                 duplicate_action.triggered.connect(
-                    lambda: self.send_duplicate_document_request(doc_name, doc_path)
+                    lambda: self.send_duplicate_document_request(
+                        doc_name, doc_path, config_filepath
+                    )
                 )
 
                 # Add "Delete" action
                 delete_action = menu.addAction("Delete")
                 delete_action.triggered.connect(
-                    lambda: self.send_delete_document_request(doc_name, doc_path)
+                    lambda: self.send_delete_document_request(
+                        doc_name, doc_path, config_filepath
+                    )
                 )
 
         # Show menu at global position
@@ -699,25 +703,42 @@ class StoryEditorWindow:
         self.socket_handler.log(f"➡️ Requesting to activate document: {doc_name}")
         self.socket_handler.send_request("activate_document", doc_name=doc_name)
 
-    def send_add_new_document_from_template_request(self, template_path=None):
+    def send_add_new_document_from_template_request(
+        self, target_doc_path, template_path=None, config_filepath=None
+    ):
         """Send add_new_document_from_template request to the agent"""
         self.socket_handler.log(f"📄➕ Requesting to add new document from template")
         self.socket_handler.send_request(
-            "add_from_template", template_path=template_path
+            "add_from_template",
+            doc_path=target_doc_path,
+            template_path=template_path,
+            config_filepath=config_filepath,
         )
 
-    def send_duplicate_document_request(self, doc_name, doc_path):
+    def send_duplicate_document_request(
+        self, target_doc_name, target_doc_path, config_filepath=None
+    ):
         """Send duplicate_document request to the agent"""
-        self.socket_handler.log(f"📄➕ Requesting to duplicate document: {doc_name}")
+        self.socket_handler.log(
+            f"📄➕ Requesting to duplicate document: {target_doc_name}"
+        )
         self.socket_handler.send_request(
-            "duplicate_document", doc_name=doc_name, doc_path=doc_path
+            "duplicate_document",
+            doc_name=target_doc_name,
+            doc_path=target_doc_path,
+            config_filepath=config_filepath,
         )
 
-    def send_delete_document_request(self, doc_name, doc_path):
+    def send_delete_document_request(
+        self, target_doc_name, target_doc_path, config_filepath=None
+    ):
         """Send delete_document request to the agent"""
-        self.socket_handler.log(f"🗑️ Requesting to delete document: {doc_name}")
+        self.socket_handler.log(f"🗑️ Requesting to delete document: {target_doc_name}")
         self.socket_handler.send_request(
-            "delete_document", doc_name=doc_name, doc_path=doc_path
+            "delete_document",
+            doc_name=target_doc_name,
+            doc_path=target_doc_path,
+            config_filepath=config_filepath,
         )
 
     #####################################################################

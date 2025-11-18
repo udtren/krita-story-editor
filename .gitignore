@@ -41,3 +41,4 @@ control_tower/utils/user_templates/*
 
 # Other
 .claude/
+test_only/

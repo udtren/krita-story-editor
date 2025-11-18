@@ -22,6 +22,9 @@ from .utils import (
     update_offline_kra_file,
     krita_file_name_safe,
     get_comic_config_info,
+    add_new_document_from_template,
+    duplicate_document,
+    delete_document,
 )
 from .config.story_editor_agent import (
     DIALOG_WIDTH,
@@ -399,6 +402,81 @@ class StoryEditorAgentDocker(QDockWidget):
                             "success": False,
                             "response_type": "close_document",
                             "error": f"Document '{doc_name}' not found among opened documents.",
+                        }
+                    client.write(json.dumps(response).encode("utf-8"))
+                except Exception as e:
+                    response = {"success": False, "error": str(e)}
+                    client.write(json.dumps(response).encode("utf-8"))
+
+            case "add_from_template":
+                try:
+                    target_doc_path = request.get("doc_path", "")
+                    template_path = request.get("template_path", "")
+                    config_filepath = request.get("config_filepath", None)
+                    result = add_new_document_from_template(
+                        target_doc_path, template_path, config_filepath
+                    )
+                    if result["success"]:
+                        new_filename = result.get("new_filename", "")
+                        response = {
+                            "success": True,
+                            "response_type": "add_from_template",
+                            "result": f"{new_filename} created from template",
+                        }
+                    else:
+                        response = {
+                            "success": False,
+                            "response_type": "add_from_template",
+                            "error": result.get("error", "Unknown error"),
+                        }
+                    client.write(json.dumps(response).encode("utf-8"))
+                except Exception as e:
+                    response = {"success": False, "error": str(e)}
+                    client.write(json.dumps(response).encode("utf-8"))
+
+            case "duplicate_document":
+                try:
+                    doc_name = request.get("doc_name", "")
+                    doc_path = request.get("doc_path", "")
+                    config_filepath = request.get("config_filepath", None)
+                    result = duplicate_document(doc_name, doc_path, config_filepath)
+                    new_filename = result.get("new_filename", "")
+                    if result["success"]:
+                        original_filename = result.get("original_filename", "")
+                        response = {
+                            "success": True,
+                            "response_type": "duplicate_document",
+                            "result": f"{new_filename} created from {original_filename} by duplication",
+                        }
+                    else:
+                        response = {
+                            "success": False,
+                            "response_type": "duplicate_document",
+                            "error": result.get("error", "Unknown error"),
+                        }
+                    client.write(json.dumps(response).encode("utf-8"))
+                except Exception as e:
+                    response = {"success": False, "error": str(e)}
+                    client.write(json.dumps(response).encode("utf-8"))
+
+            case "delete_document":
+                try:
+                    doc_name = request.get("doc_name", "")
+                    doc_path = request.get("doc_path", "")
+                    config_filepath = request.get("config_filepath", None)
+                    result = delete_document(doc_name, doc_path, config_filepath)
+                    if result["success"]:
+                        deleted_filename = result.get("deleted_filename", "")
+                        response = {
+                            "success": True,
+                            "response_type": "delete_document",
+                            "result": f"{deleted_filename} deleted successfully",
+                        }
+                    else:
+                        response = {
+                            "success": False,
+                            "response_type": "delete_document",
+                            "error": result.get("error", "Unknown error"),
                         }
                     client.write(json.dumps(response).encode("utf-8"))
                 except Exception as e:

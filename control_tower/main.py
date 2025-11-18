@@ -365,6 +365,21 @@ class ControlTower(QMainWindow):
 
                 case {"response_type": "close_document", "success": True}:
                     result = response.get("result", "Unknown")
+                    self.log(f"{result}")
+                    self.text_editor_handler.refresh_data()
+
+                case {"response_type": "add_from_template", "success": True}:
+                    result = response.get("result", "Unknown")
+                    self.log(f"➕ {result}")
+                    self.text_editor_handler.refresh_data()
+
+                case {"response_type": "duplicate_document", "success": True}:
+                    result = response.get("result", "Unknown")
+                    self.log(f"➕ {result}")
+                    self.text_editor_handler.refresh_data()
+
+                case {"response_type": "delete_document", "success": True}:
+                    result = response.get("result", "Unknown")
                     self.log(f"🗑️ {result}")
                     self.text_editor_handler.refresh_data()
 
