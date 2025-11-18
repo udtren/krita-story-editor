@@ -1,3 +1,4 @@
+from pathlib import Path
 from PyQt5.QtWidgets import (
     QWidget,
     QVBoxLayout,
@@ -9,6 +10,7 @@ from PyQt5.QtWidgets import (
     QMenu,
     QSizePolicy,
     QGridLayout,
+    QAction,
 )
 from PyQt5.QtCore import QByteArray, QTimer, Qt
 from PyQt5.QtGui import QPixmap
@@ -53,6 +55,7 @@ class StoryEditorWindow:
         self.content_scroll_position = 0  # Track content scroll position
 
         self.comic_config_info = None  # To store comic config info
+        self.template_files = []  # To store template files list
 
     def set_parent_window(self, parent_window):
         """Set the persistent parent window"""
@@ -91,7 +94,6 @@ class StoryEditorWindow:
         self.doc_layouts = {}
         self.active_doc_name = None
 
-        #################################
         thumbnail_and_text_layout = QHBoxLayout()
 
         # Create scroll area for thumbnails
@@ -206,7 +208,7 @@ class StoryEditorWindow:
             thumbnail_label.setContextMenuPolicy(Qt.CustomContextMenu)
             thumbnail_label.customContextMenuRequested.connect(
                 lambda pos, name=doc_name, doc_path=doc_path, label=thumbnail_label: self.show_thumbnail_context_menu(
-                    pos, name, label, doc_path
+                    pos, name, label, doc_path, self.comic_config_info
                 )
             )
 
@@ -614,7 +616,9 @@ class StoryEditorWindow:
     # Context Menu Handlers
     #####################################################################
 
-    def show_thumbnail_context_menu(self, pos, doc_name, thumbnail_label, doc_path):
+    def show_thumbnail_context_menu(
+        self, pos, doc_name, thumbnail_label, doc_path, comic_config_info
+    ):
         """Show context menu for thumbnail"""
         menu = QMenu(self.parent_window)
 
@@ -634,27 +638,48 @@ class StoryEditorWindow:
             lambda: self.send_close_document_request(doc_name)
         )
 
-        if self.comic_config_info:
-            # Add separator
-            menu.addSeparator()
+        # Only documents belonging to the comic folder can be modified
+        if comic_config_info:
+            config_filepath = comic_config_info.get("config_filepath", "")
+            doc_path_obj = Path(doc_path)
+            config_parent = Path(config_filepath).parent
+            if (
+                config_parent in doc_path_obj.parents
+                or doc_path_obj.parent == config_parent
+            ):
+                # print(f"Document {doc_name} is in config folder or its subfolder")
 
-            # Add "Add New Document" action
-            add_new_action = menu.addAction("Add New")
-            add_new_action.triggered.connect(
-                lambda: self.send_add_new_document_request()
-            )
+                # Add separator
+                menu.addSeparator()
 
-            # Add "Duplicate Document" action
-            duplicate_action = menu.addAction("Duplicate")
-            duplicate_action.triggered.connect(
-                lambda: self.send_duplicate_document_request(doc_name)
-            )
+                # Add "Add From Template" action with submenu
+                template_files = comic_config_info.get("template_files", [])
+                if template_files:
+                    add_new_action = menu.addAction("Add From Template")
+                    select_template_menu = QMenu(self.parent_window)
 
-            # Add "Delete Document" action
-            delete_action = menu.addAction("Delete")
-            delete_action.triggered.connect(
-                lambda: self.send_delete_document_request(doc_name)
-            )
+                    for template in template_files:
+                        template_action = QAction(template, self.parent_window)
+                        template_action.triggered.connect(
+                            lambda checked, t=template: self.send_add_new_document_from_template_request(
+                                t
+                            )
+                        )
+                        select_template_menu.addAction(template_action)
+
+                    add_new_action.setMenu(select_template_menu)
+
+                # Add "Duplicate" action
+                duplicate_action = menu.addAction("Duplicate")
+                duplicate_action.triggered.connect(
+                    lambda: self.send_duplicate_document_request(doc_name, doc_path)
+                )
+
+                # Add "Delete" action
+                delete_action = menu.addAction("Delete")
+                delete_action.triggered.connect(
+                    lambda: self.send_delete_document_request(doc_name, doc_path)
+                )
 
         # Show menu at global position
         menu.exec_(thumbnail_label.mapToGlobal(pos))
@@ -674,19 +699,25 @@ class StoryEditorWindow:
         self.socket_handler.log(f"➡️ Requesting to activate document: {doc_name}")
         self.socket_handler.send_request("activate_document", doc_name=doc_name)
 
-    def send_add_new_document_request(self):
-        """Send add_new_document request to the agent"""
-        self.socket_handler.log(f"➕ Requesting to add a new document")
-        self.socket_handler.send_request("add_new_document")
+    def send_add_new_document_from_template_request(self, template_path=None):
+        """Send add_new_document_from_template request to the agent"""
+        self.socket_handler.log(f"📄➕ Requesting to add new document from template")
+        self.socket_handler.send_request(
+            "add_from_template", template_path=template_path
+        )
 
-    def send_duplicate_document_request(self, doc_name):
+    def send_duplicate_document_request(self, doc_name, doc_path):
         """Send duplicate_document request to the agent"""
         self.socket_handler.log(f"📄➕ Requesting to duplicate document: {doc_name}")
-        self.socket_handler.send_request("duplicate_document", doc_name=doc_name)
+        self.socket_handler.send_request(
+            "duplicate_document", doc_name=doc_name, doc_path=doc_path
+        )
 
-    def send_delete_document_request(self, doc_name):
+    def send_delete_document_request(self, doc_name, doc_path):
         """Send delete_document request to the agent"""
         self.socket_handler.log(f"🗑️ Requesting to delete document: {doc_name}")
-        self.socket_handler.send_request("delete_document", doc_name=doc_name)
+        self.socket_handler.send_request(
+            "delete_document", doc_name=doc_name, doc_path=doc_path
+        )
 
     #####################################################################
