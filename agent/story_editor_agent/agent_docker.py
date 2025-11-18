@@ -23,6 +23,7 @@ from .utils import (
     get_all_offline_docs_from_folder,
     update_offline_kra_file,
     krita_file_name_safe,
+    get_comic_config_info,
 )
 from .config.story_editor_agent import (
     DIALOG_WIDTH,
@@ -281,7 +282,7 @@ class StoryEditorAgentDocker(QDockWidget):
                     # Get all docs svg data from .kra files in folder
                     ####################################################
                     try:
-                        write_log(f"Opened docs path: {opened_docs_path}")
+                        write_log(f"krita_folder_path: {krita_folder_path}")
                         offline_docs_svg_data = get_all_offline_docs_from_folder(
                             krita_folder_path, opened_docs_path
                         )
@@ -291,12 +292,23 @@ class StoryEditorAgentDocker(QDockWidget):
                         response = {"success": False, "error": str(e)}
                     ####################################################
 
+                    comic_config_info = get_comic_config_info(krita_folder_path)
+
                 # Sort all_svg_data by document_name
                 all_svg_data.sort(key=lambda x: x.get("document_name", ""))
 
-                response = {"success": True, "all_docs_svg_data": all_svg_data}
-                # write_log(f"all_docs_svg_data: {all_svg_data}")
-                client.write(json.dumps(response).encode("utf-8"))
+                if comic_config_info:
+                    write_log(f"Comic config info: {comic_config_info}")
+
+                    response = {
+                        "success": True,
+                        "all_docs_svg_data": all_svg_data,
+                        "comic_config_info": comic_config_info,
+                    }
+                    client.write(json.dumps(response).encode("utf-8"))
+                else:
+                    response = {"success": True, "all_docs_svg_data": all_svg_data}
+                    client.write(json.dumps(response).encode("utf-8"))
 
             case "save_all_opened_docs":
                 try:
