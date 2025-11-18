@@ -1,7 +1,6 @@
 import os
 from krita import *
-from PyQt5.QtNetwork import QLocalServer, QLocalSocket
-from PyQt5.QtCore import QByteArray
+from PyQt5.QtNetwork import QLocalServer
 from PyQt5.QtWidgets import (
     QWidget,
     QVBoxLayout,
@@ -13,7 +12,6 @@ from PyQt5.QtWidgets import (
 )
 import json
 import io
-import zipfile
 import sys
 from .utils import (
     get_opened_doc_svg_data,
@@ -46,6 +44,7 @@ class StoryEditorAgentDocker(QDockWidget):
         self.server.listen("krita_story_editor_bridge")
 
         self.clients = []
+        self.comic_config_info = None
 
         # Create UI
         self.setup_ui()
@@ -292,18 +291,20 @@ class StoryEditorAgentDocker(QDockWidget):
                         response = {"success": False, "error": str(e)}
                     ####################################################
 
-                    comic_config_info = get_comic_config_info(krita_folder_path)
+                    self.comic_config_info = get_comic_config_info(krita_folder_path)
+                else:
+                    self.comic_config_info = None
 
                 # Sort all_svg_data by document_name
                 all_svg_data.sort(key=lambda x: x.get("document_name", ""))
 
-                if comic_config_info:
-                    write_log(f"Comic config info: {comic_config_info}")
+                if self.comic_config_info:
+                    write_log(f"Comic config info: {self.comic_config_info}")
 
                     response = {
                         "success": True,
                         "all_docs_svg_data": all_svg_data,
-                        "comic_config_info": comic_config_info,
+                        "comic_config_info": self.comic_config_info,
                     }
                     client.write(json.dumps(response).encode("utf-8"))
                 else:
