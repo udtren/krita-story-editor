@@ -22,7 +22,7 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QColor
 from config.app_paths import (
-    get_user_templates_path,
+    get_text_templates_path,
     get_template_config_path,
     get_svg_templates_path,
 )
@@ -466,10 +466,22 @@ class BaseTemplateManager(QWidget):
             template_name = self.template_list.item(index).text()
             self.save_default_template_to_config(template_name)
 
-    def save_default_template_to_config(self, template_name):
+    def save_default_template_to_config(self, template_name, template_type=None):
         """Save the default template name to the config file"""
         try:
-            config_data = {"default_template_name": template_name}
+            # Read existing config
+            config_data = {}
+            if os.path.exists(self.config_file):
+                with open(self.config_file, "r", encoding="utf-8") as f:
+                    config_data = json.load(f)
+
+            # Update the specific key
+            if template_type == "SVG Template":
+                config_data["default_svg_template_name"] = template_name
+            elif template_type == "Text Template":
+                config_data["default_template_name"] = template_name
+
+            # Write back the updated config
             with open(self.config_file, "w", encoding="utf-8") as f:
                 json.dump(config_data, f, indent=4)
         except Exception as e:
@@ -477,13 +489,17 @@ class BaseTemplateManager(QWidget):
                 self, "Warning", f"Failed to save default template to config:\n{str(e)}"
             )
 
-    def load_default_template_from_config(self):
+    def load_default_template_from_config(self, template_type=None):
         """Load the default template name from config and set the index"""
         try:
             if os.path.exists(self.config_file):
                 with open(self.config_file, "r", encoding="utf-8") as f:
                     config_data = json.load(f)
-                    default_name = config_data.get("default_template_name", "")
+                    default_name = ""
+                    if template_type == "SVG Template":
+                        default_name = config_data.get("default_svg_template_name", "")
+                    elif template_type == "Text Template":
+                        default_name = config_data.get("default_template_name", "")
 
                     if default_name:
                         # Find the index of this template in the list
@@ -518,7 +534,7 @@ class TextTemplateManager(BaseTemplateManager):
 
     def __init__(self, parent=None):
         super().__init__(
-            template_dir=get_user_templates_path(),
+            template_dir=get_text_templates_path(),
             config_file=get_template_config_path(),
             template_type="Text Template",
             parent=parent,

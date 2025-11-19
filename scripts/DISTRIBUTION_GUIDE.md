@@ -67,7 +67,7 @@ StoryEditor_v1.0_TIMESTAMP/
 
 ```python
 get_app_root()              # Returns the application root directory
-get_user_templates_path()   # Returns user_data/templates/
+get_text_templates_path()   # Returns user_data/templates/
 get_config_path()           # Returns user_data/config/template.json
 get_resource_path(path)     # Returns bundled resources (fonts, images)
 ```
@@ -109,9 +109,9 @@ Should use `project_root/user_data/`
 - **config/app_paths.py** - Centralized path management for both dev and exe modes
 
 ### Updated to Use Persistent Paths:
-- **config/template_manager.py** - Uses `get_user_templates_path()` and `get_config_path()`
+- **config/template_manager.py** - Uses `get_text_templates_path()` and `get_config_path()`
 - **config/template_loader.py** - Uses `get_config_path()`
-- **story_editor/widgets/new_text_edit.py** - Uses `get_user_templates_path()`
+- **story_editor/widgets/new_text_edit.py** - Uses `get_text_templates_path()`
 
 ### Distribution Scripts:
 - **create_distribution.py** - Creates release package

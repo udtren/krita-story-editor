@@ -49,12 +49,12 @@ def get_user_data_path():
     return os.path.join(get_app_root(), "user_data")
 
 
-def get_user_templates_path():
+def get_text_templates_path():
     """
     Get the persistent directory for user-created templates
     Location: {app_root}/user_data/templates/
     """
-    templates_dir = os.path.join(get_user_data_path(), "templates")
+    templates_dir = os.path.join(get_user_data_path(), "text_templates")
 
     # Create directory if it doesn't exist
     if not os.path.exists(templates_dir):
@@ -140,7 +140,7 @@ def copy_default_configs():
     import shutil
 
     config_dir = get_config_dir()
-    templates_dir = get_user_templates_path()
+    templates_dir = get_text_templates_path()
     svg_templates_dir = get_svg_templates_path()
 
     # Copy config files
@@ -174,7 +174,7 @@ def copy_default_configs():
         if not os.listdir(templates_dir):
             # Get bundled templates directory
             bundled_templates = get_resource_path(
-                os.path.join("config", "user_templates")
+                os.path.join("config", "text_templates")
             )
 
             if os.path.exists(bundled_templates):

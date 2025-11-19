@@ -36,8 +36,8 @@ Thumbs.db
 *.kra~
 
 # User templates (ignore all except default templates)
-control_tower/utils/user_templates/*
-!control_tower/utils/user_templates/default*
+control_tower/utils/text_templates/*
+!control_tower/utils/text_templates/default*
 
 # Other
 .claude/

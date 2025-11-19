@@ -18,7 +18,7 @@ from config.template_loader import (
     get_default_template_name,
     get_default_svg_template_name,
 )
-from config.app_paths import get_user_templates_path, get_svg_templates_path
+from config.app_paths import get_text_templates_path, get_svg_templates_path
 
 
 def add_new_text_widget(
@@ -115,10 +115,10 @@ def add_new_text_widget(
         choose_svg_template_combo.setCurrentIndex(default_index)
 
     # ===================================================
-    # Find all XML files in user_templates directory
+    # Find all XML files in text_templates directory
     # ===================================================
 
-    template_dir = get_user_templates_path()
+    template_dir = get_text_templates_path()
     template_files = []
 
     if os.path.exists(template_dir):
