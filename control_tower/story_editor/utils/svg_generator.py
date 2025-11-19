@@ -30,10 +30,6 @@ def create_new_svg_data(svg_template, shape_id, text_segment) -> str:
         # If parsing fails, fall back to simple string replacement
         return svg_content.replace("TEXT_TO_REPLACE", escaped_text)
 
-    # Register namespaces to preserve them in output
-    ET.register_namespace("", "http://www.w3.org/2000/svg")
-    ET.register_namespace("krita", "http://krita.org/namespaces/svg/krita")
-
     root.text = escaped_text
 
     # Convert any tspan-like text back to actual tspan elements
