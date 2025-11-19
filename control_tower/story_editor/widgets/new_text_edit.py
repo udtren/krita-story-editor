@@ -3,7 +3,7 @@ New Text Widget Management
 Handles adding new text widgets to the Story Editor
 """
 
-from PyQt5.QtWidgets import QTextEdit, QComboBox, QHBoxLayout
+from PyQt5.QtWidgets import QTextEdit, QComboBox, QHBoxLayout, QVBoxLayout, QLabel
 from PyQt5.QtCore import Qt
 import os
 import glob
@@ -14,8 +14,11 @@ from config.story_editor_loader import (
     TEXT_EDITOR_MIN_HEIGHT,
     TEXT_EDITOR_MAX_HEIGHT,
 )
-from config.template_loader import get_default_template_name
-from config.app_paths import get_user_templates_path
+from config.template_loader import (
+    get_default_template_name,
+    get_default_svg_template_name,
+)
+from config.app_paths import get_user_templates_path, get_svg_templates_path
 
 
 def add_new_text_widget(
@@ -61,13 +64,60 @@ def add_new_text_widget(
 
     svg_section_level_layout.addWidget(text_edit)
 
+    template_section_layout = QVBoxLayout()
+
     # Create template selector combo box
+    svg_template_label = QLabel("SVG Template:")
+    svg_template_label.setStyleSheet(
+        "color: #000000; border: none; background: transparent;"
+    )
+    choose_svg_template_combo = QComboBox()
+    choose_svg_template_combo.setMinimumWidth(200)
+    choose_svg_template_combo.setMaximumWidth(400)
+    choose_svg_template_combo.setStyleSheet(get_template_combo_stylesheet())
+
+    template_label = QLabel("Text Template:")
+    template_label.setStyleSheet(
+        "color: #000000; border: none;background: transparent;"
+    )
     choose_template_combo = QComboBox()
     choose_template_combo.setMinimumWidth(200)
     choose_template_combo.setMaximumWidth(400)
     choose_template_combo.setStyleSheet(get_template_combo_stylesheet())
 
+    template_section_layout.addWidget(svg_template_label)
+    template_section_layout.addWidget(choose_svg_template_combo)
+    template_section_layout.addWidget(template_label)
+    template_section_layout.addWidget(choose_template_combo)
+    template_section_layout.addStretch()
+
+    # ===================================================
+    # Find all XML files in svg_templates directory
+    # ===================================================
+    svg_template_dir = get_svg_templates_path()
+    svg_template_files = []
+
+    if os.path.exists(svg_template_dir):
+        # Get all .xml files
+        xml_files = glob.glob(os.path.join(svg_template_dir, "*.xml"))
+        for xml_file in sorted(xml_files):
+            # Get just the filename without path
+            filename = os.path.basename(xml_file)
+            svg_template_files.append((filename, xml_file))
+            choose_svg_template_combo.addItem(filename, xml_file)
+    if not svg_template_files:
+        socket_handler.log(f"No template files found in {svg_template_dir}")
+
+    # Set default selection
+    default_svg_template_name = get_default_svg_template_name()
+    default_index = choose_svg_template_combo.findText(default_svg_template_name)
+    if default_index >= 0:
+        choose_svg_template_combo.setCurrentIndex(default_index)
+
+    # ===================================================
     # Find all XML files in user_templates directory
+    # ===================================================
+
     template_dir = get_user_templates_path()
     template_files = []
 
@@ -89,7 +139,9 @@ def add_new_text_widget(
     if default_index >= 0:
         choose_template_combo.setCurrentIndex(default_index)
 
-    svg_section_level_layout.addWidget(choose_template_combo, alignment=Qt.AlignTop)
+    # ===================================================
+
+    svg_section_level_layout.addLayout(template_section_layout)
 
     # Add to the ACTIVE document's layout
     active_layout.addLayout(svg_section_level_layout)
@@ -102,6 +154,7 @@ def add_new_text_widget(
             "is_new": True,  # Flag to identify new text
             "document_name": active_doc_name,  # Store which document this belongs to
             "template_combo": choose_template_combo,  # Store reference to combo box
+            "svg_template_combo": choose_svg_template_combo,
             "original_text": "",
         }
     )

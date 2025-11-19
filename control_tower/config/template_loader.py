@@ -38,3 +38,13 @@ def get_default_template_name():
         return data.get("default_template_name", "")
     except FileNotFoundError:
         return ""
+
+
+def get_default_svg_template_name():
+    """Return the default SVG template name for new SVG text widgets"""
+    try:
+        with open(_config_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        return data.get("default_svg_template_name", "")
+    except FileNotFoundError:
+        return ""

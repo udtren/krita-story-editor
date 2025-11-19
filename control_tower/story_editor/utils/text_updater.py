@@ -58,6 +58,7 @@ def create_svg_data_for_doc(
             # テンプレート選択
             template_text = ""
             template_combo = item.get("template_combo")
+
             if template_combo:
                 template_path = template_combo.currentData()
                 try:
@@ -91,7 +92,22 @@ def create_svg_data_for_doc(
                 text_elements.append(text_section_data)
 
             # Generate full SVG data
-            svg_data = generate_full_svg_data(text_elements)
+            svg_template_combo = item.get("svg_template_combo")
+            if svg_template_combo:
+                svg_template_path = svg_template_combo.currentData()
+                try:
+                    with open(svg_template_path, "r", encoding="utf-8") as f:
+                        svg_template_text = f.read()
+                except Exception as e:
+                    socket_handler.log(
+                        f"❌ Error loading template {svg_template_path}: {e}"
+                    )
+                    continue
+            else:
+                socket_handler.log("⚠️ No template combo found, skipping")
+                continue
+
+            svg_data = generate_full_svg_data(text_elements, svg_template_text)
             svg_data = remove_namespace_prefixes(svg_data)
 
             write_log(f"📝 Generated SVG data for new text:\n{svg_data}")

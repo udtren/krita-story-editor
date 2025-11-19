@@ -94,7 +94,7 @@ def update_existing_svg_data(svg_content, layer_shapes, changes) -> str:
     for text_elem in text_elements:
         element_id = text_elem.get("id")
 
-        print(f"each text_elem: {ET.tostring(text_elem, encoding='unicode')}")
+        # print(f"each text_elem: {ET.tostring(text_elem, encoding='unicode')}")
 
         if element_id in shape_id_to_new_text:
             new_text = shape_id_to_new_text[element_id]
@@ -119,7 +119,7 @@ def update_existing_svg_data(svg_content, layer_shapes, changes) -> str:
                 # Set the text content directly
                 text_elem.text = new_text
 
-                print(f"text_elem: {text_elem.text}")
+                # print(f"text_elem: {text_elem.text}")
 
     # Remove text elements marked for deletion
     for text_elem in elements_to_remove:
@@ -181,7 +181,7 @@ def convert_text_tspans_to_elements(element):
         convert_text_tspans_to_elements(child)
 
 
-def generate_full_svg_data(text_elements: list[str]) -> str:
+def generate_full_svg_data(text_elements: list[str], svg_placeholder) -> str:
     """
     The text_elements example:
     [
@@ -191,14 +191,13 @@ def generate_full_svg_data(text_elements: list[str]) -> str:
 
     """
 
-    svg_start_template = """<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:krita="http://krita.org/namespaces/svg/krita" xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" width="864pt" height="1368pt" viewBox="0 0 864 1368">"""
-    svg_closing_tag = "</svg>"
+    full_text_content = ""
 
-    # Combine all text elements into the SVG structure
-    full_svg_content = svg_start_template + "\n"
     for text_elem in text_elements:
-        full_svg_content += text_elem + "\n"
-    full_svg_content += svg_closing_tag
+        full_text_content += text_elem + "\n"
+    full_svg_content = svg_placeholder.replace("TEXT_TAG_TO_REPLACE", full_text_content)
+
+    # print(f"full_svg_content: {full_svg_content}")
 
     return full_svg_content
 
