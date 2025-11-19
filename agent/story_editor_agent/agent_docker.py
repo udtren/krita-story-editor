@@ -139,9 +139,9 @@ class StoryEditorAgentDocker(QDockWidget):
 
                     write_log(f"Received merged requests: {merged_requests}")
 
-                    ############################################################
+                    # ===================================================================
                     # Separate opened and offline requests
-                    ############################################################
+                    # ===================================================================
                     opened_docs_requests = []
                     offline_docs_requests = []
 
@@ -161,11 +161,11 @@ class StoryEditorAgentDocker(QDockWidget):
                     write_log(
                         f"Offline documents: {[d.get('doc_name') for d in offline_docs_requests]}"
                     )
-                    ############################################################
+                    # ===================================================================
 
-                    ############################################################
+                    # ===================================================================
                     # Update Opened Documents
-                    ############################################################
+                    # ===================================================================
                     online_progress_messages = []
 
                     for doc in opened_docs:
@@ -207,9 +207,9 @@ class StoryEditorAgentDocker(QDockWidget):
                                         )
                                 online_progress_messages.append(result_message_base)
 
-                    ############################################################
+                    # ===================================================================
                     # Update Offline Documents
-                    ############################################################
+                    # ===================================================================
                     offline_progress_messages = []
 
                     if len(offline_docs_requests) > 0:
@@ -261,9 +261,9 @@ class StoryEditorAgentDocker(QDockWidget):
                 all_svg_data = []
                 opened_docs_path = []
 
-                ####################################################
+                # ===================================================================
                 # Get all docs svg data from opened documents
-                ####################################################
+                # ===================================================================
                 if not opened_docs:
                     response = {"success": False, "error": "No single active document"}
                 else:
@@ -277,12 +277,12 @@ class StoryEditorAgentDocker(QDockWidget):
 
                     except Exception as e:
                         response = {"success": False, "error": str(e)}
-                ####################################################
+                # ===================================================================
 
                 if krita_folder_path:
-                    ####################################################
+                    # ===================================================================
                     # Get all docs svg data from .kra files in folder
-                    ####################################################
+                    # ===================================================================
                     try:
                         write_log(f"krita_folder_path: {krita_folder_path}")
                         offline_docs_svg_data = get_all_offline_docs_from_folder(
@@ -292,7 +292,7 @@ class StoryEditorAgentDocker(QDockWidget):
 
                     except Exception as e:
                         response = {"success": False, "error": str(e)}
-                    ####################################################
+                    # ===================================================================
 
                     self.comic_config_info = get_comic_config_info(krita_folder_path)
                 else:

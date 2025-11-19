@@ -266,23 +266,6 @@ def check_svg_has_text(svg_content):
         return True
     return False
 
-    # try:
-    #     root = ET.fromstring(svg_content)
-
-    #     for elem in root.iter():
-    #         tag_lower = elem.tag.lower()
-    #         if "text" in tag_lower and elem.tag.endswith("text"):
-    #             return True
-
-    #     return False
-
-    # except Exception as e:
-    #     write_log(f"Error parsing SVG for text check: {e}")
-    #     import traceback
-
-    #     write_log(traceback.format_exc())
-    #     return False
-
 
 def krita_file_name_safe(doc):
 
@@ -296,16 +279,4 @@ def krita_file_name_safe(doc):
     else:
         doc_name = "krita_file_not_saved"
 
-    # if doc.name() == "":
-    #     if doc.fileName():
-    #         doc_path = doc.fileName()
-    #         doc_name = (
-    #             os.path.basename(doc_path).replace(".kra", "")
-    #             if doc
-    #             else "krita_file_not_saved"
-    #         )
-    #     else:
-    #         doc_name = "krita_file_not_saved"
-    # else:
-    #     doc_name = doc.name()
     return doc_name

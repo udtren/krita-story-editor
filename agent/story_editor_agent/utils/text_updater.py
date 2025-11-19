@@ -63,9 +63,9 @@ def add_svg_layer_to_doc(doc, new_texts_added: [dict]):
                 write_log("[ERROR] No active document")
                 return 0
 
-            ###################################
+            # =============================
             # Create new vector layer
-            ###################################
+            # =============================
             layer_name = f"Text-{uuid.uuid4().hex[:4]}"
             new_layer = doc.createVectorLayer(layer_name)
             doc.rootNode().addChildNode(new_layer, None)

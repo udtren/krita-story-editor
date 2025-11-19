@@ -86,7 +86,9 @@ class BaseTemplateManager(QWidget):
         right_layout.addWidget(right_label)
 
         self.template_editor = QTextEdit()
-        self.template_editor.setPlaceholderText(self.get_placeholder_text())
+        self.template_editor.setPlaceholderText(
+            self.get_placeholder_text(self.template_type)
+        )
         right_layout.addWidget(self.template_editor)
 
         # Editor buttons
@@ -113,26 +115,43 @@ class BaseTemplateManager(QWidget):
         # Connect text changed signal
         self.template_editor.textChanged.connect(self.on_text_changed)
 
-    def get_placeholder_text(self):
+    def get_placeholder_text(self, template_type=None):
         """Get placeholder text for the editor - can be overridden by subclasses"""
-        return (
-            "Select a template from the list to edit, or create a new one.\n\n"
-            "Template must contain:\n"
-            "- SHAPE_ID: Will be replaced with unique shape ID\n"
-            "- TEXT_TO_REPLACE: Will be replaced with actual text content"
-        )
+        if template_type == "SVG Template":
+            return (
+                "Select a template from the list to edit, or create a new one.\n\n"
+                "Template must contain:\n"
+                "- TEXT_TAG_TO_REPLACE: Will be replaced with <text> elements"
+            )
+        elif template_type == "Text Template":
+            return (
+                "Select a template from the list to edit, or create a new one.\n\n"
+                "Template must contain:\n"
+                "- SHAPE_ID: Will be replaced with unique shape ID\n"
+                "- TEXT_TO_REPLACE: Will be replaced with actual text content"
+            )
 
-    def get_default_content(self):
+    def get_default_content(self, template_type=None):
         """Get default content for new templates - can be overridden by subclasses"""
-        return (
-            '<text id="SHAPE_ID" krita:useRichText="true" text-rendering="auto" '
-            'krita:textVersion="3" transform="translate(32, 122)" '
-            'fill="#000000" stroke-opacity="0" stroke="#000000" stroke-width="0" '
-            'stroke-linecap="square" stroke-linejoin="bevel" kerning="none" '
-            'letter-spacing="0" word-spacing="0" '
-            'style="text-align: start;text-align-last: auto;font-family: Arial;font-size: 18;">'
-            '<tspan x="0">TEXT_TO_REPLACE</tspan></text>'
-        )
+        if template_type == "SVG Template":
+            return (
+                '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" '
+                'xmlns:krita="http://krita.org/namespaces/svg/krita" '
+                'xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" '
+                'width="344.76pt" height="193.56pt" '
+                'viewBox="0 0 344.76 193.56"> '
+                "<defs />TEXT_TAG_TO_REPLACE</svg>"
+            )
+        elif template_type == "Text Template":
+            return (
+                '<text id="SHAPE_ID" krita:textVersion="3"  '
+                'transform="translate(37.0800000000005, 113.064375000001)"  '
+                'paint-order="stroke fill markers" fill="#000000" '
+                'stroke-opacity="0" stroke="#000000" stroke-width="0" '
+                'stroke-linecap="square" stroke-linejoin="bevel" '
+                'style="inline-size: 217.080000000003;font-size: 14;white-space: pre-wrap;">'
+                "TEXT_TO_REPLACE</text>"
+            )
 
     def load_template_list(self):
         """Load all template files from the template directory"""
@@ -214,7 +233,7 @@ class BaseTemplateManager(QWidget):
             return
 
         # Create default template content
-        default_content = self.get_default_content()
+        default_content = self.get_default_content(self.template_type)
 
         try:
             with open(file_path, "w", encoding="utf-8") as f:

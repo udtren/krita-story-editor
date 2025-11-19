@@ -153,9 +153,9 @@ class StoryEditorWindow:
             doc_horizontal_layout = QHBoxLayout()
             all_docs_layout.addLayout(doc_horizontal_layout)
 
-            ###################################################
+            # ===================================================================
             # Thumbnail QVBoxLayout
-            ###################################################
+            # ===================================================================
             thumbnail_status_layout = QHBoxLayout()
             thumbnail_status_layout.setSpacing(
                 0
@@ -214,9 +214,9 @@ class StoryEditorWindow:
                 )
             )
 
-            ###################################################
+            # ===================================================================
             # Create Document status label on the right side of thumbnail
-            ###################################################
+            # ===================================================================
             vertical_text_for_status = lambda: (f"opened" if opened else f"closed")
             document_status_label = VerticalLabel(vertical_text_for_status())
             document_status_label.setFixedSize(24, 128)
@@ -235,9 +235,9 @@ class StoryEditorWindow:
             thumbnail_status_container.setLayout(thumbnail_status_layout)
             thumbnail_layout.addWidget(thumbnail_status_container, row, col)
 
-            ###################################################
+            # ===================================================================
             # Store initial text state for this document
-            ###################################################
+            # ===================================================================
             self.all_docs_text_state[doc_name] = {
                 "document_name": doc_name,
                 "document_path": doc_path,
@@ -248,9 +248,9 @@ class StoryEditorWindow:
                 "text_edit_widgets": [],  # For find/replace functionality
             }
 
-            ###################################################
+            # ===================================================================
             # Add Document Level Layout
-            ###################################################
+            # ===================================================================
             # Document header with clickable button to activate
             doc_header_layout = QHBoxLayout()
 
@@ -261,9 +261,9 @@ class StoryEditorWindow:
             activate_btn.setFixedWidth(40)  # Make button thin
             activate_btn.setMinimumHeight(200)  # Make button tall
 
-            ###################################################
+            # ===================================================================
             # Setting for Opened / Closed documents
-            ###################################################
+            # ===================================================================
             if not opened:
                 document_status_label.setStyleSheet(
                     get_thumbnail_status_label_disabled_stylesheet()
@@ -318,9 +318,9 @@ class StoryEditorWindow:
             # Store the layout for this document
             self.doc_layouts[doc_name] = doc_level_layers_layout
 
-            ###################################################
+            # ===================================================================
             # Layer Level Layouts
-            ###################################################
+            # ===================================================================
             for layer_data in self.svg_data:
                 layer_name = layer_data.get("layer_name", "unknown")
                 layer_id = layer_data.get("layer_id", "unknown")
@@ -388,11 +388,11 @@ class StoryEditorWindow:
                     )
 
                     doc_level_layers_layout.addLayout(svg_section_level_layout)
-            ###################################################
+            # ===================================================================
 
             # Add each document container to horizontal layout (AFTER all layers processed)
             doc_horizontal_layout.addWidget(doc_container, stretch=1)
-        ###################################################
+        # ===================================================================
 
         # Add stretch at the end of thumbnail layout (inside the container for proper scrolling)
         thumbnail_layout.setRowStretch(thumbnail_layout.rowCount(), 1)
@@ -614,9 +614,9 @@ class StoryEditorWindow:
 
         show_find_replace_dialog(self.parent_window, self.all_docs_text_state)
 
-    #####################################################################
+    # ===================================================================
     # Context Menu Handlers
-    #####################################################################
+    # ===================================================================
 
     def show_thumbnail_context_menu(
         self, pos, doc_name, thumbnail_label, doc_path, comic_config_info
@@ -748,4 +748,4 @@ class StoryEditorWindow:
             config_filepath=config_filepath,
         )
 
-    #####################################################################
+    # ===================================================================
