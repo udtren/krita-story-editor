@@ -38,6 +38,7 @@ Thumbs.db
 # User templates (ignore all except default templates)
 control_tower/utils/text_templates/*
 !control_tower/utils/text_templates/default*
+user_data
 
 # Other
 .claude/
