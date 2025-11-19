@@ -46,18 +46,22 @@ def create_svg_data_for_doc(
 
         write_log(f"📝 Processing new text widget with current_text:\n{current_text}")
 
-        ##########################################
-        ## レイヤ単位で処理を実施
-        ##########################################
+        # =========================
+        # レイヤ単位で処理を実施
+        # =========================
         # トリプル改行でテキストを分割, 各テキストは別々の<text>要素として追加される
         text_segments: list[str] = split_text_by_triple_linebreak(current_text)
 
         write_log(f"📝 Split into {len(text_segments)} segments: {text_segments}")
 
         if text_segments:  # Only add if we have segments
-            # テンプレート選択
+            # ===========================================
+            # Load SVG template for new text elements
+            # ===========================================
+
             template_text = ""
             template_combo = item.get("template_combo")
+
             if template_combo:
                 template_path = template_combo.currentData()
                 try:
@@ -72,11 +76,14 @@ def create_svg_data_for_doc(
                 socket_handler.log("⚠️ No template combo found, skipping")
                 continue
 
+            # ===================================================================
+            # Create <text> elements for each text segment
+            # ===================================================================
             text_elements = []
-            # Generate random UUID for shape ID
+            # Generate random UUID for each shape ID
             shape_id_base = f"shape{uuid.uuid4().hex[:4]}_"
 
-            # リスト型テキストセグメントごとにSVG要素を生成
+            # add generated <text> elements to text_elements list
             for index, segment in enumerate(text_segments):
                 shape_id = f"{shape_id_base}{index}"
 
@@ -90,18 +97,36 @@ def create_svg_data_for_doc(
                 )
                 text_elements.append(text_section_data)
 
-            # Generate full SVG data
-            svg_data = generate_full_svg_data(text_elements)
+            # ===================================================================
+            # Combine text_elements list and svg template to generate full SVG data
+            # ===================================================================
+            svg_template_combo = item.get("svg_template_combo")
+            if svg_template_combo:
+                svg_template_path = svg_template_combo.currentData()
+                try:
+                    with open(svg_template_path, "r", encoding="utf-8") as f:
+                        svg_template_text = f.read()
+                except Exception as e:
+                    socket_handler.log(
+                        f"❌ Error loading template {svg_template_path}: {e}"
+                    )
+                    continue
+            else:
+                socket_handler.log("⚠️ No template combo found, skipping")
+                continue
+
+            svg_data = generate_full_svg_data(text_elements, svg_template_text)
             svg_data = remove_namespace_prefixes(svg_data)
+            # ===================================================================
 
             write_log(f"📝 Generated SVG data for new text:\n{svg_data}")
 
             final_result["new_texts_added"].append({"svg_data": svg_data})
         ##########################################
 
-    ####################################################
+    # ================================
     # Process existing text widgets
-    ####################################################
+    # ================================
     # Process each layer group
     for layer_id, layer_data in layer_groups.items():
         layer_name = layer_data["layer_name"]
@@ -122,7 +147,7 @@ def create_svg_data_for_doc(
                 }
             )
 
-    ####################################################
+    # ===================================================================
 
     if (
         len(final_result["existing_texts_updated"]) == 0

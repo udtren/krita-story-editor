@@ -1,7 +1,6 @@
 import os
 from krita import *
-from PyQt5.QtNetwork import QLocalServer, QLocalSocket
-from PyQt5.QtCore import QByteArray
+from PyQt5.QtNetwork import QLocalServer
 from PyQt5.QtWidgets import (
     QWidget,
     QVBoxLayout,
@@ -13,7 +12,6 @@ from PyQt5.QtWidgets import (
 )
 import json
 import io
-import zipfile
 import sys
 from .utils import (
     get_opened_doc_svg_data,
@@ -23,6 +21,10 @@ from .utils import (
     get_all_offline_docs_from_folder,
     update_offline_kra_file,
     krita_file_name_safe,
+    get_comic_config_info,
+    add_new_document_from_template,
+    duplicate_document,
+    delete_document,
 )
 from .config.story_editor_agent import (
     DIALOG_WIDTH,
@@ -45,6 +47,7 @@ class StoryEditorAgentDocker(QDockWidget):
         self.server.listen("krita_story_editor_bridge")
 
         self.clients = []
+        self.comic_config_info = None
 
         # Create UI
         self.setup_ui()
@@ -136,9 +139,9 @@ class StoryEditorAgentDocker(QDockWidget):
 
                     write_log(f"Received merged requests: {merged_requests}")
 
-                    ############################################################
+                    # ===================================================================
                     # Separate opened and offline requests
-                    ############################################################
+                    # ===================================================================
                     opened_docs_requests = []
                     offline_docs_requests = []
 
@@ -158,16 +161,18 @@ class StoryEditorAgentDocker(QDockWidget):
                     write_log(
                         f"Offline documents: {[d.get('doc_name') for d in offline_docs_requests]}"
                     )
-                    ############################################################
+                    # ===================================================================
 
-                    ############################################################
+                    # ===================================================================
                     # Update Opened Documents
-                    ############################################################
+                    # ===================================================================
                     online_progress_messages = []
 
                     for doc in opened_docs:
                         for doc_data in opened_docs_requests:
-                            write_log(f"[DEBUG] Document: {krita_file_name_safe(doc)}")
+                            write_log(
+                                f"[DEBUG] agent_docker compare Document name: {krita_file_name_safe(doc)}"
+                            )
                             if krita_file_name_safe(doc) == doc_data.get("doc_name"):
 
                                 existing_texts_updated = doc_data.get(
@@ -202,9 +207,9 @@ class StoryEditorAgentDocker(QDockWidget):
                                         )
                                 online_progress_messages.append(result_message_base)
 
-                    ############################################################
+                    # ===================================================================
                     # Update Offline Documents
-                    ############################################################
+                    # ===================================================================
                     offline_progress_messages = []
 
                     if len(offline_docs_requests) > 0:
@@ -256,9 +261,9 @@ class StoryEditorAgentDocker(QDockWidget):
                 all_svg_data = []
                 opened_docs_path = []
 
-                ####################################################
+                # ===================================================================
                 # Get all docs svg data from opened documents
-                ####################################################
+                # ===================================================================
                 if not opened_docs:
                     response = {"success": False, "error": "No single active document"}
                 else:
@@ -272,14 +277,14 @@ class StoryEditorAgentDocker(QDockWidget):
 
                     except Exception as e:
                         response = {"success": False, "error": str(e)}
-                ####################################################
+                # ===================================================================
 
                 if krita_folder_path:
-                    ####################################################
+                    # ===================================================================
                     # Get all docs svg data from .kra files in folder
-                    ####################################################
+                    # ===================================================================
                     try:
-                        write_log(f"Opened docs path: {opened_docs_path}")
+                        write_log(f"krita_folder_path: {krita_folder_path}")
                         offline_docs_svg_data = get_all_offline_docs_from_folder(
                             krita_folder_path, opened_docs_path
                         )
@@ -287,14 +292,27 @@ class StoryEditorAgentDocker(QDockWidget):
 
                     except Exception as e:
                         response = {"success": False, "error": str(e)}
-                    ####################################################
+                    # ===================================================================
+
+                    self.comic_config_info = get_comic_config_info(krita_folder_path)
+                else:
+                    self.comic_config_info = None
 
                 # Sort all_svg_data by document_name
                 all_svg_data.sort(key=lambda x: x.get("document_name", ""))
 
-                response = {"success": True, "all_docs_svg_data": all_svg_data}
-                # write_log(f"all_docs_svg_data: {all_svg_data}")
-                client.write(json.dumps(response).encode("utf-8"))
+                if self.comic_config_info:
+                    write_log(f"Comic config info: {self.comic_config_info}")
+
+                    response = {
+                        "success": True,
+                        "all_docs_svg_data": all_svg_data,
+                        "comic_config_info": self.comic_config_info,
+                    }
+                    client.write(json.dumps(response).encode("utf-8"))
+                else:
+                    response = {"success": True, "all_docs_svg_data": all_svg_data}
+                    client.write(json.dumps(response).encode("utf-8"))
 
             case "save_all_opened_docs":
                 try:
@@ -339,6 +357,30 @@ class StoryEditorAgentDocker(QDockWidget):
                     response = {"success": False, "error": str(e)}
                     client.write(json.dumps(response).encode("utf-8"))
 
+            case "open_document":
+                try:
+                    doc_path = request.get("doc_path", "")
+                    if os.path.exists(doc_path):
+                        opened_doc = Krita.instance().openDocument(doc_path)
+                        if opened_doc:
+                            Krita.instance().setActiveDocument(opened_doc)
+                            Application.activeWindow().addView(opened_doc)
+                        response = {
+                            "success": True,
+                            "response_type": "open_document",
+                            "result": f"Document '{doc_path}' opened.",
+                        }
+                    else:
+                        response = {
+                            "success": False,
+                            "response_type": "open_document",
+                            "error": f"File '{doc_path}' does not exist.",
+                        }
+                    client.write(json.dumps(response).encode("utf-8"))
+                except Exception as e:
+                    response = {"success": False, "error": str(e)}
+                    client.write(json.dumps(response).encode("utf-8"))
+
             case "close_document":
                 try:
                     doc_name = request.get("doc_name", "")
@@ -360,6 +402,81 @@ class StoryEditorAgentDocker(QDockWidget):
                             "success": False,
                             "response_type": "close_document",
                             "error": f"Document '{doc_name}' not found among opened documents.",
+                        }
+                    client.write(json.dumps(response).encode("utf-8"))
+                except Exception as e:
+                    response = {"success": False, "error": str(e)}
+                    client.write(json.dumps(response).encode("utf-8"))
+
+            case "add_from_template":
+                try:
+                    target_doc_path = request.get("doc_path", "")
+                    template_path = request.get("template_path", "")
+                    config_filepath = request.get("config_filepath", None)
+                    result = add_new_document_from_template(
+                        target_doc_path, template_path, config_filepath
+                    )
+                    if result["success"]:
+                        new_filename = result.get("new_filename", "")
+                        response = {
+                            "success": True,
+                            "response_type": "add_from_template",
+                            "result": f"{new_filename} created from template",
+                        }
+                    else:
+                        response = {
+                            "success": False,
+                            "response_type": "add_from_template",
+                            "error": result.get("error", "Unknown error"),
+                        }
+                    client.write(json.dumps(response).encode("utf-8"))
+                except Exception as e:
+                    response = {"success": False, "error": str(e)}
+                    client.write(json.dumps(response).encode("utf-8"))
+
+            case "duplicate_document":
+                try:
+                    doc_name = request.get("doc_name", "")
+                    doc_path = request.get("doc_path", "")
+                    config_filepath = request.get("config_filepath", None)
+                    result = duplicate_document(doc_name, doc_path, config_filepath)
+                    new_filename = result.get("new_filename", "")
+                    if result["success"]:
+                        original_filename = result.get("original_filename", "")
+                        response = {
+                            "success": True,
+                            "response_type": "duplicate_document",
+                            "result": f"{new_filename} created from {original_filename} by duplication",
+                        }
+                    else:
+                        response = {
+                            "success": False,
+                            "response_type": "duplicate_document",
+                            "error": result.get("error", "Unknown error"),
+                        }
+                    client.write(json.dumps(response).encode("utf-8"))
+                except Exception as e:
+                    response = {"success": False, "error": str(e)}
+                    client.write(json.dumps(response).encode("utf-8"))
+
+            case "delete_document":
+                try:
+                    doc_name = request.get("doc_name", "")
+                    doc_path = request.get("doc_path", "")
+                    config_filepath = request.get("config_filepath", None)
+                    result = delete_document(doc_name, doc_path, config_filepath)
+                    if result["success"]:
+                        deleted_filename = result.get("deleted_filename", "")
+                        response = {
+                            "success": True,
+                            "response_type": "delete_document",
+                            "result": f"{deleted_filename} deleted successfully",
+                        }
+                    else:
+                        response = {
+                            "success": False,
+                            "response_type": "delete_document",
+                            "error": result.get("error", "Unknown error"),
                         }
                     client.write(json.dumps(response).encode("utf-8"))
                 except Exception as e:

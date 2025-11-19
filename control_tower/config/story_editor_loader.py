@@ -19,14 +19,26 @@ except FileNotFoundError:
     _config = {
         "text_editor": {"font_family": "Arial", "font_size": 14},
         "tspan": {
-            "background_color": "#2b2b2b", "text_color": "#e0e0e0", "font_size": 12,
-            "border_color": "#555555", "selection_color": "#42a5f5", "min_height": 80, "max_height": 300
+            "background_color": "#2b2b2b",
+            "text_color": "#e0e0e0",
+            "font_size": 12,
+            "border_color": "#555555",
+            "selection_color": "#42a5f5",
+            "min_height": 80,
+            "max_height": 300,
         },
         "template_combo": {
-            "background_color": "#353535", "text_color": "#e0e0e0", "font_size": 11,
-            "border_color": "#555555", "hover_background": "#414141"
+            "background_color": "#353535",
+            "text_color": "#e0e0e0",
+            "font_size": 11,
+            "border_color": "#555555",
+            "hover_background": "#414141",
         },
-        "tooltip": {"background_color": "#1e1e1e", "text_color": "#e0e0e0", "border_color": "#555555"}
+        "tooltip": {
+            "background_color": "#1e1e1e",
+            "text_color": "#e0e0e0",
+            "border_color": "#555555",
+        },
     }
 
 
@@ -270,6 +282,32 @@ def get_activate_button_stylesheet():
     """
 
 
+def get_thumbnail_status_label_disabled_stylesheet():
+    return f"""
+        QLabel {{
+            border: 2px solid #555; 
+            font-weight: bold;
+            font-size: 14px;
+            qproperty-alignment: AlignCenter;
+            color: #000000;
+            background-color: #5f5f5f;
+        }}
+    """
+
+
+def get_thumbnail_status_label_stylesheet():
+    return f"""
+        QLabel {{
+            border: 2px solid #555; 
+            font-weight: bold;
+            font-size: 14px;
+            qproperty-alignment: AlignCenter;
+            background-color: #aa805a;
+            color: #000000;
+        }}
+    """
+
+
 def get_template_combo_stylesheet():
     """Get the stylesheet for template combo box"""
     combo = _config["template_combo"]
@@ -277,6 +315,50 @@ def get_template_combo_stylesheet():
     return f"""
     color: {combo['color']};
     background-color: {combo['background_color']};
+    """
+
+
+def get_thumbnail_right_click_menu_stylesheet():
+    """Get the stylesheet for thumbnail right-click menu"""
+
+    return """
+        QMenu {
+            background-color: #2b2b2b;      /* Menu background */
+            border: 1px solid #555;         /* Border */
+            padding: 5px;                   /* Space around items */
+            border-radius: 4px;             /* Rounded corners */
+        }
+
+        QMenu::item {
+            padding: 5px 25px 5px 10px;     /* Item padding */
+            color: #ffffff;                 /* Text color */
+            min-width: 150px;               /* Minimum width */
+        }
+
+        QMenu::item:selected {
+            background-color: #3d8ec9;      /* Hover background */
+            color: white;
+        }
+
+        QMenu::item:disabled {
+            color: #808080;                 /* Disabled text color */
+        }
+
+        QMenu::separator {
+            height: 1px;
+            background-color: #555;
+            margin: 5px 0px;
+        }
+
+        QMenu::indicator {
+            width: 13px;
+            height: 13px;
+            /* For checkable menu items */
+        }
+
+        QMenu::icon {
+            padding-left: 10px;
+        }
     """
 
 

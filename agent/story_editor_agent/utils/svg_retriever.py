@@ -26,7 +26,7 @@ def get_opened_doc_svg_data(doc):
             write_log("[ERROR] No active document")
             return []
 
-        write_log(f"[DEBUG] Document: {doc_name}")
+        write_log(f"[DEBUG] get_opened_doc_svg_data Document: {doc_name}")
 
         svg_data = []
         response_data = {
@@ -43,7 +43,7 @@ def get_opened_doc_svg_data(doc):
             if str(layer.type()) == "vectorlayer":
                 svg_content = layer.toSvg()
 
-                if svg_content:
+                if check_svg_has_text(svg_content):
                     svg_data.append(
                         {
                             "layer_name": layer.name(),
@@ -52,7 +52,7 @@ def get_opened_doc_svg_data(doc):
                         }
                     )
 
-        write_log(json.dumps(svg_data))
+        write_log(f"[DEBUG] get_opened_doc_svg_data response: {json.dumps(svg_data)}")
         return response_data
 
     except Exception as e:
@@ -147,7 +147,7 @@ def _get_offline_doc_svg_data(kra_path):
                     # Get SVG content
                     svg_content = kra_zip.read(file_path).decode("utf-8")
 
-                    if svg_content:
+                    if check_svg_has_text(svg_content):
                         svg_data.append(
                             {
                                 "layer_name": layer_folder,
@@ -180,22 +180,26 @@ def get_svg_from_activenode():
         return
 
     if str(active_node.type()) == "vectorlayer":
-        print(f"Vector Layer Full SVG Data\n")
-        print("=" * 60)
-        print(active_node.toSvg())
-        print("=" * 60)
+        if check_svg_has_text(active_node.toSvg()):
+            print(f"Vector Layer Full SVG Data\n")
+            print("=" * 60)
+            print(active_node.toSvg())
+            print("=" * 60)
+            shapes = active_node.shapes()
 
-        shapes = active_node.shapes()
+            if not shapes:
+                print("No shapes found in vector layer")
+                return
 
-        if not shapes:
-            print("No shapes found in vector layer")
-            return
-
-        print(f"Layer Name: {active_node.name()}")
-        print(f"Node Id: {active_node.uniqueId()}")
-        print(f"Node Id String: {active_node.uniqueId().toString()}")
-        print(f"Number of shapes: {len(shapes)}\n")
-        print("=" * 60)
+            print(f"Layer Name: {active_node.name()}")
+            print(f"Node Id: {active_node.uniqueId()}")
+            print(f"Node Id String: {active_node.uniqueId().toString()}")
+            print(f"Number of shapes: {len(shapes)}\n")
+            print("=" * 60)
+        else:
+            print(
+                "No text elements found in the SVG content of the active vector layer."
+            )
 
     else:
         print(f"Active node is not a vector layer. Type: {active_node.type()}")
@@ -255,17 +259,24 @@ def qimage_to_base64(qimage):
     return f"data:image/png;base64,{base64_str}"
 
 
+def check_svg_has_text(svg_content):
+    """Check if SVG content contains any <text> elements"""
+
+    if "<text" in svg_content.lower():
+        return True
+    return False
+
+
 def krita_file_name_safe(doc):
-    if doc.name() == "":
-        if doc.fileName():
-            doc_path = doc.fileName()
-            doc_name = (
-                os.path.basename(doc_path).replace(".kra", "")
-                if doc
-                else "krita_file_not_saved"
-            )
-        else:
-            doc_name = "krita_file_not_saved"
+
+    if doc.fileName():
+        doc_path = doc.fileName()
+        doc_name = (
+            os.path.basename(doc_path).replace(".kra", "")
+            if doc
+            else "krita_file_not_saved"
+        )
     else:
-        doc_name = doc.name()
+        doc_name = "krita_file_not_saved"
+
     return doc_name

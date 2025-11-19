@@ -2,7 +2,7 @@
     "story_editor_toolbar": {
         "new_text": "Alt+A",
         "refresh": "Alt+F",
-        "update_krita": "Shift+Return",
+        "update_krita": "Alt+G",
         "pin_window": "Alt+P"
     }
 }

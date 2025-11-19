@@ -10,6 +10,12 @@ from .svg_retriever import (
     get_all_offline_docs_from_folder,
     krita_file_name_safe,
 )
+from .file_operation import (
+    get_comic_config_info,
+    add_new_document_from_template,
+    duplicate_document,
+    delete_document,
+)
 
 
 __all__ = [
@@ -21,4 +27,8 @@ __all__ = [
     "get_all_offline_docs_from_folder",
     "update_offline_kra_file",
     "krita_file_name_safe",
+    "get_comic_config_info",
+    "add_new_document_from_template",
+    "duplicate_document",
+    "delete_document",
 ]

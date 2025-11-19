@@ -1,3 +1,5 @@
+from pathlib import Path
+import os
 from PyQt5.QtWidgets import (
     QWidget,
     QVBoxLayout,
@@ -8,11 +10,14 @@ from PyQt5.QtWidgets import (
     QScrollArea,
     QMenu,
     QSizePolicy,
+    QGridLayout,
+    QAction,
 )
 from PyQt5.QtCore import QByteArray, QTimer, Qt
 from PyQt5.QtGui import QPixmap
 from story_editor.utils.text_updater import create_svg_data_for_doc
 from story_editor.utils.svg_parser import parse_krita_svg
+from story_editor.widgets.vertical_label import VerticalLabel
 from story_editor.widgets.find_replace import show_find_replace_dialog
 from story_editor.utils.logs import write_log
 from story_editor.widgets.new_text_edit import add_new_text_widget
@@ -22,6 +27,9 @@ from config.story_editor_loader import (
     get_tspan_editor_stylesheet,
     get_activate_button_disabled_stylesheet,
     get_activate_button_stylesheet,
+    get_thumbnail_status_label_stylesheet,
+    get_thumbnail_status_label_disabled_stylesheet,
+    get_thumbnail_right_click_menu_stylesheet,
     TEXT_EDITOR_MIN_HEIGHT,
     TEXT_EDITOR_MAX_HEIGHT,
 )
@@ -47,6 +55,9 @@ class StoryEditorWindow:
         self.active_doc_name = None  # Track which document is active for new text
         self.thumbnail_scroll_position = 0  # Track thumbnail scroll position
         self.content_scroll_position = 0  # Track content scroll position
+
+        self.comic_config_info = None  # To store comic config info
+        self.template_files = []  # To store template files list
 
     def set_parent_window(self, parent_window):
         """Set the persistent parent window"""
@@ -85,7 +96,6 @@ class StoryEditorWindow:
         self.doc_layouts = {}
         self.active_doc_name = None
 
-        #################################
         thumbnail_and_text_layout = QHBoxLayout()
 
         # Create scroll area for thumbnails
@@ -94,11 +104,11 @@ class StoryEditorWindow:
         thumbnail_scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
         thumbnail_scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
         thumbnail_scroll_area.setFrameShape(QScrollArea.NoFrame)
-        thumbnail_scroll_area.setFixedWidth(140)  # Fixed width for thumbnail column
+        thumbnail_scroll_area.setMaximumWidth(330)  # Fixed width for thumbnail column
 
         # Create container widget for thumbnails
         thumbnail_container = QWidget()
-        thumbnail_layout = QVBoxLayout(thumbnail_container)
+        thumbnail_layout = QGridLayout(thumbnail_container)
         thumbnail_layout.setContentsMargins(0, 0, 0, 0)
 
         # Set the container as scroll area's widget
@@ -117,7 +127,7 @@ class StoryEditorWindow:
         # Create container widget for all documents
         all_docs_container = QWidget()
         all_docs_layout = QVBoxLayout(all_docs_container)
-        all_docs_layout.setContentsMargins(0, 0, 0, 0)
+        all_docs_layout.setContentsMargins(0, 0, 15, 0)
 
         # Set the container as scroll area's widget
         all_docs_scroll_area.setWidget(all_docs_container)
@@ -127,11 +137,12 @@ class StoryEditorWindow:
 
         thumbnail_and_text_layout.addWidget(thumbnail_scroll_area)
         thumbnail_and_text_layout.addWidget(all_docs_scroll_area)
+        thumbnail_and_text_layout.setContentsMargins(0, 0, 10, 20)
 
         # write_log(f"all_docs_svg_data: {self.all_docs_svg_data}")
 
         # VBoxLayout for all layers
-        for doc_data in self.all_docs_svg_data:
+        for index, doc_data in enumerate(self.all_docs_svg_data):
             doc_name = doc_data.get("document_name", "unknown")
             doc_path = doc_data.get("document_path", "unknown")
             self.svg_data = doc_data.get("svg_data", [])
@@ -142,9 +153,14 @@ class StoryEditorWindow:
             doc_horizontal_layout = QHBoxLayout()
             all_docs_layout.addLayout(doc_horizontal_layout)
 
-            ###################################################
+            # ===================================================================
             # Thumbnail QVBoxLayout
-            ###################################################
+            # ===================================================================
+            thumbnail_status_layout = QHBoxLayout()
+            thumbnail_status_layout.setSpacing(
+                0
+            )  # Remove spacing between thumbnail and status label
+            thumbnail_status_layout.setContentsMargins(0, 0, 0, 0)  # Remove margins
 
             # Create thumbnail label
             thumbnail_label = QLabel()
@@ -190,26 +206,38 @@ class StoryEditorWindow:
                 thumbnail_label.setText("No\nPreview")
                 thumbnail_label.setAlignment(Qt.AlignCenter)
 
-            # Make thumbnail clickable
-            if opened:
-                thumbnail_label.setCursor(Qt.PointingHandCursor)
-                thumbnail_label.mousePressEvent = (
-                    lambda _, name=doc_name: self.thumbnail_clicked(name)
-                )
-
             # Enable custom context menu for right-click
             thumbnail_label.setContextMenuPolicy(Qt.CustomContextMenu)
             thumbnail_label.customContextMenuRequested.connect(
-                lambda pos, name=doc_name, label=thumbnail_label: self.show_thumbnail_context_menu(
-                    pos, name, label
+                lambda pos, name=doc_name, doc_path=doc_path, label=thumbnail_label: self.show_thumbnail_context_menu(
+                    pos, name, label, doc_path, self.comic_config_info
                 )
             )
 
-            thumbnail_layout.addWidget(
-                thumbnail_label, alignment=Qt.AlignTop, stretch=0
-            )
-            ###################################################
+            # ===================================================================
+            # Create Document status label on the right side of thumbnail
+            # ===================================================================
+            vertical_text_for_status = lambda: (f"opened" if opened else f"closed")
+            document_status_label = VerticalLabel(vertical_text_for_status())
+            document_status_label.setFixedSize(24, 128)
+            document_status_label.setContentsMargins(0, 0, 0, 0)
 
+            # Add thumbnail and status label to layout
+            thumbnail_status_layout.addWidget(thumbnail_label)
+            thumbnail_status_layout.addWidget(document_status_label)
+            thumbnail_status_layout.addStretch()
+
+            row = index // 2
+            col = index % 2
+
+            # Create a container widget for the layout
+            thumbnail_status_container = QWidget()
+            thumbnail_status_container.setLayout(thumbnail_status_layout)
+            thumbnail_layout.addWidget(thumbnail_status_container, row, col)
+
+            # ===================================================================
+            # Store initial text state for this document
+            # ===================================================================
             self.all_docs_text_state[doc_name] = {
                 "document_name": doc_name,
                 "document_path": doc_path,
@@ -220,25 +248,43 @@ class StoryEditorWindow:
                 "text_edit_widgets": [],  # For find/replace functionality
             }
 
+            # ===================================================================
+            # Add Document Level Layout
+            # ===================================================================
             # Document header with clickable button to activate
             doc_header_layout = QHBoxLayout()
 
             # Activate button for this document
             # Add line breaks between each character for vertical text
-            vertical_text = lambda: (
-                "\n".join(f"{doc_name}") if opened else "\n".join(f"{doc_name}-closed-")
-            )
-            activate_btn = QPushButton(vertical_text())
+            vertical_doc_name = "\n".join(f"{doc_name}".replace(".kra", ""))
+            activate_btn = QPushButton(vertical_doc_name)
             activate_btn.setFixedWidth(40)  # Make button thin
             activate_btn.setMinimumHeight(200)  # Make button tall
 
+            # ===================================================================
+            # Setting for Opened / Closed documents
+            # ===================================================================
             if not opened:
+                document_status_label.setStyleSheet(
+                    get_thumbnail_status_label_disabled_stylesheet()
+                )
+
                 activate_btn.setStyleSheet(get_activate_button_disabled_stylesheet())
                 activate_btn.setEnabled(False)  # Make button unclickable
                 activate_btn.setToolTip(
                     f"Document: {doc_name} (offline)\nPath: {doc_path}"
                 )
             else:
+                document_status_label.setStyleSheet(
+                    get_thumbnail_status_label_stylesheet()
+                )
+
+                # Make thumbnail clickable
+                thumbnail_label.setCursor(Qt.PointingHandCursor)
+                thumbnail_label.mousePressEvent = (
+                    lambda _, name=doc_name: self.thumbnail_clicked(name)
+                )
+
                 activate_btn.setCheckable(True)
                 activate_btn.setToolTip(
                     f"Document: {doc_name} (click to activate)\nPath: {doc_path}"
@@ -272,12 +318,9 @@ class StoryEditorWindow:
             # Store the layout for this document
             self.doc_layouts[doc_name] = doc_level_layers_layout
 
-            # Set first document as active by default
-            # if self.active_doc_name is None:
-            #     self.active_doc_name = doc_name
-            #     activate_btn.setChecked(True)
-
-            # For each layer
+            # ===================================================================
+            # Layer Level Layouts
+            # ===================================================================
             for layer_data in self.svg_data:
                 layer_name = layer_data.get("layer_name", "unknown")
                 layer_id = layer_data.get("layer_id", "unknown")
@@ -345,12 +388,14 @@ class StoryEditorWindow:
                     )
 
                     doc_level_layers_layout.addLayout(svg_section_level_layout)
+            # ===================================================================
 
             # Add each document container to horizontal layout (AFTER all layers processed)
             doc_horizontal_layout.addWidget(doc_container, stretch=1)
+        # ===================================================================
 
         # Add stretch at the end of thumbnail layout (inside the container for proper scrolling)
-        thumbnail_layout.addStretch()
+        thumbnail_layout.setRowStretch(thumbnail_layout.rowCount(), 1)
 
         # Add stretch at the end of all_docs_layout (inside the container for proper scrolling)
         all_docs_layout.addStretch()
@@ -397,8 +442,11 @@ class StoryEditorWindow:
 
         merged_requests = []
 
+        self.socket_handler.log(f"⏳ Processing update data for documents...")
+
         for doc_name, doc_state in self.all_docs_text_state.items():
-            self.socket_handler.log(f"⏳ Creating update data for document: {doc_name}")
+
+            write_log(f"Processing document: {doc_name}")
 
             doc_path = doc_state["document_path"]
             # layer_groups Contains all changes for the existing layers
@@ -489,6 +537,10 @@ class StoryEditorWindow:
         # Disable the open button when window is shown
         self._update_open_button_state(False)
 
+    def set_comic_config_info(self, comic_config_info):
+        """Store the comic config info for future use"""
+        self.comic_config_info = comic_config_info
+
     def _on_window_close(self, event):
         """Handle window close event to re-enable the open button"""
         # Re-enable the open button
@@ -562,9 +614,16 @@ class StoryEditorWindow:
 
         show_find_replace_dialog(self.parent_window, self.all_docs_text_state)
 
-    def show_thumbnail_context_menu(self, pos, doc_name, thumbnail_label):
+    # ===================================================================
+    # Context Menu Handlers
+    # ===================================================================
+
+    def show_thumbnail_context_menu(
+        self, pos, doc_name, thumbnail_label, doc_path, comic_config_info
+    ):
         """Show context menu for thumbnail"""
         menu = QMenu(self.parent_window)
+        menu.setStyleSheet(get_thumbnail_right_click_menu_stylesheet())
 
         # Add "Activate" action
         activate_action = menu.addAction("Activate")
@@ -572,14 +631,74 @@ class StoryEditorWindow:
             lambda: self.send_activate_document_request(doc_name)
         )
 
+        # Add "Open" action
+        open_action = menu.addAction(f"Open")
+        open_action.triggered.connect(lambda: self.send_open_document_request(doc_path))
+
         # Add "Close" action
         close_action = menu.addAction("Close")
         close_action.triggered.connect(
             lambda: self.send_close_document_request(doc_name)
         )
 
+        # Only documents belonging to the comic folder can be modified
+        if comic_config_info:
+            config_filepath = comic_config_info.get("config_filepath", "")
+            doc_path_obj = Path(doc_path)
+            config_parent = Path(config_filepath).parent
+            if (
+                config_parent in doc_path_obj.parents
+                or doc_path_obj.parent == config_parent
+            ):
+                # print(f"Document {doc_name} is in config folder or its subfolder")
+
+                # Add separator
+                menu.addSeparator()
+
+                # Add "Add From Template" action with submenu
+                template_files = comic_config_info.get("template_files", [])
+                if template_files:
+                    add_new_action = menu.addAction("Add From Template")
+                    select_template_menu = QMenu(self.parent_window)
+                    select_template_menu.setStyleSheet(
+                        get_thumbnail_right_click_menu_stylesheet()
+                    )
+
+                    for template in template_files:
+                        template_name = os.path.basename(template)
+                        template_action = QAction(template_name, self.parent_window)
+                        template_action.triggered.connect(
+                            lambda checked, t=template: self.send_add_new_document_from_template_request(
+                                doc_path, t, config_filepath
+                            )
+                        )
+                        select_template_menu.addAction(template_action)
+
+                    add_new_action.setMenu(select_template_menu)
+
+                # Add "Duplicate" action
+                duplicate_action = menu.addAction("Duplicate")
+                duplicate_action.triggered.connect(
+                    lambda: self.send_duplicate_document_request(
+                        doc_name, doc_path, config_filepath
+                    )
+                )
+
+                # Add "Delete" action
+                delete_action = menu.addAction("Delete")
+                delete_action.triggered.connect(
+                    lambda: self.send_delete_document_request(
+                        doc_name, doc_path, config_filepath
+                    )
+                )
+
         # Show menu at global position
         menu.exec_(thumbnail_label.mapToGlobal(pos))
+
+    def send_open_document_request(self, doc_path):
+        """Send open_document request to the agent"""
+        self.socket_handler.log(f"📂 Requesting to open document: {doc_path}")
+        self.socket_handler.send_request("open_document", doc_path=doc_path)
 
     def send_close_document_request(self, doc_name):
         """Send close_document request to the agent"""
@@ -590,3 +709,43 @@ class StoryEditorWindow:
         """Send activate_document request to the agent"""
         self.socket_handler.log(f"➡️ Requesting to activate document: {doc_name}")
         self.socket_handler.send_request("activate_document", doc_name=doc_name)
+
+    def send_add_new_document_from_template_request(
+        self, target_doc_path, template_path=None, config_filepath=None
+    ):
+        """Send add_new_document_from_template request to the agent"""
+        self.socket_handler.log(f"📄➕ Requesting to add new document from template")
+        self.socket_handler.send_request(
+            "add_from_template",
+            doc_path=target_doc_path,
+            template_path=template_path,
+            config_filepath=config_filepath,
+        )
+
+    def send_duplicate_document_request(
+        self, target_doc_name, target_doc_path, config_filepath=None
+    ):
+        """Send duplicate_document request to the agent"""
+        self.socket_handler.log(
+            f"📄➕ Requesting to duplicate document: {target_doc_name}"
+        )
+        self.socket_handler.send_request(
+            "duplicate_document",
+            doc_name=target_doc_name,
+            doc_path=target_doc_path,
+            config_filepath=config_filepath,
+        )
+
+    def send_delete_document_request(
+        self, target_doc_name, target_doc_path, config_filepath=None
+    ):
+        """Send delete_document request to the agent"""
+        self.socket_handler.log(f"🗑️ Requesting to delete document: {target_doc_name}")
+        self.socket_handler.send_request(
+            "delete_document",
+            doc_name=target_doc_name,
+            doc_path=target_doc_path,
+            config_filepath=config_filepath,
+        )
+
+    # ===================================================================

@@ -1,6 +1,6 @@
 """
 Template Manager
-Provides a GUI for managing SVG text templates
+Provides a GUI for managing SVG text templates and SVG templates
 """
 
 import os
@@ -17,84 +17,37 @@ from PyQt5.QtWidgets import (
     QMessageBox,
     QFileDialog,
     QMenu,
+    QStackedWidget,
 )
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QColor
-from config.app_paths import get_user_templates_path, get_template_config_path
+from config.app_paths import (
+    get_text_templates_path,
+    get_template_config_path,
+    get_svg_templates_path,
+)
 
 
-class TemplateManagerWindow(QWidget):
-    """Window for managing SVG text templates"""
+class BaseTemplateManager(QWidget):
+    """Base class for managing template files"""
 
-    def __init__(self, parent=None):
+    def __init__(
+        self, template_dir, config_file, template_type="Template", parent=None
+    ):
         super().__init__(parent)
 
-        # Set window flags to make it a proper popup window
-        self.setWindowFlags(Qt.Window | Qt.WindowCloseButtonHint)
-
-        # Use persistent user data paths
-        self.template_dir = get_user_templates_path()
-        self.config_file = get_template_config_path()
+        self.template_dir = template_dir
+        self.config_file = config_file
+        self.template_type = template_type
         self.current_template = None
         self.default_template_index = None
+
         self.init_ui()
         self.load_template_list()
         self.load_default_template_from_config()
 
     def init_ui(self):
         """Initialize the user interface"""
-        self.setWindowTitle("Template Manager")
-        self.resize(800, 600)
-        self.setStyleSheet(
-            """
-            QWidget {
-                background-color: #2b2b2b;
-                color: #e0e0e0;
-            }
-            QListWidget {
-                background-color: #1e1e1e;
-                border: 1px solid #555555;
-                border-radius: 5px;
-                padding: 5px;
-            }
-            QListWidget::item {
-                padding: 5px;
-            }
-            QListWidget::item:selected {
-                background-color: #414a8e;
-            }
-            QTextEdit {
-                background-color: #1e1e1e;
-                border: 1px solid #555555;
-                border-radius: 5px;
-                padding: 5px;
-                font-family: 'Courier New', monospace;
-            }
-            QPushButton {
-                background-color: #9e6658;
-                color: #4b281c;
-                border: none;
-                padding: 8px 15px;
-                border-radius: 5px;
-                font-weight: bold;
-            }
-            QPushButton:hover {
-                background-color: #b87769;
-            }
-            QPushButton:pressed {
-                background-color: #8d5548;
-            }
-            QPushButton:disabled {
-                background-color: #555555;
-                color: #999999;
-            }
-            QLabel {
-                color: #ecbd30;
-                font-weight: bold;
-            }
-        """
-        )
-
         main_layout = QHBoxLayout()
 
         # Left side - Template list
@@ -134,10 +87,7 @@ class TemplateManagerWindow(QWidget):
 
         self.template_editor = QTextEdit()
         self.template_editor.setPlaceholderText(
-            "Select a template from the list to edit, or create a new one.\n\n"
-            "Template must contain:\n"
-            "- SHAPE_ID: Will be replaced with unique shape ID\n"
-            "- TEXT_TO_REPLACE: Will be replaced with actual text content"
+            self.get_placeholder_text(self.template_type)
         )
         right_layout.addWidget(self.template_editor)
 
@@ -165,8 +115,46 @@ class TemplateManagerWindow(QWidget):
         # Connect text changed signal
         self.template_editor.textChanged.connect(self.on_text_changed)
 
+    def get_placeholder_text(self, template_type=None):
+        """Get placeholder text for the editor - can be overridden by subclasses"""
+        if template_type == "SVG Template":
+            return (
+                "Select a template from the list to edit, or create a new one.\n\n"
+                "Template must contain:\n"
+                "- TEXT_TAG_TO_REPLACE: Will be replaced with <text> elements"
+            )
+        elif template_type == "Text Template":
+            return (
+                "Select a template from the list to edit, or create a new one.\n\n"
+                "Template must contain:\n"
+                "- SHAPE_ID: Will be replaced with unique shape ID\n"
+                "- TEXT_TO_REPLACE: Will be replaced with actual text content"
+            )
+
+    def get_default_content(self, template_type=None):
+        """Get default content for new templates - can be overridden by subclasses"""
+        if template_type == "SVG Template":
+            return (
+                '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" '
+                'xmlns:krita="http://krita.org/namespaces/svg/krita" '
+                'xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" '
+                'width="344.76pt" height="193.56pt" '
+                'viewBox="0 0 344.76 193.56"> '
+                "<defs />TEXT_TAG_TO_REPLACE</svg>"
+            )
+        elif template_type == "Text Template":
+            return (
+                '<text id="SHAPE_ID" krita:textVersion="3"  '
+                'transform="translate(37.0800000000005, 113.064375000001)"  '
+                'paint-order="stroke fill markers" fill="#000000" '
+                'stroke-opacity="0" stroke="#000000" stroke-width="0" '
+                'stroke-linecap="square" stroke-linejoin="bevel" '
+                'style="inline-size: 217.080000000003;font-size: 14;white-space: pre-wrap;">'
+                "TEXT_TO_REPLACE</text>"
+            )
+
     def load_template_list(self):
-        """Load all template files from the user_templates directory"""
+        """Load all template files from the template directory"""
         self.template_list.clear()
 
         if not os.path.exists(self.template_dir):
@@ -245,15 +233,7 @@ class TemplateManagerWindow(QWidget):
             return
 
         # Create default template content
-        default_content = (
-            '<text id="SHAPE_ID" krita:useRichText="true" text-rendering="auto" '
-            'krita:textVersion="3" transform="translate(32, 122)" '
-            'fill="#000000" stroke-opacity="0" stroke="#000000" stroke-width="0" '
-            'stroke-linecap="square" stroke-linejoin="bevel" kerning="none" '
-            'letter-spacing="0" word-spacing="0" '
-            'style="text-align: start;text-align-last: auto;font-family: Arial;font-size: 18;">'
-            '<tspan x="0">TEXT_TO_REPLACE</tspan></text>'
-        )
+        default_content = self.get_default_content(self.template_type)
 
         try:
             with open(file_path, "w", encoding="utf-8") as f:
@@ -372,20 +352,7 @@ class TemplateManagerWindow(QWidget):
         content = self.template_editor.toPlainText()
 
         # Validate that template contains required placeholders
-        if "SHAPE_ID" not in content:
-            QMessageBox.warning(
-                self,
-                "Invalid Template",
-                "Template must contain 'SHAPE_ID' placeholder.",
-            )
-            return
-
-        if "TEXT_TO_REPLACE" not in content:
-            QMessageBox.warning(
-                self,
-                "Invalid Template",
-                "Template must contain 'TEXT_TO_REPLACE' placeholder.",
-            )
+        if not self.validate_template(content, template_type=self.current_template):
             return
 
         file_path = os.path.join(self.template_dir, self.current_template)
@@ -405,6 +372,36 @@ class TemplateManagerWindow(QWidget):
 
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Failed to save template:\n{str(e)}")
+
+    def validate_template(self, content, template_type=None):
+        """Validate template content - can be overridden by subclasses"""
+        if template_type == "SVG Template":
+            if "TEXT_TAG_TO_REPLACE" not in content:
+                QMessageBox.warning(
+                    self,
+                    "Invalid Template",
+                    "Template must contain 'TEXT_TAG_TO_REPLACE' placeholder.",
+                )
+                return False
+
+        elif template_type == "Text Template":
+            if "SHAPE_ID" not in content:
+                QMessageBox.warning(
+                    self,
+                    "Invalid Template",
+                    "Template must contain 'SHAPE_ID' placeholder.",
+                )
+                return False
+
+            if "TEXT_TO_REPLACE" not in content:
+                QMessageBox.warning(
+                    self,
+                    "Invalid Template",
+                    "Template must contain 'TEXT_TO_REPLACE' placeholder.",
+                )
+                return False
+
+        return True
 
     def revert_changes(self):
         """Revert changes and reload the current template"""
@@ -469,10 +466,22 @@ class TemplateManagerWindow(QWidget):
             template_name = self.template_list.item(index).text()
             self.save_default_template_to_config(template_name)
 
-    def save_default_template_to_config(self, template_name):
+    def save_default_template_to_config(self, template_name, template_type=None):
         """Save the default template name to the config file"""
         try:
-            config_data = {"default_template_name": template_name}
+            # Read existing config
+            config_data = {}
+            if os.path.exists(self.config_file):
+                with open(self.config_file, "r", encoding="utf-8") as f:
+                    config_data = json.load(f)
+
+            # Update the specific key
+            if template_type == "SVG Template":
+                config_data["default_svg_template_name"] = template_name
+            elif template_type == "Text Template":
+                config_data["default_template_name"] = template_name
+
+            # Write back the updated config
             with open(self.config_file, "w", encoding="utf-8") as f:
                 json.dump(config_data, f, indent=4)
         except Exception as e:
@@ -480,13 +489,17 @@ class TemplateManagerWindow(QWidget):
                 self, "Warning", f"Failed to save default template to config:\n{str(e)}"
             )
 
-    def load_default_template_from_config(self):
+    def load_default_template_from_config(self, template_type=None):
         """Load the default template name from config and set the index"""
         try:
             if os.path.exists(self.config_file):
                 with open(self.config_file, "r", encoding="utf-8") as f:
                     config_data = json.load(f)
-                    default_name = config_data.get("default_template_name", "")
+                    default_name = ""
+                    if template_type == "SVG Template":
+                        default_name = config_data.get("default_svg_template_name", "")
+                    elif template_type == "Text Template":
+                        default_name = config_data.get("default_template_name", "")
 
                     if default_name:
                         # Find the index of this template in the list
@@ -516,8 +529,154 @@ class TemplateManagerWindow(QWidget):
         return self.default_template_index
 
 
+class TextTemplateManager(BaseTemplateManager):
+    """Manager for text templates"""
+
+    def __init__(self, parent=None):
+        super().__init__(
+            template_dir=get_text_templates_path(),
+            config_file=get_template_config_path(),
+            template_type="Text Template",
+            parent=parent,
+        )
+
+
+class SvgTemplateManager(BaseTemplateManager):
+    """Manager for SVG templates"""
+
+    def __init__(self, parent=None):
+        super().__init__(
+            template_dir=get_svg_templates_path(),
+            config_file=get_template_config_path(),
+            template_type="SVG Template",
+            parent=parent,
+        )
+
+
+class TabbedTemplateManagerWindow(QWidget):
+    """Window with tabbed interface for managing both text and SVG templates"""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+        # Set window flags to make it a proper popup window
+        self.setWindowFlags(Qt.Window | Qt.WindowCloseButtonHint)
+
+        self.init_ui()
+
+    def init_ui(self):
+        """Initialize the user interface"""
+        self.setWindowTitle("Template Manager")
+        self.resize(800, 600)
+        self.setStyleSheet(
+            """
+            QWidget {
+                background-color: #2b2b2b;
+                color: #e0e0e0;
+            }
+            QListWidget {
+                background-color: #1e1e1e;
+                border: 1px solid #555555;
+                border-radius: 5px;
+                padding: 5px;
+            }
+            QListWidget::item {
+                padding: 5px;
+            }
+            QListWidget::item:selected {
+                background-color: #414a8e;
+            }
+            QTextEdit {
+                background-color: #1e1e1e;
+                border: 1px solid #555555;
+                border-radius: 5px;
+                padding: 5px;
+                font-family: 'Courier New', monospace;
+            }
+            QPushButton {
+                background-color: #9e6658;
+                color: #4b281c;
+                border: none;
+                padding: 8px 15px;
+                border-radius: 5px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #b87769;
+            }
+            QPushButton:pressed {
+                background-color: #8d5548;
+            }
+            QPushButton:disabled {
+                background-color: #555555;
+                color: #999999;
+            }
+            QLabel {
+                color: #ecbd30;
+                font-weight: bold;
+            }
+        """
+        )
+
+        main_layout = QVBoxLayout()
+
+        # Tab buttons
+        tab_buttons_layout = QHBoxLayout()
+
+        self.text_template_tab_btn = QPushButton("Text Template")
+        self.text_template_tab_btn.clicked.connect(lambda: self.switch_tab(0))
+        tab_buttons_layout.addWidget(self.text_template_tab_btn)
+
+        self.svg_template_tab_btn = QPushButton("SVG Template")
+        self.svg_template_tab_btn.clicked.connect(lambda: self.switch_tab(1))
+        tab_buttons_layout.addWidget(self.svg_template_tab_btn)
+
+        main_layout.addLayout(tab_buttons_layout)
+
+        # Stacked widget for switching between managers
+        self.stacked_widget = QStackedWidget()
+
+        # Create template managers
+        self.text_template_manager = TextTemplateManager()
+        self.svg_template_manager = SvgTemplateManager()
+
+        # Add managers to stacked widget
+        self.stacked_widget.addWidget(self.text_template_manager)
+        self.stacked_widget.addWidget(self.svg_template_manager)
+
+        main_layout.addWidget(self.stacked_widget)
+
+        self.setLayout(main_layout)
+
+        # Set initial tab
+        self.switch_tab(0)
+
+    def switch_tab(self, index):
+        """Switch to the specified tab"""
+        self.stacked_widget.setCurrentIndex(index)
+
+        # Update button styles to show active tab
+        if index == 0:
+            self.text_template_tab_btn.setStyleSheet(
+                "background-color: #b87769; color: #4b281c;"
+            )
+            self.svg_template_tab_btn.setStyleSheet("")
+        else:
+            self.svg_template_tab_btn.setStyleSheet(
+                "background-color: #b87769; color: #4b281c;"
+            )
+            self.text_template_tab_btn.setStyleSheet("")
+
+
+# Legacy class for backward compatibility
+class TemplateManagerWindow(TabbedTemplateManagerWindow):
+    """Legacy wrapper - redirects to TabbedTemplateManagerWindow"""
+
+    pass
+
+
 def show_template_manager(parent=None):
     """Show the template manager window"""
-    window = TemplateManagerWindow(parent)
+    window = TabbedTemplateManagerWindow(parent)
     window.show()
     return window

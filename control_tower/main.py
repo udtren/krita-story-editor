@@ -327,11 +327,21 @@ class ControlTower(QMainWindow):
                     self.log(f"✔️ Text Update Request Finishied: {result}")
                     self.text_editor_handler.refresh_data()
 
+                case {
+                    "all_docs_svg_data": svg_data,
+                    "comic_config_info": comic_config_info,
+                    "success": True,
+                }:
+                    self.log(
+                        f"📥 All docs svg data and comic config info received from agent"
+                    )
+                    self.text_editor_handler.set_svg_data(svg_data)
+                    self.text_editor_handler.set_comic_config_info(comic_config_info)
+                    self._waiting_for_svg = None
+
                 case {"all_docs_svg_data": svg_data, "success": True}:
                     self.log(f"📥 All docs svg data received from agent")
-                    # Route to the appropriate handler based on which one is waiting
-                    if self._waiting_for_svg == "text_editor":
-                        self.text_editor_handler.set_svg_data(svg_data)
+                    self.text_editor_handler.set_svg_data(svg_data)
                     self._waiting_for_svg = None
 
                 case {
@@ -348,7 +358,27 @@ class ControlTower(QMainWindow):
                     result = response.get("result", "Unknown")
                     self.log(f"💾 {result}")
 
+                case {"response_type": "open_document", "success": True}:
+                    result = response.get("result", "Unknown")
+                    self.log(f"📂 {result}")
+                    self.text_editor_handler.refresh_data()
+
                 case {"response_type": "close_document", "success": True}:
+                    result = response.get("result", "Unknown")
+                    self.log(f"{result}")
+                    self.text_editor_handler.refresh_data()
+
+                case {"response_type": "add_from_template", "success": True}:
+                    result = response.get("result", "Unknown")
+                    self.log(f"➕ {result}")
+                    self.text_editor_handler.refresh_data()
+
+                case {"response_type": "duplicate_document", "success": True}:
+                    result = response.get("result", "Unknown")
+                    self.log(f"➕ {result}")
+                    self.text_editor_handler.refresh_data()
+
+                case {"response_type": "delete_document", "success": True}:
                     result = response.get("result", "Unknown")
                     self.log(f"🗑️ {result}")
                     self.text_editor_handler.refresh_data()

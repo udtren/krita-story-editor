@@ -49,18 +49,32 @@ def get_user_data_path():
     return os.path.join(get_app_root(), "user_data")
 
 
-def get_user_templates_path():
+def get_text_templates_path():
     """
     Get the persistent directory for user-created templates
     Location: {app_root}/user_data/templates/
     """
-    templates_dir = os.path.join(get_user_data_path(), "templates")
+    templates_dir = os.path.join(get_user_data_path(), "text_templates")
 
     # Create directory if it doesn't exist
     if not os.path.exists(templates_dir):
         os.makedirs(templates_dir)
 
     return templates_dir
+
+
+def get_svg_templates_path():
+    """
+    Get the persistent directory for SVG templates
+    Location: {app_root}/user_data/svg_templates/
+    """
+    svg_templates_dir = os.path.join(get_user_data_path(), "svg_templates")
+
+    # Create directory if it doesn't exist
+    if not os.path.exists(svg_templates_dir):
+        os.makedirs(svg_templates_dir)
+
+    return svg_templates_dir
 
 
 def get_config_dir():
@@ -126,7 +140,8 @@ def copy_default_configs():
     import shutil
 
     config_dir = get_config_dir()
-    templates_dir = get_user_templates_path()
+    templates_dir = get_text_templates_path()
+    svg_templates_dir = get_svg_templates_path()
 
     # Copy config files
     config_files = [
@@ -159,7 +174,7 @@ def copy_default_configs():
         if not os.listdir(templates_dir):
             # Get bundled templates directory
             bundled_templates = get_resource_path(
-                os.path.join("config", "user_templates")
+                os.path.join("config", "text_templates")
             )
 
             if os.path.exists(bundled_templates):
@@ -170,6 +185,20 @@ def copy_default_configs():
                         dest_path = os.path.join(templates_dir, filename)
                         shutil.copy2(src_path, dest_path)
                         print(f"Copied default template: {filename}")
+        if not os.listdir(svg_templates_dir):
+            # Get bundled SVG templates directory
+            bundled_svg_templates = get_resource_path(
+                os.path.join("config", "svg_templates")
+            )
+
+            if os.path.exists(bundled_svg_templates):
+                # Copy all .svg files from bundled SVG templates
+                for filename in os.listdir(bundled_svg_templates):
+                    if filename.endswith(".xml"):
+                        src_path = os.path.join(bundled_svg_templates, filename)
+                        dest_path = os.path.join(svg_templates_dir, filename)
+                        shutil.copy2(src_path, dest_path)
+                        print(f"Copied default SVG template: {filename}")
     except Exception:
         # If copying fails, that's okay - user can create their own templates
         pass  # Silent fail
