@@ -627,7 +627,7 @@ class TabbedTemplateManagerWindow(QWidget):
         self.text_template_tab_btn.clicked.connect(lambda: self.switch_tab(0))
         tab_buttons_layout.addWidget(self.text_template_tab_btn)
 
-        self.svg_template_tab_btn = QPushButton("Svg Template")
+        self.svg_template_tab_btn = QPushButton("SVG Template")
         self.svg_template_tab_btn.clicked.connect(lambda: self.switch_tab(1))
         tab_buttons_layout.addWidget(self.svg_template_tab_btn)
 

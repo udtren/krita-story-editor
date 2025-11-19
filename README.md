@@ -5,9 +5,8 @@ A tool for editing text layers across multiple Krita documents, whether they are
 **Note:** This tool is designed for Krita 5.3.0, which features a refactored text tool. Currently, Krita 5.3.0 is only available as a pre-alpha version, and its text tool still contains bugs that need to be fixed. This tool may be updated in the future to accommodate changes in the text tool's behavior.
 
 ## Demo Video
-[![Demo Video 1](https://img.shields.io/badge/▶️-Watch%20Demo%201-red?style=for-the-badge&logo=googledrive)](https://drive.google.com/file/d/1kjFO4D6dCvNa54noltes0VpDZH8QPvxR/view?usp=drive_link)
-[![Demo Video 2](https://img.shields.io/badge/▶️-Watch%20Demo%202-red?style=for-the-badge&logo=googledrive)](https://drive.google.com/file/d/1zQiSK8cJaAA9ZEAIkqVEp4Lo3uOkvzs3/view?usp=drive_link)
-[![Demo Video 3](https://img.shields.io/badge/▶️-Watch%20Demo%203-red?style=for-the-badge&logo=googledrive)](https://drive.google.com/file/d/13MC3m5JBw0M3iQB5ss9ld0YMOesbSwUa/view?usp=drive_link)
+[![Demo Video](https://img.youtube.com/vi/eIAFky6YHu4/maxresdefault.jpg)](https://youtu.be/eIAFky6YHu4)
+
 
 ## Support
 
@@ -23,14 +22,10 @@ The tool has 3 main parts: the Story Editor for editing text, the Agent running 
 ## Components
 
 ### Story Editor
- <img src="images/story_editor.png" alt="story_editor" width="500">
-
 The main editing window where you work with text content. It receives text data from the Agent and displays it in editable text boxes.
 
 **Toolbar buttons:**
-
  <img src="images/toolbar.png" alt="toolbar" width="500">
-
 
 - **Add New Text Widget**  
   The target document must be saved first. Activate your target document by clicking its name bar or thumbnail, then click the Add button to create a new empty text widget at the bottom of that document's section. You can choose a template from the dropdown menu or use the default.
@@ -56,26 +51,32 @@ The main editing window where you work with text content. It receives text data 
 
 **Thumbnail:**
 
-<img src="images/story_editor2.png" alt="story_editor2" width="300">
+<img src="images/story_editor2.png" alt="Document Thumbnails" width="300">
 
-Each document's thumbnail is displayed on the left. Right-click a thumbnail to activate or close the opened document.
+Each document's thumbnail is displayed on the left side. Right-click a thumbnail to access document actions:
 
-Note: The Activate button creates a new view of the selected document in Krita rather than switching to an existing view. This doesn't affect the text display in the Story Editor, as the number of opened documents remains unchanged regardless of the number of views.
+- **Standard documents:** Activate, open, or close the document.
+- **Comic project documents:** Additional options to add new pages using templates, replicate existing pages, or delete pages.
 
 **Text Edit Box:**
 
-<img src="images/text_box1.png" alt="text_box1" width="400">
+In Krita, each text layer is a vector layer containing SVG data. A vector layer can contain one or more text shapes. For example, creating a text in a vector layer produces one shape, while adding another text to the same layer creates a second shape.
 
-In Krita, each text layer is a vector layer containing SVG data. A vector layer can have one or more text shapes. For example, if you create a text in a vector layer, that's one shape. Adding another text to the same layer creates a second shape.
+The Story Editor creates one text box for each shape in each document. For example, if a Krita document has 2 text layers—one with 2 shapes and another with 1 shape—the Story Editor will display 3 text boxes total.
 
-The Story Editor creates one text box for each shape in each document. If a Krita document has 2 text layers—one with 2 shapes and another with 1 shape—the Story Editor will display 3 text boxes.
-
-<img src="images/text_box2.png" alt="text_box2" width="200">
-<img src="images/text_box3.png" alt="text_box3" width="300">
+**Creating multiple shapes:**
 
 When adding new text using "Add New Text Widget", you can create multiple shapes in a single Krita layer by separating them with three line breaks (press Enter three times).
 
-If you remove the whole text in a text box, the shape will be remove from the target layer during text update process. Right now the vector layer itself will not be deleted even all shapes are removed.
+You'll need to select 2 templates when adding new text:
+- **SVG Template:** Defines the container structure and document-specific properties
+- **Text Template:** Defines the text appearance (font, color, size, etc.)
+
+See the [Templates](#templates) section for more details.
+
+**Deleting text:**
+
+If you remove all text from a text box, the corresponding shape will be deleted from the target layer during the update process. Note that the vector layer itself remains even when all shapes are removed.
 
 **Advanced editing with tspan:**
 
@@ -88,7 +89,6 @@ The text edit box uses a safe approach: when receiving text data from the Agent,
 You can edit either plain text or tspan data as long as the data is valid. If you know the SVG parameters, you can add tspan tags yourself to change text styles.
 
 **Closed Documents:**
-
 Documents in the selected folder (set via Control Tower) will appear in the Story Editor even when closed in Krita. You can edit existing text in closed documents the same way as opened documents, but you cannot add new text widgets to closed documents.
 
 
@@ -117,22 +117,38 @@ The launcher application that connects everything together.
 - **Settings** - Configure application settings for the main window, Story Editor, and keyboard shortcuts.
 
 ### Templates
-Templates are presets for SVG settings used when adding new text widgets. They define how the text looks and where it's positioned.
 
-If your workflow involves using the same text style repeatedly, templates can save you a lot of time.
+Templates are presets for SVG settings used when adding new text widgets. They define how text looks and where it's positioned. If your workflow involves using the same text style repeatedly, templates can save significant time.
 
-**Template structure:**
-```xml
-<text id="SHAPE_ID" krita:textVersion="3" transform="translate(40.92, 27.4276171875)" paint-order="stroke fill markers" fill="#000000" stroke-opacity="0" stroke="#000000" stroke-width="0" stroke-linecap="square" stroke-linejoin="bevel" style="inline-size: 45.6;font-size: 14;white-space: pre-wrap;">TEXT_TO_REPLACE</text>
-```
+#### Template Types
 
-Each shape in a text layer has a unique ID. When the Story Editor sends updates to the Agent, it automatically replaces `SHAPE_ID` with a unique identifier and `TEXT_TO_REPLACE` with your actual text content.
+There are two types of templates, each serving a different purpose:
+
+1. **Text Template** - Defines the text appearance (font size, color, styling)
+2. **SVG Template** - Defines the container structure and document-specific properties
+
+**Template Structure:**
+
+![alt text](images/svg_data.png)
+
+**Text Template:**
+- Controls text appearance including font size, color, and styling parameters
+- Each shape in a text layer has a unique ID and text content
+- Uses placeholders: `SHAPE_ID` for the shape identifier and `TEXT_TO_REPLACE` for the text content
+
+**SVG Template:**
+- Contains document-specific data that varies according to the Krita document's dimensions
+- These properties can impact how text is displayed within the document
+- Contains the Text section nested inside
+- Uses the placeholder `TEXT_TAG_TO_REPLACE` for where the text element will be inserted
+
+When the Story Editor sends updates to the Agent, it automatically replaces these placeholders with the actual shape IDs and text content.
 
 #### Template Manager
 
 <img src="images/template_manager.png" alt="template_manager" width="400">
 
-You can create, edit, and delete templates in the Template Manager. Right-click a template to mark it as the Default Template. Widgets added via "Add New Text Widget" will use the default template initially. When creating template, replace the id and text with `SHAPE_ID` and `TEXT_TO_REPLACE`.
+The Template Manager allows you to create, edit, and delete templates. To set a default template, right-click a template and select "Mark as Default." New widgets added via "Add New Text Widget" will use the default templates automatically. 
 
 ## Installation
 

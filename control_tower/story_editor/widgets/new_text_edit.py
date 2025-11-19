@@ -146,6 +146,7 @@ def add_new_text_widget(
     # Add to the ACTIVE document's layout
     active_layout.addLayout(svg_section_level_layout)
     active_layout.setAlignment(svg_section_level_layout, Qt.AlignTop)
+    active_layout.addStretch()
 
     # Store reference with metadata marking it as new
     all_docs_text_state[active_doc_name]["new_text_widgets"].append(
