@@ -1,6 +1,8 @@
 # Python
 __pycache__/
 *.py[cod]
+*.py[cod]
+*.*.pyc
 *$py.class
 *.so
 .Python
@@ -34,8 +36,11 @@ Thumbs.db
 *.kra~
 
 # User templates (ignore all except default templates)
-control_tower/utils/user_templates/*
-!control_tower/utils/user_templates/default*
+control_tower/utils/text_templates/*
+!control_tower/utils/text_templates/default*
+user_data/*
 
 # Other
 .claude/
+test_only/
+
