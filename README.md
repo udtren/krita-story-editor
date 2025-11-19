@@ -25,6 +25,7 @@ The tool has 3 main parts: the Story Editor for editing text, the Agent running 
 The main editing window where you work with text content. It receives text data from the Agent and displays it in editable text boxes.
 
 **Toolbar buttons:**
+
  <img src="images/toolbar.png" alt="toolbar" width="500">
 
 - **Add New Text Widget**  
