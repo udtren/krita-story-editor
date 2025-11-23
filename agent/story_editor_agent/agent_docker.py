@@ -146,7 +146,6 @@ class StoryEditorAgentDocker(QDockWidget):
         pause_gesture_event_filter()
 
         try:
-
             # Process request and interact with Krita
             match request["action"]:
                 case "docs_svg_update":
