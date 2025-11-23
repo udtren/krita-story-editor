@@ -35,6 +35,16 @@ from .config.story_editor_agent import (
 )
 from .utils.logs import write_log
 
+try:
+    from quick_access_manager.gesture.gesture_main import (
+        pause_gesture_event_filter,
+        resume_gesture_event_filter,
+    )
+
+    GESTURE_AVAILABLE = True
+except ImportError:
+    GESTURE_AVAILABLE = False
+
 
 class StoryEditorAgentDocker(QDockWidget):
     def __init__(self):
@@ -51,6 +61,8 @@ class StoryEditorAgentDocker(QDockWidget):
 
         # Create UI
         self.setup_ui()
+
+        write_log(f"GESTURE_AVAILABLE: {GESTURE_AVAILABLE}")
 
     def setup_ui(self):
         """Create the docker UI"""
@@ -130,366 +142,392 @@ class StoryEditorAgentDocker(QDockWidget):
         data = client.readAll().data().decode("utf-8")
         request = json.loads(data)
 
-        # Process request and interact with Krita
-        match request["action"]:
-            case "docs_svg_update":
-                try:
-                    opened_docs = Krita.instance().documents()
-                    merged_requests = request.get("merged_requests", {})
+        # Pause gesture event filter for all document operations
+        pause_gesture_event_filter()
 
-                    write_log(f"Received merged requests: {merged_requests}")
+        try:
+            # Process request and interact with Krita
+            match request["action"]:
+                case "docs_svg_update":
+                    try:
+                        opened_docs = Krita.instance().documents()
+                        merged_requests = request.get("merged_requests", {})
 
-                    # ===================================================================
-                    # Separate opened and offline requests
-                    # ===================================================================
-                    opened_docs_requests = []
-                    offline_docs_requests = []
+                        write_log(f"Received merged requests: {merged_requests}")
 
-                    for doc_data in merged_requests:
-                        if doc_data.get("opened", False):
-                            opened_docs_requests.append(doc_data)
-                        else:
-                            offline_docs_requests.append(doc_data)
+                        # ===================================================================
+                        # Separate opened and offline requests
+                        # ===================================================================
+                        opened_docs_requests = []
+                        offline_docs_requests = []
 
-                    # Sort both lists by document_name
-                    opened_docs_requests.sort(key=lambda x: x.get("doc_name", ""))
-                    offline_docs_requests.sort(key=lambda x: x.get("doc_name", ""))
+                        for doc_data in merged_requests:
+                            if doc_data.get("opened", False):
+                                opened_docs_requests.append(doc_data)
+                            else:
+                                offline_docs_requests.append(doc_data)
 
-                    write_log(
-                        f"Opened documents: {[d.get('doc_name') for d in opened_docs_requests]}"
-                    )
-                    write_log(
-                        f"Offline documents: {[d.get('doc_name') for d in offline_docs_requests]}"
-                    )
-                    # ===================================================================
+                        # Sort both lists by document_name
+                        opened_docs_requests.sort(key=lambda x: x.get("doc_name", ""))
+                        offline_docs_requests.sort(key=lambda x: x.get("doc_name", ""))
 
-                    # ===================================================================
-                    # Update Opened Documents
-                    # ===================================================================
-                    online_progress_messages = []
+                        write_log(
+                            f"Opened documents: {[d.get('doc_name') for d in opened_docs_requests]}"
+                        )
+                        write_log(
+                            f"Offline documents: {[d.get('doc_name') for d in offline_docs_requests]}"
+                        )
+                        # ===================================================================
 
-                    for doc in opened_docs:
-                        for doc_data in opened_docs_requests:
+                        # ===================================================================
+                        # Update Opened Documents
+                        # ===================================================================
+                        online_progress_messages = []
+
+                        for doc in opened_docs:
+                            for doc_data in opened_docs_requests:
+                                write_log(
+                                    f"[DEBUG] agent_docker compare Document name: {krita_file_name_safe(doc)}"
+                                )
+                                if krita_file_name_safe(doc) == doc_data.get(
+                                    "doc_name"
+                                ):
+
+                                    existing_texts_updated = doc_data.get(
+                                        "existing_texts_updated", []
+                                    )
+                                    new_texts_added = doc_data.get(
+                                        "new_texts_added", []
+                                    )
+
+                                    result_message_base = (
+                                        f"{krita_file_name_safe(doc)}: "
+                                    )
+
+                                    if len(existing_texts_updated) > 0:
+
+                                        result = update_doc_layers_svg(
+                                            doc, existing_texts_updated
+                                        )
+
+                                        if result["success"]:
+                                            result_message_base += f"\n  Updated {result.get('count', 0)} existing texts. "
+
+                                        else:
+                                            online_progress_messages.append(
+                                                f"{krita_file_name_safe(doc)}: Updating existing texts failed."
+                                            )
+                                    if len(new_texts_added) > 0:
+
+                                        result = add_svg_layer_to_doc(
+                                            doc, new_texts_added
+                                        )
+                                        if result["success"]:
+                                            result_message_base += f"\n  Added {result.get('count', 0)} new texts. "
+
+                                        else:
+                                            online_progress_messages.append(
+                                                f"{krita_file_name_safe(doc)}: Creating new texts failed."
+                                            )
+                                    online_progress_messages.append(result_message_base)
+
+                        # ===================================================================
+                        # Update Offline Documents
+                        # ===================================================================
+                        offline_progress_messages = []
+
+                        if len(offline_docs_requests) > 0:
+
                             write_log(
-                                f"[DEBUG] agent_docker compare Document name: {krita_file_name_safe(doc)}"
+                                f"Updating offline .kra files: {[d.get('doc_path') for d in offline_docs_requests]}"
                             )
-                            if krita_file_name_safe(doc) == doc_data.get("doc_name"):
 
+                            for doc_data in offline_docs_requests:
+                                doc_name = doc_data.get("doc_name")
+                                doc_path = doc_data.get("doc_path")
                                 existing_texts_updated = doc_data.get(
                                     "existing_texts_updated", []
                                 )
-                                new_texts_added = doc_data.get("new_texts_added", [])
 
-                                result_message_base = f"{krita_file_name_safe(doc)}: "
+                                # Check if file exists
+                                if not os.path.exists(doc_path):
+                                    write_log(f"[WARNING] File not found: {doc_path}")
+                                    continue
 
-                                if len(existing_texts_updated) > 0:
+                                result = update_offline_kra_file(
+                                    doc_path, existing_texts_updated
+                                )
+                                offline_progress_messages.append(
+                                    result.get("result", "")
+                                )
 
-                                    result = update_doc_layers_svg(
-                                        doc, existing_texts_updated
-                                    )
-
-                                    if result["success"]:
-                                        result_message_base += f"\n  Updated {result.get('count', 0)} existing texts. "
-
-                                    else:
-                                        online_progress_messages.append(
-                                            f"{krita_file_name_safe(doc)}: Updating existing texts failed."
-                                        )
-                                if len(new_texts_added) > 0:
-
-                                    result = add_svg_layer_to_doc(doc, new_texts_added)
-                                    if result["success"]:
-                                        result_message_base += f"\n  Added {result.get('count', 0)} new texts. "
-
-                                    else:
-                                        online_progress_messages.append(
-                                            f"{krita_file_name_safe(doc)}: Creating new texts failed."
-                                        )
-                                online_progress_messages.append(result_message_base)
-
-                    # ===================================================================
-                    # Update Offline Documents
-                    # ===================================================================
-                    offline_progress_messages = []
-
-                    if len(offline_docs_requests) > 0:
-
-                        write_log(
-                            f"Updating offline .kra files: {[d.get('doc_path') for d in offline_docs_requests]}"
-                        )
-
-                        for doc_data in offline_docs_requests:
-                            doc_name = doc_data.get("doc_name")
-                            doc_path = doc_data.get("doc_path")
-                            existing_texts_updated = doc_data.get(
-                                "existing_texts_updated", []
+                        ############################################################
+                        final_message = "Text update applied successfully"
+                        if online_progress_messages:
+                            final_message += (
+                                "\n" + "\n".join(online_progress_messages) + "\n"
+                            )
+                        if offline_progress_messages:
+                            final_message += (
+                                "\n" + "\n".join(offline_progress_messages) + "\n"
                             )
 
-                            # Check if file exists
-                            if not os.path.exists(doc_path):
-                                write_log(f"[WARNING] File not found: {doc_path}")
-                                continue
+                        response = {
+                            "success": True,
+                            "docs_svg_update_result": final_message,
+                        }
+                        client.write(json.dumps(response).encode("utf-8"))
+                    except Exception as e:
+                        response = {"success": False, "docs_svg_update_result": str(e)}
+                        client.write(json.dumps(response).encode("utf-8"))
 
-                            result = update_offline_kra_file(
-                                doc_path, existing_texts_updated
+                case "get_all_docs_svg_data":
+                    opened_docs = Krita.instance().documents()
+                    krita_folder_path = request.get("folder_path", None)
+                    all_svg_data = []
+                    opened_docs_path = []
+
+                    # ===================================================================
+                    # Get all docs svg data from opened documents
+                    # ===================================================================
+                    if not opened_docs:
+                        response = {
+                            "success": False,
+                            "error": "No single active document",
+                        }
+                    else:
+                        try:
+                            for doc in opened_docs:
+                                response_data = get_opened_doc_svg_data(doc)
+                                all_svg_data.append(response_data)
+                                opened_docs_path.append(
+                                    response_data.get("document_path", "")
+                                )
+
+                        except Exception as e:
+                            response = {"success": False, "error": str(e)}
+                    # ===================================================================
+
+                    if krita_folder_path:
+                        # ===================================================================
+                        # Get all docs svg data from .kra files in folder
+                        # ===================================================================
+                        try:
+                            write_log(f"krita_folder_path: {krita_folder_path}")
+                            offline_docs_svg_data = get_all_offline_docs_from_folder(
+                                krita_folder_path, opened_docs_path
                             )
-                            offline_progress_messages.append(result.get("result", ""))
+                            all_svg_data.extend(offline_docs_svg_data)
 
-                    ############################################################
-                    final_message = "Text update applied successfully"
-                    if online_progress_messages:
-                        final_message += (
-                            "\n" + "\n".join(online_progress_messages) + "\n"
+                        except Exception as e:
+                            response = {"success": False, "error": str(e)}
+                        # ===================================================================
+
+                        self.comic_config_info = get_comic_config_info(
+                            krita_folder_path
                         )
-                    if offline_progress_messages:
-                        final_message += (
-                            "\n" + "\n".join(offline_progress_messages) + "\n"
-                        )
+                    else:
+                        self.comic_config_info = None
 
-                    response = {
-                        "success": True,
-                        "docs_svg_update_result": final_message,
-                    }
-                    client.write(json.dumps(response).encode("utf-8"))
-                except Exception as e:
-                    response = {"success": False, "docs_svg_update_result": str(e)}
-                    client.write(json.dumps(response).encode("utf-8"))
+                    # Sort all_svg_data by document_name
+                    all_svg_data.sort(key=lambda x: x.get("document_name", ""))
 
-            case "get_all_docs_svg_data":
-                opened_docs = Krita.instance().documents()
-                krita_folder_path = request.get("folder_path", None)
-                all_svg_data = []
-                opened_docs_path = []
+                    if self.comic_config_info:
+                        write_log(f"Comic config info: {self.comic_config_info}")
 
-                # ===================================================================
-                # Get all docs svg data from opened documents
-                # ===================================================================
-                if not opened_docs:
-                    response = {"success": False, "error": "No single active document"}
-                else:
+                        response = {
+                            "success": True,
+                            "all_docs_svg_data": all_svg_data,
+                            "comic_config_info": self.comic_config_info,
+                        }
+                        client.write(json.dumps(response).encode("utf-8"))
+                    else:
+                        response = {"success": True, "all_docs_svg_data": all_svg_data}
+                        client.write(json.dumps(response).encode("utf-8"))
+
+                case "save_all_opened_docs":
                     try:
+                        opened_docs = Krita.instance().documents()
                         for doc in opened_docs:
-                            response_data = get_opened_doc_svg_data(doc)
-                            all_svg_data.append(response_data)
-                            opened_docs_path.append(
-                                response_data.get("document_path", "")
-                            )
-
+                            doc.save()
+                        response = {
+                            "success": True,
+                            "response_type": "save_all_opened_docs",
+                            "result": "All opened documents saved.",
+                        }
+                        client.write(json.dumps(response).encode("utf-8"))
                     except Exception as e:
                         response = {"success": False, "error": str(e)}
-                # ===================================================================
+                        client.write(json.dumps(response).encode("utf-8"))
 
-                if krita_folder_path:
-                    # ===================================================================
-                    # Get all docs svg data from .kra files in folder
-                    # ===================================================================
+                case "activate_document":
                     try:
-                        write_log(f"krita_folder_path: {krita_folder_path}")
-                        offline_docs_svg_data = get_all_offline_docs_from_folder(
-                            krita_folder_path, opened_docs_path
-                        )
-                        all_svg_data.extend(offline_docs_svg_data)
-
+                        doc_name = request.get("doc_name", "")
+                        opened_docs = Krita.instance().documents()
+                        target_doc = None
+                        for doc in opened_docs:
+                            if krita_file_name_safe(doc) == doc_name:
+                                target_doc = doc
+                                break
+                        if target_doc:
+                            Krita.instance().setActiveDocument(target_doc)
+                            Application.activeWindow().addView(target_doc)
+                            response = {
+                                "success": True,
+                                "response_type": "activate_document",
+                                "result": f"Document '{doc_name}' activated.",
+                            }
+                        else:
+                            response = {
+                                "success": False,
+                                "response_type": "activate_document",
+                                "error": f"Document '{doc_name}' not found among opened documents.",
+                            }
+                        client.write(json.dumps(response).encode("utf-8"))
                     except Exception as e:
                         response = {"success": False, "error": str(e)}
-                    # ===================================================================
+                        client.write(json.dumps(response).encode("utf-8"))
 
-                    self.comic_config_info = get_comic_config_info(krita_folder_path)
-                else:
-                    self.comic_config_info = None
+                case "open_document":
+                    try:
+                        doc_path = request.get("doc_path", "")
+                        if os.path.exists(doc_path):
+                            opened_doc = Krita.instance().openDocument(doc_path)
+                            if opened_doc:
+                                Krita.instance().setActiveDocument(opened_doc)
+                                Application.activeWindow().addView(opened_doc)
+                            response = {
+                                "success": True,
+                                "response_type": "open_document",
+                                "result": f"Document '{doc_path}' opened.",
+                            }
+                        else:
+                            response = {
+                                "success": False,
+                                "response_type": "open_document",
+                                "error": f"File '{doc_path}' does not exist.",
+                            }
+                        client.write(json.dumps(response).encode("utf-8"))
+                    except Exception as e:
+                        response = {"success": False, "error": str(e)}
+                        client.write(json.dumps(response).encode("utf-8"))
 
-                # Sort all_svg_data by document_name
-                all_svg_data.sort(key=lambda x: x.get("document_name", ""))
+                case "close_document":
+                    try:
+                        doc_name = request.get("doc_name", "")
+                        opened_docs = Krita.instance().documents()
+                        target_doc = None
+                        for doc in opened_docs:
+                            if krita_file_name_safe(doc) == doc_name:
+                                target_doc = doc
+                                break
+                        if target_doc:
+                            target_doc.close()
+                            response = {
+                                "success": True,
+                                "response_type": "close_document",
+                                "result": f"Document '{doc_name}' closed.",
+                            }
+                        else:
+                            response = {
+                                "success": False,
+                                "response_type": "close_document",
+                                "error": f"Document '{doc_name}' not found among opened documents.",
+                            }
+                        client.write(json.dumps(response).encode("utf-8"))
+                    except Exception as e:
+                        response = {"success": False, "error": str(e)}
+                        client.write(json.dumps(response).encode("utf-8"))
 
-                if self.comic_config_info:
-                    write_log(f"Comic config info: {self.comic_config_info}")
+                case "add_from_template":
+                    try:
+                        target_doc_path = request.get("doc_path", "")
+                        template_path = request.get("template_path", "")
+                        config_filepath = request.get("config_filepath", None)
+                        result = add_new_document_from_template(
+                            target_doc_path, template_path, config_filepath
+                        )
+                        if result["success"]:
+                            new_filename = result.get("new_filename", "")
+                            response = {
+                                "success": True,
+                                "response_type": "add_from_template",
+                                "result": f"{new_filename} created from template",
+                            }
+                        else:
+                            response = {
+                                "success": False,
+                                "response_type": "add_from_template",
+                                "error": result.get("error", "Unknown error"),
+                            }
+                        client.write(json.dumps(response).encode("utf-8"))
+                    except Exception as e:
+                        response = {"success": False, "error": str(e)}
+                        client.write(json.dumps(response).encode("utf-8"))
 
-                    response = {
-                        "success": True,
-                        "all_docs_svg_data": all_svg_data,
-                        "comic_config_info": self.comic_config_info,
-                    }
-                    client.write(json.dumps(response).encode("utf-8"))
-                else:
-                    response = {"success": True, "all_docs_svg_data": all_svg_data}
-                    client.write(json.dumps(response).encode("utf-8"))
-
-            case "save_all_opened_docs":
-                try:
-                    opened_docs = Krita.instance().documents()
-                    for doc in opened_docs:
-                        doc.save()
-                    response = {
-                        "success": True,
-                        "response_type": "save_all_opened_docs",
-                        "result": "All opened documents saved.",
-                    }
-                    client.write(json.dumps(response).encode("utf-8"))
-                except Exception as e:
-                    response = {"success": False, "error": str(e)}
-                    client.write(json.dumps(response).encode("utf-8"))
-
-            case "activate_document":
-                try:
-                    doc_name = request.get("doc_name", "")
-                    opened_docs = Krita.instance().documents()
-                    target_doc = None
-                    for doc in opened_docs:
-                        if krita_file_name_safe(doc) == doc_name:
-                            target_doc = doc
-                            break
-                    if target_doc:
-                        Krita.instance().setActiveDocument(target_doc)
-                        Application.activeWindow().addView(target_doc)
-                        response = {
-                            "success": True,
-                            "response_type": "activate_document",
-                            "result": f"Document '{doc_name}' activated.",
-                        }
-                    else:
-                        response = {
-                            "success": False,
-                            "response_type": "activate_document",
-                            "error": f"Document '{doc_name}' not found among opened documents.",
-                        }
-                    client.write(json.dumps(response).encode("utf-8"))
-                except Exception as e:
-                    response = {"success": False, "error": str(e)}
-                    client.write(json.dumps(response).encode("utf-8"))
-
-            case "open_document":
-                try:
-                    doc_path = request.get("doc_path", "")
-                    if os.path.exists(doc_path):
-                        opened_doc = Krita.instance().openDocument(doc_path)
-                        if opened_doc:
-                            Krita.instance().setActiveDocument(opened_doc)
-                            Application.activeWindow().addView(opened_doc)
-                        response = {
-                            "success": True,
-                            "response_type": "open_document",
-                            "result": f"Document '{doc_path}' opened.",
-                        }
-                    else:
-                        response = {
-                            "success": False,
-                            "response_type": "open_document",
-                            "error": f"File '{doc_path}' does not exist.",
-                        }
-                    client.write(json.dumps(response).encode("utf-8"))
-                except Exception as e:
-                    response = {"success": False, "error": str(e)}
-                    client.write(json.dumps(response).encode("utf-8"))
-
-            case "close_document":
-                try:
-                    doc_name = request.get("doc_name", "")
-                    opened_docs = Krita.instance().documents()
-                    target_doc = None
-                    for doc in opened_docs:
-                        if krita_file_name_safe(doc) == doc_name:
-                            target_doc = doc
-                            break
-                    if target_doc:
-                        target_doc.close()
-                        response = {
-                            "success": True,
-                            "response_type": "close_document",
-                            "result": f"Document '{doc_name}' closed.",
-                        }
-                    else:
-                        response = {
-                            "success": False,
-                            "response_type": "close_document",
-                            "error": f"Document '{doc_name}' not found among opened documents.",
-                        }
-                    client.write(json.dumps(response).encode("utf-8"))
-                except Exception as e:
-                    response = {"success": False, "error": str(e)}
-                    client.write(json.dumps(response).encode("utf-8"))
-
-            case "add_from_template":
-                try:
-                    target_doc_path = request.get("doc_path", "")
-                    template_path = request.get("template_path", "")
-                    config_filepath = request.get("config_filepath", None)
-                    result = add_new_document_from_template(
-                        target_doc_path, template_path, config_filepath
-                    )
-                    if result["success"]:
+                case "duplicate_document":
+                    try:
+                        doc_name = request.get("doc_name", "")
+                        doc_path = request.get("doc_path", "")
+                        config_filepath = request.get("config_filepath", None)
+                        result = duplicate_document(doc_name, doc_path, config_filepath)
                         new_filename = result.get("new_filename", "")
-                        response = {
-                            "success": True,
-                            "response_type": "add_from_template",
-                            "result": f"{new_filename} created from template",
-                        }
-                    else:
-                        response = {
-                            "success": False,
-                            "response_type": "add_from_template",
-                            "error": result.get("error", "Unknown error"),
-                        }
-                    client.write(json.dumps(response).encode("utf-8"))
-                except Exception as e:
-                    response = {"success": False, "error": str(e)}
-                    client.write(json.dumps(response).encode("utf-8"))
+                        if result["success"]:
+                            original_filename = result.get("original_filename", "")
+                            response = {
+                                "success": True,
+                                "response_type": "duplicate_document",
+                                "result": f"{new_filename} created from {original_filename} by duplication",
+                            }
+                        else:
+                            response = {
+                                "success": False,
+                                "response_type": "duplicate_document",
+                                "error": result.get("error", "Unknown error"),
+                            }
+                        client.write(json.dumps(response).encode("utf-8"))
+                    except Exception as e:
+                        response = {"success": False, "error": str(e)}
+                        client.write(json.dumps(response).encode("utf-8"))
 
-            case "duplicate_document":
-                try:
-                    doc_name = request.get("doc_name", "")
-                    doc_path = request.get("doc_path", "")
-                    config_filepath = request.get("config_filepath", None)
-                    result = duplicate_document(doc_name, doc_path, config_filepath)
-                    new_filename = result.get("new_filename", "")
-                    if result["success"]:
-                        original_filename = result.get("original_filename", "")
-                        response = {
-                            "success": True,
-                            "response_type": "duplicate_document",
-                            "result": f"{new_filename} created from {original_filename} by duplication",
-                        }
-                    else:
-                        response = {
-                            "success": False,
-                            "response_type": "duplicate_document",
-                            "error": result.get("error", "Unknown error"),
-                        }
-                    client.write(json.dumps(response).encode("utf-8"))
-                except Exception as e:
-                    response = {"success": False, "error": str(e)}
-                    client.write(json.dumps(response).encode("utf-8"))
+                case "delete_document":
+                    try:
+                        doc_name = request.get("doc_name", "")
+                        doc_path = request.get("doc_path", "")
+                        config_filepath = request.get("config_filepath", None)
+                        result = delete_document(doc_name, doc_path, config_filepath)
+                        if result["success"]:
+                            deleted_filename = result.get("deleted_filename", "")
+                            response = {
+                                "success": True,
+                                "response_type": "delete_document",
+                                "result": f"{deleted_filename} deleted successfully",
+                            }
+                        else:
+                            response = {
+                                "success": False,
+                                "response_type": "delete_document",
+                                "error": result.get("error", "Unknown error"),
+                            }
+                        client.write(json.dumps(response).encode("utf-8"))
+                    except Exception as e:
+                        response = {"success": False, "error": str(e)}
+                        client.write(json.dumps(response).encode("utf-8"))
 
-            case "delete_document":
-                try:
-                    doc_name = request.get("doc_name", "")
-                    doc_path = request.get("doc_path", "")
-                    config_filepath = request.get("config_filepath", None)
-                    result = delete_document(doc_name, doc_path, config_filepath)
-                    if result["success"]:
-                        deleted_filename = result.get("deleted_filename", "")
-                        response = {
-                            "success": True,
-                            "response_type": "delete_document",
-                            "result": f"{deleted_filename} deleted successfully",
-                        }
-                    else:
-                        response = {
-                            "success": False,
-                            "response_type": "delete_document",
-                            "error": result.get("error", "Unknown error"),
-                        }
+                case _:
+                    # Unknown action
+                    response = {
+                        "success": False,
+                        "error": f"Unknown action: {request['action']}",
+                    }
                     client.write(json.dumps(response).encode("utf-8"))
-                except Exception as e:
-                    response = {"success": False, "error": str(e)}
-                    client.write(json.dumps(response).encode("utf-8"))
-
-            case _:
-                # Unknown action
-                response = {
-                    "success": False,
-                    "error": f"Unknown action: {request['action']}",
-                }
-                client.write(json.dumps(response).encode("utf-8"))
+        except Exception as e:
+            write_log(f"❌ Error handling message: {e}")
+            response = {"success": False, "error": str(e)}
+            client.write(json.dumps(response).encode("utf-8"))
+        finally:
+            # Resume gesture event filter after document operations
+            resume_gesture_event_filter()
 
 
 class StoryEditorAgentFactory(DockWidgetFactoryBase):
