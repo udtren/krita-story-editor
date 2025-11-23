@@ -34,6 +34,16 @@ from config.story_editor_loader import (
     TEXT_EDITOR_MAX_HEIGHT,
 )
 
+try:
+    from quick_access_manager.gesture.gesture_main import (
+        pause_gesture_event_filter,
+        resume_gesture_event_filter,
+    )
+
+    GESTURE_AVAILABLE = True
+except ImportError:
+    GESTURE_AVAILABLE = False
+
 
 class StoryEditorWindow:
     """Handles the text editor window functionality"""
