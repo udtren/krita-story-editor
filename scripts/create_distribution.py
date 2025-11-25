@@ -19,7 +19,13 @@ def create_distribution_zip():
     dist_dir = os.path.join(project_root, "dist")
     user_data_dir = os.path.join(project_root, "user_data")
 
-    dist_folder_name_profix = "v0.8.0-beta"
+    # Use GitHub tag if running in GitHub Actions, otherwise use default version
+    github_ref = os.environ.get("GITHUB_REF", "")
+    if github_ref.startswith("refs/tags/"):
+        # Extract tag name from refs/tags/v1.0.0 -> v1.0.0
+        dist_folder_name_profix = github_ref.replace("refs/tags/", "")
+    else:
+        dist_folder_name_profix = "tag_missing_" + datetime.now().strftime("%Y%m%d")
 
     # Check if executable exists (platform-specific name)
     if sys.platform == "win32":
@@ -34,15 +40,6 @@ def create_distribution_zip():
         print(f"Error: {exe_name} not found in dist folder")
         print(f"   Please run scripts/{build_script} first to create the executable")
         return False
-
-    # Create empty user_data structure if it doesn't exist
-    # (The executable will populate configs and templates on first run via app_paths.py)
-    # if not os.path.exists(user_data_dir):
-    #     print("Warning: user_data folder not found")
-    #     print("   Creating empty user_data folder structure...")
-    #     os.makedirs(os.path.join(user_data_dir, "templates"))
-    #     os.makedirs(os.path.join(user_data_dir, "config"))
-    #     print("   (Configs and templates will be auto-created on first run)")
 
     # Create distribution folder name with platform suffix
     platform_suffix = "Windows" if sys.platform == "win32" else "Linux"
@@ -71,12 +68,6 @@ def create_distribution_zip():
         shutil.copy2(agent_zip_path, dist_folder)
     else:
         print("   Warning: agent.zip not found, skipping...")
-
-    # Copy user_data folder
-    # print("   Copying user_data folder...")
-    # shutil.copytree(
-    #     user_data_dir, os.path.join(dist_folder, "user_data"), dirs_exist_ok=True
-    # )
 
     # Create zip file
     zip_path = dist_folder + ".zip"
