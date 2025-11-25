@@ -143,7 +143,8 @@ class StoryEditorAgentDocker(QDockWidget):
         request = json.loads(data)
 
         # Pause gesture event filter for all document operations
-        pause_gesture_event_filter()
+        if GESTURE_AVAILABLE:
+            pause_gesture_event_filter()
 
         try:
             # Process request and interact with Krita
@@ -527,7 +528,8 @@ class StoryEditorAgentDocker(QDockWidget):
             client.write(json.dumps(response).encode("utf-8"))
         finally:
             # Resume gesture event filter after document operations
-            resume_gesture_event_filter()
+            if GESTURE_AVAILABLE:
+                resume_gesture_event_filter()
 
 
 class StoryEditorAgentFactory(DockWidgetFactoryBase):
