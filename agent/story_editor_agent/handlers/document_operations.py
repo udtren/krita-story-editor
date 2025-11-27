@@ -32,7 +32,7 @@ def handle_add_from_template(client, request, docker_instance):
                 "response_type": "add_from_template",
                 "error": result.get("error", "Unknown error"),
             }
-        client.write(json.dumps(response).encode("utf-8"))
+            client.write(json.dumps(response).encode("utf-8"))
     except Exception as e:
         response = {"success": False, "error": str(e)}
         client.write(json.dumps(response).encode("utf-8"))
@@ -60,7 +60,7 @@ def handle_duplicate_document(client, request, docker_instance):
                 "response_type": "duplicate_document",
                 "error": result.get("error", "Unknown error"),
             }
-        client.write(json.dumps(response).encode("utf-8"))
+            client.write(json.dumps(response).encode("utf-8"))
     except Exception as e:
         response = {"success": False, "error": str(e)}
         client.write(json.dumps(response).encode("utf-8"))
@@ -87,7 +87,7 @@ def handle_delete_document(client, request, docker_instance):
                 "response_type": "delete_document",
                 "error": result.get("error", "Unknown error"),
             }
-        client.write(json.dumps(response).encode("utf-8"))
+            client.write(json.dumps(response).encode("utf-8"))
     except Exception as e:
         response = {"success": False, "error": str(e)}
         client.write(json.dumps(response).encode("utf-8"))

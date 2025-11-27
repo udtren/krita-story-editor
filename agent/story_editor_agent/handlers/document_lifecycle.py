@@ -58,6 +58,7 @@ def handle_open_document(client, request, docker_instance):
                 "response_type": "open_document",
                 "error": f"File '{doc_path}' does not exist.",
             }
+            client.write(json.dumps(response).encode("utf-8"))
     except Exception as e:
         response = {"success": False, "error": str(e)}
         client.write(json.dumps(response).encode("utf-8"))
@@ -87,5 +88,7 @@ def handle_close_document(client, request, docker_instance):
                 "response_type": "close_document",
                 "error": f"Document '{doc_name}' not found among opened documents.",
             }
+            client.write(json.dumps(response).encode("utf-8"))
     except Exception as e:
         response = {"success": False, "error": str(e)}
+        client.write(json.dumps(response).encode("utf-8"))

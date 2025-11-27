@@ -352,14 +352,6 @@ class ControlTower(QMainWindow):
                         self.log(f"📥 All docs svg data received from agent")
 
                 case {
-                    "response_type": "save_all_opened_docs",
-                    "success": True,
-                }:
-                    result = response.get("result", "Unknown")
-                    self.log(f"💾 {result}")
-
-                case {
-                    "response_type": "activate_document",
                     "success": True,
                 }:
                     result = response.get("result", "Unknown")
