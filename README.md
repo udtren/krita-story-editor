@@ -1,4 +1,5 @@
 # Krita Story Editor
+![alt text](images/main.png)
 
 A tool for editing text layers across multiple Krita documents, whether they are open or closed. Edit all your text content in one place and sync changes back to your files.
 
