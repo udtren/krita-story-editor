@@ -2,7 +2,7 @@
 
 A tool for editing text layers across multiple Krita documents, whether they are open or closed. Edit all your text content in one place and sync changes back to your files.
 
-**Comic Manager Integration:** When using Story Editor to edit Krita documents in a folder that belongs to a Krita comic project (created by Krita's Comic Manager), this tool will automatically update the `comicConfig.json` file in that folder when you add, duplicate, or delete documents. This keeps your comic project configuration synchronized with your document changes.
+**Comics Manager Integration:** When using Story Editor to edit Krita documents in a folder that belongs to a Krita comic project (created by Krita's Comics Manager), this tool will automatically update the `comicConfig.json` file in that folder when you add, duplicate, or delete documents. This keeps your comic project configuration synchronized with your document changes.
 
 **Note:** This tool is designed for Krita 5.3.0, which features a refactored text tool. Currently, Krita 5.3.0 is only available as a pre-alpha version, and its text tool still contains bugs that need to be fixed. This tool may be updated in the future to accommodate changes in the text tool's behavior.
 
