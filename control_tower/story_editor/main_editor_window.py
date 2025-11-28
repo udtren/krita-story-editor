@@ -1,5 +1,8 @@
 from pathlib import Path
 import os
+import base64
+from dataclasses import dataclass, field
+from typing import List, Dict, Any, Optional, Tuple
 from PyQt5.QtWidgets import (
     QWidget,
     QVBoxLayout,
@@ -42,6 +45,65 @@ THUMBNAIL_SCROLL_AREA_WIDTH = (
     THUMBNAIL_LABEL_WIDTH + DOCUMENT_STATUS_LABEL_WIDTH + 15
 ) * THUMBNAIL_LAYOUT_GRID_COLUMNS
 
+# UI Constants
+ACTIVATE_BUTTON_WIDTH = 40
+ACTIVATE_BUTTON_MIN_HEIGHT = 200
+THUMBNAIL_BORDER_DEFAULT = "#555"
+THUMBNAIL_BORDER_ACTIVE = "#aaa"
+THUMBNAIL_BACKGROUND_COLOR = "#aa805a"
+DOCUMENT_CONTAINER_BORDER_COLOR = "#333333"
+DOCUMENT_CONTAINER_BORDER_WIDTH = 2
+TEXT_EDITOR_HEIGHT_PADDING = 10
+SCROLL_RESTORE_DELAY_MS = 100
+THUMBNAIL_SPACING = 0
+THUMBNAIL_MARGINS = 0
+CONTENT_LAYOUT_MARGINS = (0, 0, 15, 0)
+MAIN_LAYOUT_MARGINS = (0, 0, 10, 20)
+DOC_CONTAINER_MARGINS = (5, 5, 5, 5)
+
+
+@dataclass
+class LayerChange:
+    """Represents a change to a text element in a layer."""
+
+    new_text: QTextEdit
+    shape_id: str
+
+
+@dataclass
+class LayerGroup:
+    """Represents a layer group within a document."""
+
+    layer_name: str
+    layer_id: str
+    layer_shapes: List[Dict[str, Any]]
+    svg_content: str
+    changes: List[LayerChange] = field(default_factory=list)
+
+
+@dataclass
+class TextEditWidget:
+    """Represents a text editor widget with metadata."""
+
+    widget: QTextEdit
+    document_name: str
+    layer_name: str
+    layer_id: str
+    shape_id: str
+
+
+@dataclass
+class DocumentState:
+    """Represents the state of a document in the editor."""
+
+    document_name: str
+    document_path: str
+    has_text_changes: bool = False
+    new_text_widgets: List[Any] = field(default_factory=list)
+    layer_groups: Dict[str, LayerGroup] = field(default_factory=dict)
+    opened: bool = True
+    text_edit_widgets: List[TextEditWidget] = field(default_factory=list)
+
 
 class StoryEditorWindow:
     """Handles the text editor window functionality"""
@@ -68,21 +130,18 @@ class StoryEditorWindow:
         self.template_files = []  # To store template files list
         self.story_board_window = None  # Store reference to story board window
 
-    def set_parent_window(self, parent_window):
+    def set_parent_window(self, parent_window) -> None:
         """Set the persistent parent window"""
         self.parent_window = parent_window
         # Set close event handler on parent window
         self.parent_window.closeEvent = lambda event: self._on_window_close(event)
 
-    def create_text_editor_window(self):
-        """Create the content for the Story Editor"""
-        if not self.all_docs_svg_data:
-            self.socket_handler.log(
-                "⚠️ No SVG data available. Make sure the request succeeded."
-            )
-            return
+    # ===================================================================
+    # Helper Methods for UI Creation
+    # ===================================================================
 
-        # Save scroll positions before clearing content
+    def _save_current_scroll_positions(self) -> None:
+        """Save current scroll positions before clearing content."""
         if hasattr(self, "thumbnail_scroll_area_widget"):
             self.thumbnail_scroll_position = (
                 self.thumbnail_scroll_area_widget.verticalScrollBar().value()
@@ -92,43 +151,55 @@ class StoryEditorWindow:
                 self.all_docs_scroll_area_widget.verticalScrollBar().value()
             )
 
-        # Clear previous content in parent window's container
+    def _clear_previous_content(self) -> None:
+        """Clear previous content in parent window's container."""
         if self.parent_window:
-            # Remove all widgets from content_layout
             while self.parent_window.content_layout.count():
                 child = self.parent_window.content_layout.takeAt(0)
                 if child.widget():
                     child.widget().deleteLater()
 
+    def _initialize_editor_state(self) -> None:
+        """Initialize/reset editor state variables."""
         self.all_docs_text_state = {}
         self.new_text_widgets = []
         self.doc_layouts = {}
         self.active_doc_name = None
 
-        thumbnail_and_text_layout = QHBoxLayout()
+    def _create_thumbnail_scroll_area(self) -> Tuple[QScrollArea, QGridLayout]:
+        """Create scroll area for document thumbnails.
 
-        # Create scroll area for thumbnails
+        Returns:
+            Tuple of (scroll_area, thumbnail_layout)
+        """
         thumbnail_scroll_area = QScrollArea()
         thumbnail_scroll_area.setWidgetResizable(True)
         thumbnail_scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
         thumbnail_scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
         thumbnail_scroll_area.setFrameShape(QScrollArea.NoFrame)
-        thumbnail_scroll_area.setMaximumWidth(
-            THUMBNAIL_SCROLL_AREA_WIDTH
-        )  # Fixed width for thumbnail column
+        thumbnail_scroll_area.setMaximumWidth(THUMBNAIL_SCROLL_AREA_WIDTH)
 
         # Create container widget for thumbnails
         thumbnail_container = QWidget()
         thumbnail_layout = QGridLayout(thumbnail_container)
-        thumbnail_layout.setContentsMargins(0, 0, 0, 0)
+        thumbnail_layout.setContentsMargins(
+            THUMBNAIL_MARGINS, THUMBNAIL_MARGINS, THUMBNAIL_MARGINS, THUMBNAIL_MARGINS
+        )
 
         # Set the container as scroll area's widget
         thumbnail_scroll_area.setWidget(thumbnail_container)
 
-        # Store reference to thumbnail scroll area for saving position later
+        # Store reference for saving position later
         self.thumbnail_scroll_area_widget = thumbnail_scroll_area
 
-        # Create scroll area for all documents' content
+        return thumbnail_scroll_area, thumbnail_layout
+
+    def _create_content_scroll_area(self) -> Tuple[QScrollArea, QVBoxLayout]:
+        """Create scroll area for all documents' content.
+
+        Returns:
+            Tuple of (scroll_area, all_docs_layout)
+        """
         all_docs_scroll_area = QScrollArea()
         all_docs_scroll_area.setWidgetResizable(True)
         all_docs_scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
@@ -138,276 +209,453 @@ class StoryEditorWindow:
         # Create container widget for all documents
         all_docs_container = QWidget()
         all_docs_layout = QVBoxLayout(all_docs_container)
-        all_docs_layout.setContentsMargins(0, 0, 15, 0)
+        all_docs_layout.setContentsMargins(*CONTENT_LAYOUT_MARGINS)
 
         # Set the container as scroll area's widget
         all_docs_scroll_area.setWidget(all_docs_container)
 
-        # Store reference to all docs scroll area for saving position later
+        # Store reference for saving position later
         self.all_docs_scroll_area_widget = all_docs_scroll_area
+
+        return all_docs_scroll_area, all_docs_layout
+
+    def _decode_base64_thumbnail(self, thumbnail_data: str) -> QPixmap:
+        """Decode base64 thumbnail data to QPixmap.
+
+        Args:
+            thumbnail_data: Base64 encoded image data (with or without data URI prefix)
+
+        Returns:
+            QPixmap object with the decoded image
+
+        Raises:
+            Exception: If decoding fails
+        """
+        # Remove the data URI prefix if present
+        if thumbnail_data.startswith("data:image"):
+            thumbnail_data = thumbnail_data.split(",", 1)[1]
+
+        # Decode base64 to bytes
+        image_bytes = base64.b64decode(thumbnail_data)
+
+        # Create QPixmap from bytes
+        pixmap = QPixmap()
+        pixmap.loadFromData(QByteArray(image_bytes))
+
+        return pixmap
+
+    def _create_thumbnail_label(
+        self, doc_name: str, doc_path: str, thumbnail: Optional[str]
+    ) -> QLabel:
+        """Create and configure thumbnail label for a document.
+
+        Args:
+            doc_name: Name of the document
+            doc_path: Full path to the document
+            thumbnail: Base64 encoded thumbnail data (optional)
+
+        Returns:
+            Configured QLabel with thumbnail or placeholder
+        """
+        thumbnail_label = QLabel()
+        thumbnail_label.setFixedWidth(THUMBNAIL_LABEL_WIDTH)
+        thumbnail_label.setStyleSheet(
+            f"border: {DOCUMENT_CONTAINER_BORDER_WIDTH}px solid {THUMBNAIL_BORDER_DEFAULT}; "
+            f"background-color: {THUMBNAIL_BACKGROUND_COLOR}; color: #000000;"
+        )
+        thumbnail_label.setProperty("default_border", THUMBNAIL_BORDER_DEFAULT)
+        thumbnail_label.setProperty("active_border", THUMBNAIL_BORDER_ACTIVE)
+
+        # Load thumbnail from base64 data if available
+        if thumbnail:
+            try:
+                pixmap = self._decode_base64_thumbnail(thumbnail)
+
+                # Scale pixmap to width while maintaining aspect ratio
+                pixmap = pixmap.scaledToWidth(
+                    THUMBNAIL_LABEL_WIDTH, Qt.SmoothTransformation
+                )
+                thumbnail_label.setPixmap(pixmap)
+                # Set label size to match the scaled pixmap
+                thumbnail_label.setFixedSize(pixmap.size())
+
+                # Set tooltip with document info
+                thumbnail_label.setToolTip(f"Document: {doc_name}\nPath: {doc_path}")
+            except Exception as e:
+                # If loading fails, show placeholder text
+                thumbnail_label.setText("No\nPreview")
+                thumbnail_label.setAlignment(Qt.AlignCenter)
+        else:
+            # No thumbnail available
+            thumbnail_label.setText("No\nPreview")
+            thumbnail_label.setAlignment(Qt.AlignCenter)
+
+        return thumbnail_label
+
+    def _setup_thumbnail_context_menu(
+        self, thumbnail_label: QLabel, doc_name: str, doc_path: str
+    ) -> None:
+        """Setup context menu for thumbnail label.
+
+        Args:
+            thumbnail_label: The thumbnail label widget
+            doc_name: Name of the document
+            doc_path: Full path to the document
+        """
+        thumbnail_label.setContextMenuPolicy(Qt.CustomContextMenu)
+        thumbnail_label.customContextMenuRequested.connect(
+            lambda pos: self.show_thumbnail_context_menu(
+                pos, doc_name, thumbnail_label, doc_path, self.comic_config_info
+            )
+        )
+
+    def _create_document_status_label(self, opened: bool) -> VerticalLabel:
+        """Create vertical status label for a document.
+
+        Args:
+            opened: Whether the document is opened
+
+        Returns:
+            Configured VerticalLabel widget
+        """
+        status_text = "opened" if opened else "closed"
+        document_status_label = VerticalLabel(status_text)
+        document_status_label.setFixedWidth(DOCUMENT_STATUS_LABEL_WIDTH)
+        document_status_label.setContentsMargins(0, 0, 0, 0)
+
+        if opened:
+            document_status_label.setStyleSheet(get_thumbnail_status_label_stylesheet())
+        else:
+            document_status_label.setStyleSheet(
+                get_thumbnail_status_label_disabled_stylesheet()
+            )
+
+        return document_status_label
+
+    def _create_activate_button(
+        self, doc_name: str, doc_path: str, opened: bool
+    ) -> QPushButton:
+        """Create activate button for a document.
+
+        Args:
+            doc_name: Name of the document
+            doc_path: Full path to the document
+            opened: Whether the document is opened
+
+        Returns:
+            Configured QPushButton
+        """
+        # Add line breaks between each character for vertical text
+        vertical_doc_name = "\n".join(f"{doc_name}".replace(".kra", ""))
+        activate_btn = QPushButton(vertical_doc_name)
+        activate_btn.setFixedWidth(ACTIVATE_BUTTON_WIDTH)
+        activate_btn.setMinimumHeight(ACTIVATE_BUTTON_MIN_HEIGHT)
+
+        if not opened:
+            activate_btn.setStyleSheet(get_activate_button_disabled_stylesheet())
+            activate_btn.setEnabled(False)
+            activate_btn.setToolTip(f"Document: {doc_name} (offline)\nPath: {doc_path}")
+        else:
+            activate_btn.setCheckable(True)
+            activate_btn.setToolTip(
+                f"Document: {doc_name} (click to activate)\nPath: {doc_path}"
+            )
+            activate_btn.clicked.connect(
+                lambda _checked, name=doc_name, btn=activate_btn: self.activate_document(
+                    name, btn
+                )
+            )
+            activate_btn.setStyleSheet(get_activate_button_stylesheet())
+            activate_btn.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)
+
+        # Store button reference
+        if not hasattr(self, "doc_buttons"):
+            self.doc_buttons = {}
+        self.doc_buttons[doc_name] = activate_btn
+
+        return activate_btn
+
+    def _initialize_document_state(
+        self, doc_name: str, doc_path: str, opened: bool
+    ) -> None:
+        """Initialize state tracking for a document.
+
+        Args:
+            doc_name: Name of the document
+            doc_path: Full path to the document
+            opened: Whether the document is opened
+        """
+        self.all_docs_text_state[doc_name] = {
+            "document_name": doc_name,
+            "document_path": doc_path,
+            "has_text_changes": False,
+            "new_text_widgets": [],
+            "layer_groups": {},
+            "opened": opened,
+            "text_edit_widgets": [],
+        }
+
+    def _create_text_editor_widget(
+        self, doc_name: str, layer_name: str, layer_id: str, layer_shape: Dict[str, Any]
+    ) -> QTextEdit:
+        """Create a text editor widget for a text element.
+
+        Args:
+            doc_name: Name of the document
+            layer_name: Name of the layer
+            layer_id: ID of the layer
+            layer_shape: Shape data containing text content and element ID
+
+        Returns:
+            Configured QTextEdit widget
+        """
+        text_edit = QTextEdit()
+        text_edit.setPlainText(layer_shape["text_content"])
+        text_edit.setToolTip(
+            f"Doc: {doc_name} | Layer: {layer_name} | Layer Id: {layer_id} | "
+            f"Shape ID: {layer_shape['element_id']}"
+        )
+        text_edit.setAcceptRichText(False)
+        text_edit.setFont(get_text_editor_font())
+        text_edit.setStyleSheet(get_tspan_editor_stylesheet())
+        text_edit.setMaximumHeight(TEXT_EDITOR_MAX_HEIGHT)
+
+        # Auto-adjust height based on content
+        doc_height = text_edit.document().size().height()
+        text_edit.setMinimumHeight(
+            min(
+                max(
+                    int(doc_height) + TEXT_EDITOR_HEIGHT_PADDING, TEXT_EDITOR_MIN_HEIGHT
+                ),
+                TEXT_EDITOR_MAX_HEIGHT,
+            )
+        )
+
+        return text_edit
+
+    def _populate_layer_editors(
+        self,
+        doc_name: str,
+        doc_path: str,
+        svg_data: List[Dict[str, Any]],
+        doc_level_layers_layout: QVBoxLayout,
+    ) -> None:
+        """Populate text editors for all layers in a document.
+
+        Args:
+            doc_name: Name of the document
+            doc_path: Full path to the document
+            svg_data: List of layer data dictionaries
+            doc_level_layers_layout: Layout to add editors to
+        """
+        for layer_data in svg_data:
+            layer_name = layer_data.get("layer_name", "unknown")
+            layer_id = layer_data.get("layer_id", "unknown")
+            svg_content = layer_data.get("svg", "")
+
+            parsed_svg_data = parse_krita_svg(doc_name, doc_path, layer_id, svg_content)
+            # write_log(f"parsed_svg_data: {parsed_svg_data}")
+
+            if not parsed_svg_data["layer_shapes"]:
+                continue
+
+            self.all_docs_text_state[doc_name]["layer_groups"][layer_id] = {
+                "layer_name": layer_name,
+                "layer_id": layer_id,
+                "layer_shapes": parsed_svg_data["layer_shapes"],
+                "svg_content": svg_content,
+                "changes": [],
+            }
+
+            # Add QTextEdit for each text element
+            for elem_idx, layer_shape in enumerate(parsed_svg_data["layer_shapes"]):
+                svg_section_level_layout = QHBoxLayout()
+
+                # Create text editor
+                text_edit = self._create_text_editor_widget(
+                    doc_name, layer_name, layer_id, layer_shape
+                )
+
+                svg_section_level_layout.addWidget(text_edit)
+
+                self.all_docs_text_state[doc_name]["layer_groups"][layer_id][
+                    "changes"
+                ].append(
+                    {
+                        "new_text": text_edit,
+                        "shape_id": layer_shape["element_id"],
+                    }
+                )
+
+                # Add to text_edit_widgets list for find/replace functionality
+                self.all_docs_text_state[doc_name]["text_edit_widgets"].append(
+                    {
+                        "widget": text_edit,
+                        "document_name": doc_name,
+                        "layer_name": layer_name,
+                        "layer_id": layer_id,
+                        "shape_id": layer_shape["element_id"],
+                    }
+                )
+
+                doc_level_layers_layout.addLayout(svg_section_level_layout)
+
+    def _create_document_section(
+        self,
+        index: int,
+        doc_data: Dict[str, Any],
+        thumbnail_layout: QGridLayout,
+        all_docs_layout: QVBoxLayout,
+    ) -> None:
+        """Create UI section for a single document.
+
+        Args:
+            index: Document index for grid positioning
+            doc_data: Document data dictionary
+            thumbnail_layout: Grid layout for thumbnails
+            all_docs_layout: Vertical layout for document content
+        """
+        doc_name = doc_data.get("document_name", "unknown")
+        doc_path = doc_data.get("document_path", "unknown")
+        svg_data = doc_data.get("svg_data", [])
+        opened = doc_data.get("opened", True)
+        thumbnail = doc_data.get("thumbnail", None)
+
+        # Create horizontal layout for this document (activate button + content)
+        doc_horizontal_layout = QHBoxLayout()
+        all_docs_layout.addLayout(doc_horizontal_layout)
+
+        # Create thumbnail section
+        self._create_thumbnail_section(
+            index, doc_name, doc_path, thumbnail, opened, thumbnail_layout
+        )
+
+        # Initialize document state
+        self._initialize_document_state(doc_name, doc_path, opened)
+
+        # Create activate button
+        activate_btn = self._create_activate_button(doc_name, doc_path, opened)
+        doc_header_layout = QHBoxLayout()
+        doc_header_layout.addWidget(activate_btn)
+        doc_horizontal_layout.addLayout(doc_header_layout, stretch=0)
+
+        # Get and configure thumbnail for clickability if opened
+        if (
+            opened
+            and hasattr(self, "doc_thumbnails")
+            and doc_name in self.doc_thumbnails
+        ):
+            thumbnail_label = self.doc_thumbnails[doc_name]
+            thumbnail_label.setCursor(Qt.PointingHandCursor)
+            thumbnail_label.mousePressEvent = (
+                lambda _, name=doc_name: self.thumbnail_clicked(name)
+            )
+
+        # Create document container for layers
+        doc_container = QWidget()
+        doc_level_layers_layout = QVBoxLayout(doc_container)
+        doc_level_layers_layout.setContentsMargins(*DOC_CONTAINER_MARGINS)
+        doc_container.setStyleSheet(
+            f"border: {DOCUMENT_CONTAINER_BORDER_WIDTH}px solid {DOCUMENT_CONTAINER_BORDER_COLOR}; "
+            "background-color: transparent;"
+        )
+
+        # Store the layout for this document
+        self.doc_layouts[doc_name] = doc_level_layers_layout
+
+        # Populate layer editors
+        self._populate_layer_editors(
+            doc_name, doc_path, svg_data, doc_level_layers_layout
+        )
+
+        # Add document container to horizontal layout
+        doc_horizontal_layout.addWidget(doc_container, stretch=1)
+
+    def _create_thumbnail_section(
+        self,
+        index: int,
+        doc_name: str,
+        doc_path: str,
+        thumbnail: Optional[str],
+        opened: bool,
+        thumbnail_layout: QGridLayout,
+    ) -> None:
+        """Create thumbnail section with status label.
+
+        Args:
+            index: Document index for grid positioning
+            doc_name: Name of the document
+            doc_path: Full path to the document
+            thumbnail: Base64 encoded thumbnail data (optional)
+            opened: Whether the document is opened
+            thumbnail_layout: Grid layout to add thumbnail to
+        """
+        # Create layout for thumbnail and status
+        thumbnail_status_layout = QHBoxLayout()
+        thumbnail_status_layout.setSpacing(THUMBNAIL_SPACING)
+        thumbnail_status_layout.setContentsMargins(0, 0, 0, 0)
+
+        # Create thumbnail label
+        thumbnail_label = self._create_thumbnail_label(doc_name, doc_path, thumbnail)
+
+        # Setup context menu
+        self._setup_thumbnail_context_menu(thumbnail_label, doc_name, doc_path)
+
+        # Create status label
+        document_status_label = self._create_document_status_label(opened)
+
+        # Add widgets to layout
+        thumbnail_status_layout.addWidget(thumbnail_label)
+        thumbnail_status_layout.addWidget(document_status_label)
+        thumbnail_status_layout.addStretch()
+
+        # Calculate grid position
+        row = index // THUMBNAIL_LAYOUT_GRID_COLUMNS
+        col = index % THUMBNAIL_LAYOUT_GRID_COLUMNS
+
+        # Create container and add to grid
+        thumbnail_status_container = QWidget()
+        thumbnail_status_container.setLayout(thumbnail_status_layout)
+        thumbnail_layout.addWidget(thumbnail_status_container, row, col)
+
+        # Store thumbnail reference (button ref is stored in _create_activate_button)
+        if not hasattr(self, "doc_thumbnails"):
+            self.doc_thumbnails = {}
+        self.doc_thumbnails[doc_name] = thumbnail_label
+
+        # Store button ref placeholder (will be set when button is created)
+        if not hasattr(self, "doc_buttons"):
+            self.doc_buttons = {}
+
+    def create_text_editor_window(self) -> None:
+        """Create the content for the Story Editor"""
+        if not self.all_docs_svg_data:
+            self.socket_handler.log(
+                "⚠️ No SVG data available. Make sure the request succeeded."
+            )
+            return
+
+        # Prepare for new window creation
+        self._save_current_scroll_positions()
+        self._clear_previous_content()
+        self._initialize_editor_state()
+
+        # Create main layout
+        thumbnail_and_text_layout = QHBoxLayout()
+
+        # Create thumbnail and content scroll areas
+        thumbnail_scroll_area, thumbnail_layout = self._create_thumbnail_scroll_area()
+        all_docs_scroll_area, all_docs_layout = self._create_content_scroll_area()
 
         thumbnail_and_text_layout.addWidget(thumbnail_scroll_area)
         thumbnail_and_text_layout.addWidget(all_docs_scroll_area)
-        thumbnail_and_text_layout.setContentsMargins(0, 0, 10, 20)
+        thumbnail_and_text_layout.setContentsMargins(*MAIN_LAYOUT_MARGINS)
 
-        # write_log(f"all_docs_svg_data: {self.all_docs_svg_data}")
-
-        # VBoxLayout for all layers
+        # Process all documents
         for index, doc_data in enumerate(self.all_docs_svg_data):
-            doc_name = doc_data.get("document_name", "unknown")
-            doc_path = doc_data.get("document_path", "unknown")
-            self.svg_data = doc_data.get("svg_data", [])
-            opened = doc_data.get("opened", True)
-            thumbnail = doc_data.get("thumbnail", None)
-
-            # Create a horizontal layout for this document (activate button + content)
-            doc_horizontal_layout = QHBoxLayout()
-            all_docs_layout.addLayout(doc_horizontal_layout)
-
-            # ===================================================================
-            # Thumbnail QVBoxLayout
-            # ===================================================================
-            thumbnail_status_layout = QHBoxLayout()
-            thumbnail_status_layout.setSpacing(
-                0
-            )  # Remove spacing between thumbnail and status label
-            thumbnail_status_layout.setContentsMargins(0, 0, 0, 0)  # Remove margins
-
-            # Create thumbnail label
-            thumbnail_label = QLabel()
-            thumbnail_label.setFixedWidth(THUMBNAIL_LABEL_WIDTH)
-            thumbnail_label.setStyleSheet(
-                "border: 2px solid #555; background-color: #aa805a; color: #000000;"
+            self._create_document_section(
+                index, doc_data, thumbnail_layout, all_docs_layout
             )
-            thumbnail_label.setProperty("default_border", "#555")
-            thumbnail_label.setProperty("active_border", "#aaa")
-
-            # Load thumbnail from base64 data if available
-            if thumbnail:
-                try:
-                    # Remove the data URI prefix if present
-                    if thumbnail.startswith("data:image"):
-                        thumbnail_data = thumbnail.split(",", 1)[1]
-                    else:
-                        thumbnail_data = thumbnail
-
-                    # Decode base64 to bytes
-                    import base64
-
-                    image_bytes = base64.b64decode(thumbnail_data)
-
-                    # Create QPixmap from bytes
-                    pixmap = QPixmap()
-                    pixmap.loadFromData(QByteArray(image_bytes))
-
-                    # Scale pixmap to width while maintaining aspect ratio
-                    pixmap = pixmap.scaledToWidth(
-                        THUMBNAIL_LABEL_WIDTH, Qt.SmoothTransformation
-                    )
-                    thumbnail_label.setPixmap(pixmap)
-                    # Set label size to match the scaled pixmap
-                    thumbnail_label.setFixedSize(pixmap.size())
-
-                    # Set tooltip with document info
-                    thumbnail_label.setToolTip(
-                        f"Document: {doc_name}\nPath: {doc_path}"
-                    )
-                except Exception as e:
-                    # If loading fails, show placeholder text
-                    thumbnail_label.setText("No\nPreview")
-                    thumbnail_label.setAlignment(Qt.AlignCenter)
-            else:
-                # No thumbnail available
-                thumbnail_label.setText("No\nPreview")
-                thumbnail_label.setAlignment(Qt.AlignCenter)
-
-            # Enable custom context menu for right-click
-            thumbnail_label.setContextMenuPolicy(Qt.CustomContextMenu)
-            thumbnail_label.customContextMenuRequested.connect(
-                lambda pos, name=doc_name, doc_path=doc_path, label=thumbnail_label: self.show_thumbnail_context_menu(
-                    pos, name, label, doc_path, self.comic_config_info
-                )
-            )
-
-            # ===================================================================
-            # Create Document status label on the right side of thumbnail
-            # ===================================================================
-            vertical_text_for_status = lambda: (f"opened" if opened else f"closed")
-            document_status_label = VerticalLabel(vertical_text_for_status())
-            document_status_label.setFixedWidth(DOCUMENT_STATUS_LABEL_WIDTH)
-            document_status_label.setContentsMargins(0, 0, 0, 0)
-
-            # Add thumbnail and status label to layout
-            thumbnail_status_layout.addWidget(thumbnail_label)
-            thumbnail_status_layout.addWidget(document_status_label)
-            thumbnail_status_layout.addStretch()
-
-            row = index // THUMBNAIL_LAYOUT_GRID_COLUMNS
-            col = index % THUMBNAIL_LAYOUT_GRID_COLUMNS
-
-            # Create a container widget for the layout
-            thumbnail_status_container = QWidget()
-            thumbnail_status_container.setLayout(thumbnail_status_layout)
-            thumbnail_layout.addWidget(thumbnail_status_container, row, col)
-
-            # ===================================================================
-            # Store initial text state for this document
-            # ===================================================================
-            self.all_docs_text_state[doc_name] = {
-                "document_name": doc_name,
-                "document_path": doc_path,
-                "has_text_changes": False,
-                "new_text_widgets": [],
-                "layer_groups": {},
-                "opened": opened,
-                "text_edit_widgets": [],  # For find/replace functionality
-            }
-
-            # ===================================================================
-            # Add Document Level Layout
-            # ===================================================================
-            # Document header with clickable button to activate
-            doc_header_layout = QHBoxLayout()
-
-            # Activate button for this document
-            # Add line breaks between each character for vertical text
-            vertical_doc_name = "\n".join(f"{doc_name}".replace(".kra", ""))
-            activate_btn = QPushButton(vertical_doc_name)
-            activate_btn.setFixedWidth(40)  # Make button thin
-            activate_btn.setMinimumHeight(200)  # Make button tall
-
-            # ===================================================================
-            # Setting for Opened / Closed documents
-            # ===================================================================
-            if not opened:
-                document_status_label.setStyleSheet(
-                    get_thumbnail_status_label_disabled_stylesheet()
-                )
-
-                activate_btn.setStyleSheet(get_activate_button_disabled_stylesheet())
-                activate_btn.setEnabled(False)  # Make button unclickable
-                activate_btn.setToolTip(
-                    f"Document: {doc_name} (offline)\nPath: {doc_path}"
-                )
-            else:
-                document_status_label.setStyleSheet(
-                    get_thumbnail_status_label_stylesheet()
-                )
-
-                # Make thumbnail clickable
-                thumbnail_label.setCursor(Qt.PointingHandCursor)
-                thumbnail_label.mousePressEvent = (
-                    lambda _, name=doc_name: self.thumbnail_clicked(name)
-                )
-
-                activate_btn.setCheckable(True)
-                activate_btn.setToolTip(
-                    f"Document: {doc_name} (click to activate)\nPath: {doc_path}"
-                )
-                activate_btn.clicked.connect(
-                    lambda checked, name=doc_name, btn=activate_btn: self.activate_document(
-                        name, btn
-                    )
-                )
-                activate_btn.setStyleSheet(get_activate_button_stylesheet())
-                activate_btn.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)
-            doc_header_layout.addWidget(activate_btn)
-            doc_horizontal_layout.addLayout(doc_header_layout, stretch=0)
-
-            # Store button and thumbnail references for later activation
-            if not hasattr(self, "doc_buttons"):
-                self.doc_buttons = {}
-            if not hasattr(self, "doc_thumbnails"):
-                self.doc_thumbnails = {}
-            self.doc_buttons[doc_name] = activate_btn
-            self.doc_thumbnails[doc_name] = thumbnail_label
-
-            # each document has its own QVBoxLayout wrapped in a container for border
-            doc_container = QWidget()
-            doc_level_layers_layout = QVBoxLayout(doc_container)
-            doc_level_layers_layout.setContentsMargins(5, 5, 5, 5)
-            doc_container.setStyleSheet(
-                "border: 2px solid #333333; background-color: transparent;"
-            )
-
-            # Store the layout for this document
-            self.doc_layouts[doc_name] = doc_level_layers_layout
-
-            # ===================================================================
-            # Layer Level Layouts
-            # ===================================================================
-            for layer_data in self.svg_data:
-                layer_name = layer_data.get("layer_name", "unknown")
-                layer_id = layer_data.get("layer_id", "unknown")
-                svg_content = layer_data.get("svg", "")
-
-                parsed_svg_data = parse_krita_svg(
-                    doc_name, doc_path, layer_id, svg_content
-                )
-                write_log(f"parsed_svg_data: {parsed_svg_data}")
-
-                if not parsed_svg_data["layer_shapes"]:
-                    continue
-
-                self.all_docs_text_state[doc_name]["layer_groups"][layer_id] = {
-                    "layer_name": layer_name,
-                    "layer_id": layer_id,
-                    "layer_shapes": parsed_svg_data["layer_shapes"],
-                    "svg_content": svg_content,
-                    "changes": [],
-                }
-
-                # Add QTextEdit for each text element
-                for elem_idx, layer_shape in enumerate(parsed_svg_data["layer_shapes"]):
-                    svg_section_level_layout = QHBoxLayout()
-                    # QTextEdit for editing
-                    text_edit = QTextEdit()
-                    text_edit.setPlainText(layer_shape["text_content"])
-                    text_edit.setToolTip(
-                        f"Doc: {doc_name} | Layer: {layer_name} | Layer Id: {layer_id} | Shape ID: {layer_shape['element_id']}"
-                    )
-                    text_edit.setAcceptRichText(False)
-                    text_edit.setFont(get_text_editor_font())
-                    text_edit.setStyleSheet(get_tspan_editor_stylesheet())
-                    text_edit.setMaximumHeight(TEXT_EDITOR_MAX_HEIGHT)
-
-                    # Auto-adjust height based on content
-                    doc_height = text_edit.document().size().height()
-                    text_edit.setMinimumHeight(
-                        min(
-                            max(int(doc_height) + 10, TEXT_EDITOR_MIN_HEIGHT),
-                            TEXT_EDITOR_MAX_HEIGHT,
-                        )
-                    )
-
-                    svg_section_level_layout.addWidget(text_edit)
-
-                    self.all_docs_text_state[doc_name]["layer_groups"][layer_id][
-                        "changes"
-                    ].append(
-                        {
-                            "new_text": text_edit,
-                            "shape_id": layer_shape["element_id"],
-                        }
-                    )
-
-                    # Add to text_edit_widgets list for find/replace functionality
-                    self.all_docs_text_state[doc_name]["text_edit_widgets"].append(
-                        {
-                            "widget": text_edit,
-                            "document_name": doc_name,
-                            "layer_name": layer_name,
-                            "layer_id": layer_id,
-                            "shape_id": layer_shape["element_id"],
-                        }
-                    )
-
-                    doc_level_layers_layout.addLayout(svg_section_level_layout)
-            # ===================================================================
-
-            # Add each document container to horizontal layout (AFTER all layers processed)
-            doc_horizontal_layout.addWidget(doc_container, stretch=1)
-        # ===================================================================
 
         # Add stretch at the end of thumbnail layout (inside the container for proper scrolling)
         thumbnail_layout.setRowStretch(thumbnail_layout.rowCount(), 1)
@@ -425,7 +673,7 @@ class StoryEditorWindow:
             # Restore scroll positions after window is shown (use QTimer to ensure scrollbars are ready)
             QTimer.singleShot(100, self._restore_scroll_positions)
 
-    def add_new_text_widget(self):
+    def add_new_text_widget(self) -> None:
         """Add a new empty text editor widget for creating new text"""
         add_new_text_widget(
             self.active_doc_name,
@@ -434,7 +682,7 @@ class StoryEditorWindow:
             self.socket_handler,
         )
 
-    def _restore_scroll_positions(self):
+    def _restore_scroll_positions(self) -> None:
         """Restore saved scroll positions for both scroll areas"""
         if (
             hasattr(self, "thumbnail_scroll_area_widget")
@@ -452,7 +700,7 @@ class StoryEditorWindow:
                 self.content_scroll_position
             )
 
-    def send_merged_svg_request(self):
+    def send_merged_svg_request(self) -> None:
         """Send update requests for all modified texts and add new texts"""
 
         merged_requests = []
@@ -461,7 +709,7 @@ class StoryEditorWindow:
 
         for doc_name, doc_state in self.all_docs_text_state.items():
 
-            write_log(f"Processing document: {doc_name}")
+            # write_log(f"Processing document: {doc_name}")
 
             doc_path = doc_state["document_path"]
             # layer_groups Contains all changes for the existing layers
@@ -519,10 +767,8 @@ class StoryEditorWindow:
         else:
             self.socket_handler.log("⚠️ No updates or new texts to send.")
 
-    def show_text_editor(self):
+    def show_text_editor(self) -> None:
         """Show text editor window with SVG data from Krita document"""
-        # self.socket_handler.log("--- Opening Story Editor ---")
-
         # Clear any existing data
         self.all_docs_svg_data = None
 
@@ -544,7 +790,7 @@ class StoryEditorWindow:
         else:
             self.socket_handler.send_request("get_all_docs_svg_data")
 
-    def set_svg_data(self, all_docs_svg_data):
+    def set_svg_data(self, all_docs_svg_data: List[Dict[str, Any]]) -> None:
         """Store the received SVG data and create the editor window"""
         self.all_docs_svg_data = all_docs_svg_data
         # Automatically create the window when data is received
@@ -552,18 +798,18 @@ class StoryEditorWindow:
         # Disable the open button when window is shown
         self._update_open_button_state(False)
 
-    def set_comic_config_info(self, comic_config_info):
+    def set_comic_config_info(self, comic_config_info: Dict[str, Any]) -> None:
         """Store the comic config info for future use"""
         self.comic_config_info = comic_config_info
 
-    def _on_window_close(self, event):
+    def _on_window_close(self, event: Any) -> None:
         """Handle window close event to re-enable the open button"""
         # Re-enable the open button
         self._update_open_button_state(True)
         # Accept the close event
         event.accept()
 
-    def _update_open_button_state(self, enabled):
+    def _update_open_button_state(self, enabled: bool) -> None:
         """Update the state of the 'Open Story Editor' button in the main window"""
         if hasattr(self.parent, "show_story_editor_btn"):
             self.parent.show_story_editor_btn.setEnabled(enabled)
@@ -578,11 +824,13 @@ class StoryEditorWindow:
                     "background-color: #666666; color: #999999; padding: 5px;"
                 )
 
-    def thumbnail_clicked(self, doc_name):
+    def thumbnail_clicked(self, doc_name: str) -> None:
         """Handle thumbnail click - activate the document"""
         self.activate_document(doc_name)
 
-    def activate_document(self, doc_name, clicked_btn=None):
+    def activate_document(
+        self, doc_name: str, clicked_btn: Optional[QPushButton] = None
+    ) -> None:
         """Activate a document for adding new text"""
         # Uncheck all other buttons and reset thumbnail borders
         if hasattr(self, "doc_buttons"):
@@ -610,18 +858,18 @@ class StoryEditorWindow:
         self.active_doc_name = doc_name
         # self.socket_handler.log(f"📄 Activated document: {doc_name}")
 
-    def refresh_data(self):
+    def refresh_data(self) -> None:
         """Refresh the editor window with latest data from Krita"""
         self.socket_handler.log("🔄 Refreshing data from Krita")
         # Simply request new data, which will rebuild the window
         self.show_text_editor()
 
-    def save_all_opened_docs(self):
+    def save_all_opened_docs(self) -> None:
         """Save all opened Krita documents"""
         self.socket_handler.log("💾 Saving all opened documents")
         self.socket_handler.send_request("save_all_opened_docs")
 
-    def show_find_replace(self):
+    def show_find_replace(self) -> None:
         """Show the find/replace dialog"""
         if not hasattr(self, "all_docs_text_state") or not self.all_docs_text_state:
             self.socket_handler.log("⚠️ No text editors available")
@@ -629,7 +877,7 @@ class StoryEditorWindow:
 
         show_find_replace_dialog(self.parent_window, self.all_docs_text_state)
 
-    def show_story_board(self):
+    def show_story_board(self) -> None:
         """Show the story board window with all thumbnails"""
         if not self.all_docs_svg_data:
             self.socket_handler.log("⚠️ No document data available")
@@ -649,8 +897,13 @@ class StoryEditorWindow:
     # ===================================================================
 
     def show_thumbnail_context_menu(
-        self, pos, doc_name, thumbnail_label, doc_path, comic_config_info
-    ):
+        self,
+        pos: Any,
+        doc_name: str,
+        thumbnail_label: QLabel,
+        doc_path: str,
+        comic_config_info: Optional[Dict[str, Any]],
+    ) -> None:
         """Show context menu for thumbnail"""
         menu = QMenu(self.parent_window)
         menu.setStyleSheet(get_thumbnail_right_click_menu_stylesheet())
@@ -725,24 +978,27 @@ class StoryEditorWindow:
         # Show menu at global position
         menu.exec_(thumbnail_label.mapToGlobal(pos))
 
-    def send_open_document_request(self, doc_path):
+    def send_open_document_request(self, doc_path: str) -> None:
         """Send open_document request to the agent"""
         self.socket_handler.log(f"📂 Requesting to open document: {doc_path}")
         self.socket_handler.send_request("open_document", doc_path=doc_path)
 
-    def send_close_document_request(self, doc_name):
+    def send_close_document_request(self, doc_name: str) -> None:
         """Send close_document request to the agent"""
         self.socket_handler.log(f"❌ Requesting to close document: {doc_name}")
         self.socket_handler.send_request("close_document", doc_name=doc_name)
 
-    def send_activate_document_request(self, doc_name):
+    def send_activate_document_request(self, doc_name: str) -> None:
         """Send activate_document request to the agent"""
         self.socket_handler.log(f"➡️ Requesting to activate document: {doc_name}")
         self.socket_handler.send_request("activate_document", doc_name=doc_name)
 
     def send_add_new_document_from_template_request(
-        self, target_doc_path, template_path=None, config_filepath=None
-    ):
+        self,
+        target_doc_path: str,
+        template_path: Optional[str] = None,
+        config_filepath: Optional[str] = None,
+    ) -> None:
         """Send add_new_document_from_template request to the agent"""
         self.socket_handler.log(f"📄➕ Requesting to add new document from template")
         self.socket_handler.send_request(
@@ -753,8 +1009,11 @@ class StoryEditorWindow:
         )
 
     def send_duplicate_document_request(
-        self, target_doc_name, target_doc_path, config_filepath=None
-    ):
+        self,
+        target_doc_name: str,
+        target_doc_path: str,
+        config_filepath: Optional[str] = None,
+    ) -> None:
         """Send duplicate_document request to the agent"""
         self.socket_handler.log(
             f"📄➕ Requesting to duplicate document: {target_doc_name}"
@@ -767,8 +1026,11 @@ class StoryEditorWindow:
         )
 
     def send_delete_document_request(
-        self, target_doc_name, target_doc_path, config_filepath=None
-    ):
+        self,
+        target_doc_name: str,
+        target_doc_path: str,
+        config_filepath: Optional[str] = None,
+    ) -> None:
         """Send delete_document request to the agent"""
         self.socket_handler.log(f"🗑️ Requesting to delete document: {target_doc_name}")
         self.socket_handler.send_request(

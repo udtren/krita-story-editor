@@ -134,7 +134,7 @@ def create_svg_data_for_doc(
         layer_shapes = layer_data["layer_shapes"]
         changes = layer_data["changes"]
 
-        write_log(f"Item in layer_shapes: {layer_shapes}")
+        # write_log(f"Item in layer_shapes: {layer_shapes}")
 
         valid_svg_data = update_existing_svg_data(svg_content, layer_shapes, changes)
         if valid_svg_data:
