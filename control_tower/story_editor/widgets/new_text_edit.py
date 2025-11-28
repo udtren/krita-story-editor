@@ -85,10 +85,10 @@ def add_new_text_widget(
     choose_template_combo.setMaximumWidth(400)
     choose_template_combo.setStyleSheet(get_template_combo_stylesheet())
 
-    template_section_layout.addWidget(svg_template_label)
-    template_section_layout.addWidget(choose_svg_template_combo)
     template_section_layout.addWidget(template_label)
     template_section_layout.addWidget(choose_template_combo)
+    template_section_layout.addWidget(svg_template_label)
+    template_section_layout.addWidget(choose_svg_template_combo)
     template_section_layout.addStretch()
 
     # ===================================================

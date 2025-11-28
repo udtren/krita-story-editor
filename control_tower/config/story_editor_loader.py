@@ -143,9 +143,9 @@ def get_group_box_stylesheet():
     return f"""
         QGroupBox {{
             border: 1px solid {group['border_color']};
-            border-radius: {group['border_radius']}px;
-            margin-top: {group['margin_top']}px;
-            padding: {group['padding']}px;
+            border-radius: 5px;
+            margin-top: 10px;
+            padding: 10px;
             background-color: {group['background_color']};
         }}
         
@@ -180,14 +180,14 @@ def get_editor_scroll_area_stylesheet():
         QScrollBar:vertical {{
             border: none;
             background: {scroll['scrollbar_background']};
-            width: {scroll['scrollbar_width']}px;
+            width: 12px;
             margin: 0px;
         }}
 
         QScrollBar::handle:vertical {{
             background: {scroll['scrollbar_handle']};
-            min-height: {scroll['scrollbar_handle_min_height']}px;
-            border-radius: {scroll['scrollbar_handle_border_radius']}px;
+            min-height: 20px;
+            border-radius: 6px;
         }}
 
         QScrollBar::handle:vertical:hover {{
@@ -318,6 +318,14 @@ def get_template_combo_stylesheet():
     """
 
 
+def get_thumbnail_layout_settings():
+    """Get thumbnail layout settings from config"""
+    thumbnail_config = _config.get("thumbnail", {})
+    width = thumbnail_config.get("width", 128)
+    grid_columns = thumbnail_config.get("grid_columns", 2)
+    return width, grid_columns
+
+
 def get_thumbnail_right_click_menu_stylesheet():
     """Get the stylesheet for thumbnail right-click menu"""
 
@@ -360,6 +368,14 @@ def get_thumbnail_right_click_menu_stylesheet():
             padding-left: 10px;
         }
     """
+
+
+def get_story_board_settings():
+    """Get story board settings from config"""
+    story_board_config = _config.get("story_board", {})
+    column = story_board_config.get("column", 5)
+    image_width = story_board_config.get("image_width", 256)
+    return column, image_width
 
 
 # Export configuration values as module-level constants for backward compatibility

@@ -18,15 +18,29 @@ try:
 except FileNotFoundError:
     # Config doesn't exist yet, use minimal defaults
     _config = {
-        "font": {"family": "Arial", "size": 10, "button_size": 12, "log_family": "Consolas", "log_size": 9},
+        "font": {
+            "family": "Arial",
+            "size": 10,
+            "button_size": 12,
+            "log_family": "Consolas",
+            "log_size": 9,
+        },
         "button": {"height": 40, "min_width": 100},
         "dark_palette": {
-            "window": "#2b2b2b", "window_text": "#e0e0e0", "base": "#1e1e1e",
-            "alternate_base": "#2b2b2b", "tooltip_base": "#ffffff", "tooltip_text": "#ffffff",
-            "text": "#e0e0e0", "button": "#353535", "button_text": "#e0e0e0",
-            "bright_text": "#ff0000", "link": "#42a5f5", "highlight": "#42a5f5",
-            "highlighted_text": "#000000"
-        }
+            "window": "#2b2b2b",
+            "window_text": "#e0e0e0",
+            "base": "#1e1e1e",
+            "alternate_base": "#2b2b2b",
+            "tooltip_base": "#ffffff",
+            "tooltip_text": "#ffffff",
+            "text": "#e0e0e0",
+            "button": "#353535",
+            "button_text": "#e0e0e0",
+            "bright_text": "#ff0000",
+            "link": "#42a5f5",
+            "highlight": "#42a5f5",
+            "highlighted_text": "#000000",
+        },
     }
 
 
@@ -96,11 +110,3 @@ def setup_dark_palette(app):
     )
 
     app.setPalette(dark_palette)
-
-
-# Export configuration values as module-level constants for backward compatibility
-FONT_SIZE = _config["font"]["size"]
-BUTTON_FONT_SIZE = _config["font"]["button_size"]
-LOG_FONT_SIZE = _config["font"]["log_size"]
-BUTTON_HEIGHT = _config["button"]["height"]
-BUTTON_MIN_WIDTH = _config["button"]["min_width"]

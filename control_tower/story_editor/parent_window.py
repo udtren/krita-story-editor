@@ -42,9 +42,7 @@ class StoryEditorParentWindow(QWidget):
         main_layout.addWidget(toolbar)
 
         # Get absolute path to icon
-        icon_path_bath = os.path.join(
-            os.path.dirname(__file__), "icons"
-        )
+        icon_path_bath = os.path.join(os.path.dirname(__file__), "icons")
 
         new_text_btn = QAction(
             QIcon(f"{os.path.join(icon_path_bath, 'plus.png')}"),
@@ -97,6 +95,18 @@ class StoryEditorParentWindow(QWidget):
         find_replace_btn.triggered.connect(self.story_editor_handler.show_find_replace)
         toolbar.addAction(find_replace_btn)
 
+        # Add separator
+        toolbar.addSeparator()
+
+        # Story Board button
+        story_board_btn = QAction(
+            "Story Board",
+            self,
+        )
+        story_board_btn.setStatusTip("View all thumbnails in storyboard layout")
+        story_board_btn.triggered.connect(self.story_editor_handler.show_story_board)
+        toolbar.addAction(story_board_btn)
+
         # Add spacer to push pin button to the right
         spacer = QWidget()
         spacer.setSizePolicy(
@@ -128,9 +138,7 @@ class StoryEditorParentWindow(QWidget):
         flags = self.windowFlags()
 
         # Get icon path
-        icon_path_bath = os.path.join(
-            os.path.dirname(__file__), "icons"
-        )
+        icon_path_bath = os.path.join(os.path.dirname(__file__), "icons")
 
         if checked:
             # Add WindowStaysOnTopHint flag
