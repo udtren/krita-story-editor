@@ -63,7 +63,8 @@ The main editing window where you work with text content. It receives text data 
 
 <img src="images/story_editor2.png" alt="Document Thumbnails" width="300">
 
-Each document's thumbnail is displayed on the left side. Number of column and thumbnail size can be editted in setting menu.Right-click a thumbnail to access document actions:
+Each document's thumbnail is displayed on the left side. Number of column and thumbnail size can be editted in setting menu. 
+Right-click a thumbnail to access document actions:
 
 - **Standard documents:** Activate, open, or close the document.
 - **Comic project documents:** Additional options to add new pages using templates, replicate existing pages, or delete pages.
