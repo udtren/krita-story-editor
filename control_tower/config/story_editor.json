@@ -9,6 +9,10 @@
         "min_height": 80,
         "max_height": 300
     },
+    "thumbnail": {
+        "width": 128,
+        "grid_columns": 2
+    },
     "tspan": {
         "font_size": 24,
         "border_color": "#595959",

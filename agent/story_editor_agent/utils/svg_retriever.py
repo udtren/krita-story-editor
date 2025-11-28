@@ -18,8 +18,13 @@ def get_opened_doc_svg_data(doc):
             else "krita_file_not_saved"
         )
 
+        doc_height = doc.height()
+        doc_width = doc.width()
+        thumbnail_width = 1024
+        thumbnail_height = int((thumbnail_width / doc_width) * doc_height)
+
         # Get thumbnail and convert to base64
-        thumbnail_qimage = doc.thumbnail(128, 128)
+        thumbnail_qimage = doc.thumbnail(thumbnail_width, thumbnail_height)
         thumbnail_base64 = qimage_to_base64(thumbnail_qimage)
 
         if not doc:

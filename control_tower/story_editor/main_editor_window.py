@@ -30,9 +30,16 @@ from config.story_editor_loader import (
     get_thumbnail_status_label_stylesheet,
     get_thumbnail_status_label_disabled_stylesheet,
     get_thumbnail_right_click_menu_stylesheet,
+    get_thumbnail_layout_settings,
     TEXT_EDITOR_MIN_HEIGHT,
     TEXT_EDITOR_MAX_HEIGHT,
 )
+
+THUMBNAIL_LABEL_WIDTH, THUMBNAIL_LAYOUT_GRID_COLUMNS = get_thumbnail_layout_settings()
+DOCUMENT_STATUS_LABEL_WIDTH = 24
+THUMBNAIL_SCROLL_AREA_WIDTH = (
+    THUMBNAIL_LABEL_WIDTH + DOCUMENT_STATUS_LABEL_WIDTH + 15
+) * THUMBNAIL_LAYOUT_GRID_COLUMNS
 
 
 class StoryEditorWindow:
@@ -104,7 +111,9 @@ class StoryEditorWindow:
         thumbnail_scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
         thumbnail_scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
         thumbnail_scroll_area.setFrameShape(QScrollArea.NoFrame)
-        thumbnail_scroll_area.setMaximumWidth(330)  # Fixed width for thumbnail column
+        thumbnail_scroll_area.setMaximumWidth(
+            THUMBNAIL_SCROLL_AREA_WIDTH
+        )  # Fixed width for thumbnail column
 
         # Create container widget for thumbnails
         thumbnail_container = QWidget()
@@ -164,8 +173,7 @@ class StoryEditorWindow:
 
             # Create thumbnail label
             thumbnail_label = QLabel()
-            thumbnail_label.setFixedSize(128, 128)
-            thumbnail_label.setScaledContents(True)
+            thumbnail_label.setFixedWidth(128)
             thumbnail_label.setStyleSheet(
                 "border: 2px solid #555; background-color: #aa805a; color: #000000;"
             )
@@ -190,8 +198,11 @@ class StoryEditorWindow:
                     pixmap = QPixmap()
                     pixmap.loadFromData(QByteArray(image_bytes))
 
-                    # Set the pixmap to label
+                    # Scale pixmap to width while maintaining aspect ratio
+                    pixmap = pixmap.scaledToWidth(128, Qt.SmoothTransformation)
                     thumbnail_label.setPixmap(pixmap)
+                    # Set label size to match the scaled pixmap
+                    thumbnail_label.setFixedSize(pixmap.size())
 
                     # Set tooltip with document info
                     thumbnail_label.setToolTip(
@@ -219,7 +230,7 @@ class StoryEditorWindow:
             # ===================================================================
             vertical_text_for_status = lambda: (f"opened" if opened else f"closed")
             document_status_label = VerticalLabel(vertical_text_for_status())
-            document_status_label.setFixedSize(24, 128)
+            document_status_label.setFixedWidth(DOCUMENT_STATUS_LABEL_WIDTH)
             document_status_label.setContentsMargins(0, 0, 0, 0)
 
             # Add thumbnail and status label to layout
@@ -227,8 +238,8 @@ class StoryEditorWindow:
             thumbnail_status_layout.addWidget(document_status_label)
             thumbnail_status_layout.addStretch()
 
-            row = index // 2
-            col = index % 2
+            row = index // THUMBNAIL_LAYOUT_GRID_COLUMNS
+            col = index % THUMBNAIL_LAYOUT_GRID_COLUMNS
 
             # Create a container widget for the layout
             thumbnail_status_container = QWidget()

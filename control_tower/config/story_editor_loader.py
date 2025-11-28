@@ -318,6 +318,14 @@ def get_template_combo_stylesheet():
     """
 
 
+def get_thumbnail_layout_settings():
+    """Get thumbnail layout settings from config"""
+    thumbnail_config = _config.get("thumbnail", {})
+    width = thumbnail_config.get("width", 128)
+    grid_columns = thumbnail_config.get("grid_columns", 2)
+    return width, grid_columns
+
+
 def get_thumbnail_right_click_menu_stylesheet():
     """Get the stylesheet for thumbnail right-click menu"""
 
