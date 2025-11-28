@@ -447,7 +447,6 @@ class StoryEditorWindow:
         # Create new story board window as independent popup (no parent to make it separate)
         self.story_board_window = StoryBoardWindow(self.all_docs_svg_data, parent=None)
         self.story_board_window.show()
-        self.socket_handler.log("📋 Story Board window opened")
 
     # ===================================================================
     # Context Menu Handlers

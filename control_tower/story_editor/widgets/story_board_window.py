@@ -119,19 +119,9 @@ class StoryBoardWindow(QWidget):
             name_label.setStyleSheet("color: #cccccc; font-size: 11px; padding: 3px;")
             name_label.setWordWrap(True)
 
-            # Add status indicator
-            status_text = "✓ Opened" if opened else "✗ Closed"
-            status_color = "#6a6" if opened else "#a66"
-            status_label = QLabel(status_text)
-            status_label.setAlignment(Qt.AlignCenter)
-            status_label.setStyleSheet(
-                f"color: {status_color}; font-size: 10px; padding: 2px;"
-            )
-
             # Add widgets to container
             thumb_layout.addWidget(thumbnail_label)
             thumb_layout.addWidget(name_label)
-            # thumb_layout.addWidget(status_label)
             thumb_layout.addStretch()
 
             # Calculate row and column

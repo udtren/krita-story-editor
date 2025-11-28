@@ -108,6 +108,8 @@ A plugin that runs inside Krita. It waits for requests from the Control Tower to
 
 When you update text, it writes the changes back to your Krita files.
 
+<img src="images/agent_get_svg.png" alt="text_box4" width="400">
+
 The Agent includes a button that opens a window displaying the selected vector layer's SVG data, which you can use to create custom template files.
 
 ### Story Editor Control Tower

@@ -379,7 +379,6 @@ class ControlTower(QMainWindow):
 
     def open_template_manager(self):
         """Open the template manager window"""
-        self.log("📝 Opening Template Manager...")
         self.template_manager_window = show_template_manager(self)
 
     def open_settings(self):
@@ -388,8 +387,6 @@ class ControlTower(QMainWindow):
         settings_dialog = ConfigDialog(self)
         if settings_dialog.exec_():
             self.log("✅ Settings saved successfully")
-        else:
-            self.log("❌ Settings changes cancelled")
 
     def set_krita_files_folder_path(self):
         """Set the folder path where Krita files are located"""
