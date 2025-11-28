@@ -9,9 +9,9 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtCore import QByteArray, Qt
 from PyQt5.QtGui import QPixmap
+from config.story_editor_loader import get_story_board_settings
 
-STORY_BOARD_COLUMN_COUNT = 5
-STORY_BOARD_THUMBNAIL_WIDTH = 256
+STORY_BOARD_COLUMN_COUNT, STORY_BOARD_THUMBNAIL_WIDTH = get_story_board_settings()
 STORY_BOARD_WINDOW_WIDTH = (
     STORY_BOARD_THUMBNAIL_WIDTH * STORY_BOARD_COLUMN_COUNT
     + STORY_BOARD_COLUMN_COUNT * 15
