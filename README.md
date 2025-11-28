@@ -2,6 +2,8 @@
 
 A tool for editing text layers across multiple Krita documents, whether they are open or closed. Edit all your text content in one place and sync changes back to your files.
 
+**Comic Manager Integration:** When using Story Editor to edit Krita documents in a folder that belongs to a Krita comic project (created by Krita's Comic Manager), this tool will automatically update the `comicConfig.json` file in that folder when you add, duplicate, or delete documents. This keeps your comic project configuration synchronized with your document changes.
+
 **Note:** This tool is designed for Krita 5.3.0, which features a refactored text tool. Currently, Krita 5.3.0 is only available as a pre-alpha version, and its text tool still contains bugs that need to be fixed. This tool may be updated in the future to accommodate changes in the text tool's behavior.
 
 ## Demo Video
@@ -41,11 +43,18 @@ The main editing window where you work with text content. It receives text data 
   Sends all text data from the Story Editor to the Agent in Krita. The Agent then updates any Krita documents where text has been changed and automatically sends the latest Krita document data back to the Story Editor.
   ##### Only document that has name will be updated. If you create a new document, save it first.
 
- 
+
 - **Find/Replace** 
  <img src="images/search_replace.png" alt="Search and Replace" width="300">
 
   Opens a popup window for searching and replacing text.
+
+
+- **Story Board** 
+ <img src="images/story_board.png" alt="Story Board" width="300">
+
+  A popup window to display all thumbnails.
+  Number of column and thumbnail size can be editted in setting menu.
 
 - **Pin Window on Top**  
   Pins the Story Editor window on top of all other windows. 
@@ -54,7 +63,7 @@ The main editing window where you work with text content. It receives text data 
 
 <img src="images/story_editor2.png" alt="Document Thumbnails" width="300">
 
-Each document's thumbnail is displayed on the left side. Right-click a thumbnail to access document actions:
+Each document's thumbnail is displayed on the left side. Number of column and thumbnail size can be editted in setting menu.Right-click a thumbnail to access document actions:
 
 - **Standard documents:** Activate, open, or close the document.
 - **Comic project documents:** Additional options to add new pages using templates, replicate existing pages, or delete pages.
