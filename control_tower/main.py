@@ -43,9 +43,6 @@ class ControlTower(QMainWindow):
         # Create persistent parent window for Story Editor
         self.story_editor_parent_window = None
 
-        # Track which editor is waiting for SVG data
-        self._waiting_for_svg = None  # 'text_editor'
-
         # Set up socket
         self.socket = QLocalSocket(self)
         self.socket.connected.connect(self.on_connected)
@@ -323,65 +320,42 @@ class ControlTower(QMainWindow):
 
             # Determine response type and handle accordingly
             match response:
-                case {"docs_svg_update_result": result, "success": True}:
-                    self.log(f"✔️ Text Update Request Finishied: {result}")
-                    self.text_editor_handler.refresh_data()
+                case {
+                    "task_type": task_type,
+                    "success": True,
+                    "task_result": task_result,
+                    "all_docs_svg_data": svg_data,
+                    "comic_config_info": comic_config_info,
+                }:
+                    self.log(f"📥 {task_type} finished.")
+                    self.log(f"📥 {task_result}")
+                    self.text_editor_handler.set_svg_data(svg_data)
+                    if comic_config_info:
+                        self.text_editor_handler.set_comic_config_info(
+                            comic_config_info
+                        )
 
                 case {
                     "all_docs_svg_data": svg_data,
                     "comic_config_info": comic_config_info,
                     "success": True,
                 }:
-                    self.log(
-                        f"📥 All docs svg data and comic config info received from agent"
-                    )
                     self.text_editor_handler.set_svg_data(svg_data)
-                    self.text_editor_handler.set_comic_config_info(comic_config_info)
-                    self._waiting_for_svg = None
-
-                case {"all_docs_svg_data": svg_data, "success": True}:
-                    self.log(f"📥 All docs svg data received from agent")
-                    self.text_editor_handler.set_svg_data(svg_data)
-                    self._waiting_for_svg = None
+                    if comic_config_info:
+                        self.text_editor_handler.set_comic_config_info(
+                            comic_config_info
+                        )
+                        self.log(
+                            f"📥 All docs svg data and comic config info received from agent"
+                        )
+                    else:
+                        self.log(f"📥 All docs svg data received from agent")
 
                 case {
-                    "response_type": "save_all_opened_docs",
                     "success": True,
                 }:
                     result = response.get("result", "Unknown")
                     self.log(f"💾 {result}")
-
-                case {
-                    "response_type": "activate_document",
-                    "success": True,
-                }:
-                    result = response.get("result", "Unknown")
-                    self.log(f"💾 {result}")
-
-                case {"response_type": "open_document", "success": True}:
-                    result = response.get("result", "Unknown")
-                    self.log(f"📂 {result}")
-                    self.text_editor_handler.refresh_data()
-
-                case {"response_type": "close_document", "success": True}:
-                    result = response.get("result", "Unknown")
-                    self.log(f"{result}")
-                    self.text_editor_handler.refresh_data()
-
-                case {"response_type": "add_from_template", "success": True}:
-                    result = response.get("result", "Unknown")
-                    self.log(f"➕ {result}")
-                    self.text_editor_handler.refresh_data()
-
-                case {"response_type": "duplicate_document", "success": True}:
-                    result = response.get("result", "Unknown")
-                    self.log(f"➕ {result}")
-                    self.text_editor_handler.refresh_data()
-
-                case {"response_type": "delete_document", "success": True}:
-                    result = response.get("result", "Unknown")
-                    self.log(f"🗑️ {result}")
-                    self.text_editor_handler.refresh_data()
 
                 case {"progress": progress}:
                     self.log(f"📋 Agent Progress: {progress}")
@@ -401,8 +375,6 @@ class ControlTower(QMainWindow):
             )
             # Pass parent window to the handler
             self.text_editor_handler.set_parent_window(self.story_editor_parent_window)
-
-        self._waiting_for_svg = "text_editor"
         self.text_editor_handler.show_text_editor()
 
     def open_template_manager(self):
