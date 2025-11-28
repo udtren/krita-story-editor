@@ -93,17 +93,17 @@ class StoryEditorAgentDocker(QDockWidget):
             self.queue_timer.stop()
             self.is_processing = False
             # Resume gestures when all tasks are done
-            if GESTURE_AVAILABLE:
-                resume_gesture_event_filter()
-                write_log("Resumed gesture event filter")
+            # if GESTURE_AVAILABLE:
+            #     resume_gesture_event_filter()
+            #     write_log("Resumed gesture event filter")
             return
 
         # Pause gestures when starting to process (only on first task)
         if not self.is_processing:
             self.is_processing = True
-            if GESTURE_AVAILABLE:
-                pause_gesture_event_filter()
-                write_log("Paused gesture event filter")
+            # if GESTURE_AVAILABLE:
+            #     pause_gesture_event_filter()
+            #     write_log("Paused gesture event filter")
 
         client, request = self.task_queue.popleft()
         self._execute_task(client, request)
