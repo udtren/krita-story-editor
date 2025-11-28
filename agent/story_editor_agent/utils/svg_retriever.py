@@ -20,7 +20,7 @@ def get_opened_doc_svg_data(doc):
 
         doc_height = doc.height()
         doc_width = doc.width()
-        thumbnail_width = 1024
+        thumbnail_width = 256
         thumbnail_height = int((thumbnail_width / doc_width) * doc_height)
 
         # Get thumbnail and convert to base64

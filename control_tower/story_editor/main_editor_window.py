@@ -19,6 +19,7 @@ from story_editor.utils.text_updater import create_svg_data_for_doc
 from story_editor.utils.svg_parser import parse_krita_svg
 from story_editor.widgets.vertical_label import VerticalLabel
 from story_editor.widgets.find_replace import show_find_replace_dialog
+from story_editor.widgets.story_board_window import StoryBoardWindow
 from story_editor.utils.logs import write_log
 from story_editor.widgets.new_text_edit import add_new_text_widget
 
@@ -65,6 +66,7 @@ class StoryEditorWindow:
 
         self.comic_config_info = None  # To store comic config info
         self.template_files = []  # To store template files list
+        self.story_board_window = None  # Store reference to story board window
 
     def set_parent_window(self, parent_window):
         """Set the persistent parent window"""
@@ -173,7 +175,7 @@ class StoryEditorWindow:
 
             # Create thumbnail label
             thumbnail_label = QLabel()
-            thumbnail_label.setFixedWidth(128)
+            thumbnail_label.setFixedWidth(THUMBNAIL_LABEL_WIDTH)
             thumbnail_label.setStyleSheet(
                 "border: 2px solid #555; background-color: #aa805a; color: #000000;"
             )
@@ -199,7 +201,9 @@ class StoryEditorWindow:
                     pixmap.loadFromData(QByteArray(image_bytes))
 
                     # Scale pixmap to width while maintaining aspect ratio
-                    pixmap = pixmap.scaledToWidth(128, Qt.SmoothTransformation)
+                    pixmap = pixmap.scaledToWidth(
+                        THUMBNAIL_LABEL_WIDTH, Qt.SmoothTransformation
+                    )
                     thumbnail_label.setPixmap(pixmap)
                     # Set label size to match the scaled pixmap
                     thumbnail_label.setFixedSize(pixmap.size())
@@ -624,6 +628,21 @@ class StoryEditorWindow:
             return
 
         show_find_replace_dialog(self.parent_window, self.all_docs_text_state)
+
+    def show_story_board(self):
+        """Show the story board window with all thumbnails"""
+        if not self.all_docs_svg_data:
+            self.socket_handler.log("⚠️ No document data available")
+            return
+
+        # Close existing story board window if open
+        if self.story_board_window is not None:
+            self.story_board_window.close()
+
+        # Create new story board window as independent popup (no parent to make it separate)
+        self.story_board_window = StoryBoardWindow(self.all_docs_svg_data, parent=None)
+        self.story_board_window.show()
+        self.socket_handler.log("📋 Story Board window opened")
 
     # ===================================================================
     # Context Menu Handlers
