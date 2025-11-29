@@ -302,7 +302,7 @@ def get_thumbnail_status_label_stylesheet():
             font-weight: bold;
             font-size: 14px;
             qproperty-alignment: AlignCenter;
-            background-color: #aa805a;
+            background-color: #899b4e;
             color: #000000;
         }}
     """

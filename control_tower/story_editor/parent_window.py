@@ -74,7 +74,7 @@ class StoryEditorParentWindow(QWidget):
         toolbar.addAction(save_btn)
 
         update_btn = QAction(
-            QIcon(f"{os.path.join(icon_path_bath, 'check.png')}"),
+            QIcon(f"{os.path.join(icon_path_bath, 'update_krita.png')}"),
             "Update Krita",
             self,
         )
@@ -83,11 +83,9 @@ class StoryEditorParentWindow(QWidget):
         update_btn.triggered.connect(self.story_editor_handler.send_merged_svg_request)
         toolbar.addAction(update_btn)
 
-        # Add separator
-        toolbar.addSeparator()
-
         # Find/Replace button
         find_replace_btn = QAction(
+            QIcon(f"{os.path.join(icon_path_bath, 'search.png')}"),
             "Find/Replace",
             self,
         )
@@ -95,11 +93,9 @@ class StoryEditorParentWindow(QWidget):
         find_replace_btn.triggered.connect(self.story_editor_handler.show_find_replace)
         toolbar.addAction(find_replace_btn)
 
-        # Add separator
-        toolbar.addSeparator()
-
         # Story Board button
         story_board_btn = QAction(
+            QIcon(f"{os.path.join(icon_path_bath, 'board.png')}"),
             "Story Board",
             self,
         )
@@ -131,6 +127,41 @@ class StoryEditorParentWindow(QWidget):
         self.content_layout = QVBoxLayout(self.content_container)
         self.content_layout.setContentsMargins(0, 0, 0, 0)
         main_layout.addWidget(self.content_container)
+
+        # ==================================================
+        # Bottom buttons
+        # ==================================================
+        bottom_layout = QToolBar("Bottom Toolbar")
+        bottom_layout.setIconSize(QSize(16, 16))
+
+        # Add spacer to push buttons to the right
+        spacer_bottom = QWidget()
+        spacer_bottom.setSizePolicy(
+            QWidget().sizePolicy().Expanding, QWidget().sizePolicy().Preferred
+        )
+        bottom_layout.addWidget(spacer_bottom)
+
+        scroll_top_btn = QAction(
+            QIcon(f"{os.path.join(icon_path_bath, 'arrow_up.png')}"),
+            "Scroll to Top",
+            self,
+        )
+        scroll_top_btn.triggered.connect(
+            lambda: self.story_editor_handler.scroll_to_top()
+        )
+        scroll_bottom_btn = QAction(
+            QIcon(f"{os.path.join(icon_path_bath, 'arrow_down.png')}"),
+            "Scroll to Bottom",
+            self,
+        )
+        scroll_bottom_btn.triggered.connect(
+            lambda: self.story_editor_handler.scroll_to_bottom()
+        )
+        bottom_layout.addAction(scroll_top_btn)
+        bottom_layout.addAction(scroll_bottom_btn)
+        main_layout.addWidget(bottom_layout)
+
+        # ==================================================
 
     def toggle_window_pin(self, checked):
         """Toggle window always-on-top state"""

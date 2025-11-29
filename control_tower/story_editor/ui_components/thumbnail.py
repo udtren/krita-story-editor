@@ -50,7 +50,7 @@ from config.story_editor_loader import (
 
 # Constants
 THUMBNAIL_LABEL_WIDTH, _ = get_thumbnail_layout_settings()
-DOCUMENT_STATUS_LABEL_WIDTH = 24
+DOCUMENT_STATUS_LABEL_WIDTH = 12
 THUMBNAIL_BORDER_DEFAULT = "#555"
 THUMBNAIL_BORDER_ACTIVE = "#aaa"
 THUMBNAIL_BACKGROUND_COLOR = "#aa805a"
@@ -111,7 +111,9 @@ def create_thumbnail_label(
             pixmap = decode_base64_thumbnail(thumbnail)
 
             # Scale pixmap to width while maintaining aspect ratio
-            pixmap = pixmap.scaledToWidth(THUMBNAIL_LABEL_WIDTH, Qt.SmoothTransformation)
+            pixmap = pixmap.scaledToWidth(
+                THUMBNAIL_LABEL_WIDTH, Qt.SmoothTransformation
+            )
             thumbnail_label.setPixmap(pixmap)
             # Set label size to match the scaled pixmap
             thumbnail_label.setFixedSize(pixmap.size())
@@ -139,10 +141,9 @@ def create_document_status_label(opened: bool) -> VerticalLabel:
     Returns:
         Configured VerticalLabel widget
     """
-    status_text = "opened" if opened else "closed"
-    document_status_label = VerticalLabel(status_text)
+    document_status_label = QLabel()
     document_status_label.setFixedWidth(DOCUMENT_STATUS_LABEL_WIDTH)
-    document_status_label.setContentsMargins(0, 0, 0, 0)
+    document_status_label.setContentsMargins(5, 0, 0, 0)
 
     if opened:
         document_status_label.setStyleSheet(get_thumbnail_status_label_stylesheet())

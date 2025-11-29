@@ -18,7 +18,7 @@ from config.story_editor_loader import (
 )
 
 # UI Constants (minimal - most moved to ui_components modules)
-MAIN_LAYOUT_MARGINS = (0, 0, 10, 20)
+MAIN_LAYOUT_MARGINS = (0, 0, 10, 0)
 
 
 @dataclass
@@ -447,6 +447,28 @@ class StoryEditorWindow:
         # Create new story board window as independent popup (no parent to make it separate)
         self.story_board_window = StoryBoardWindow(self.all_docs_svg_data, parent=None)
         self.story_board_window.show()
+
+    def scroll_to_bottom(self) -> None:
+        """Scroll the content area to the bottom"""
+        if hasattr(self, "thumbnail_scroll_area_widget"):
+            self.thumbnail_scroll_area_widget.verticalScrollBar().setValue(
+                self.thumbnail_scroll_area_widget.verticalScrollBar().maximum()
+            )
+        if hasattr(self, "all_docs_scroll_area_widget"):
+            self.all_docs_scroll_area_widget.verticalScrollBar().setValue(
+                self.all_docs_scroll_area_widget.verticalScrollBar().maximum()
+            )
+
+    def scroll_to_top(self) -> None:
+        """Scroll the content area to the top"""
+        if hasattr(self, "thumbnail_scroll_area_widget"):
+            self.thumbnail_scroll_area_widget.verticalScrollBar().setValue(
+                self.thumbnail_scroll_area_widget.verticalScrollBar().minimum()
+            )
+        if hasattr(self, "all_docs_scroll_area_widget"):
+            self.all_docs_scroll_area_widget.verticalScrollBar().setValue(
+                self.all_docs_scroll_area_widget.verticalScrollBar().minimum()
+            )
 
     # ===================================================================
     # Context Menu Handlers

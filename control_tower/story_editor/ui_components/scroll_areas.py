@@ -36,6 +36,22 @@ def create_thumbnail_scroll_area(editor_window) -> Tuple[QScrollArea, QGridLayou
     thumbnail_scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
     thumbnail_scroll_area.setFrameShape(QScrollArea.NoFrame)
     thumbnail_scroll_area.setMaximumWidth(THUMBNAIL_SCROLL_AREA_WIDTH)
+    thumbnail_scroll_area.verticalScrollBar().setStyleSheet(
+        """
+        QScrollBar:vertical {
+            border: 1px solid black;
+            width: 15px;
+        }
+        QScrollBar::handle:vertical {
+            border: 1px solid black;
+            min-height: 20px;
+        }
+        QScrollBar::add-line:vertical,
+        QScrollBar::sub-line:vertical {
+            height: 0px;
+        }
+        """
+    )
 
     # Create container widget for thumbnails
     thumbnail_container = QWidget()
@@ -67,6 +83,22 @@ def create_content_scroll_area(editor_window) -> Tuple[QScrollArea, QVBoxLayout]
     all_docs_scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
     all_docs_scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
     all_docs_scroll_area.setFrameShape(QScrollArea.NoFrame)
+    all_docs_scroll_area.verticalScrollBar().setStyleSheet(
+        """
+        QScrollBar:vertical {
+            border: 1px solid black;
+            width: 15px;
+        }
+        QScrollBar::handle:vertical {
+            border: 1px solid black;
+            min-height: 20px;
+        }
+        QScrollBar::add-line:vertical,
+        QScrollBar::sub-line:vertical {
+            height: 0px;
+        }
+        """
+    )
 
     # Create container widget for all documents
     all_docs_container = QWidget()
