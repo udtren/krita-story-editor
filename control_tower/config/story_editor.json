@@ -61,7 +61,7 @@
     "activate_button": {
         "disabled_color": "#A0A0A0",
         "disabled_bg": "#242424",
-        "bg": "#aa805a",
+        "bg": "#899b4e",
         "color": "#000000",
         "checked_bg": "#a5a5a5",
         "checked_color": "#000000"

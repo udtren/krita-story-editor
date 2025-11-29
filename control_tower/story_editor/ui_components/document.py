@@ -87,12 +87,13 @@ def create_activate_button(
     vertical_doc_name = "\n".join(f"{doc_name}".replace(".kra", ""))
     activate_btn = QPushButton(vertical_doc_name)
     activate_btn.setFixedWidth(ACTIVATE_BUTTON_WIDTH)
-    activate_btn.setMinimumHeight(ACTIVATE_BUTTON_MIN_HEIGHT)
+    # activate_btn.setMinimumHeight(ACTIVATE_BUTTON_MIN_HEIGHT)
 
     if not opened:
         activate_btn.setStyleSheet(get_activate_button_disabled_stylesheet())
         activate_btn.setEnabled(False)
         activate_btn.setToolTip(f"Document: {doc_name} (offline)\nPath: {doc_path}")
+        activate_btn.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)
     else:
         activate_btn.setCheckable(True)
         activate_btn.setToolTip(
