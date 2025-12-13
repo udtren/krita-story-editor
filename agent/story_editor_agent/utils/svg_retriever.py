@@ -89,11 +89,11 @@ def get_all_offline_docs_from_folder(folder_path, opened_docs_path=[]):
                 kra_path = os.path.join(folder_path, filename)
                 kra_path = os.path.normpath(kra_path)
 
-                write_log(f"[DEBUG] Found offline .kra file: {kra_path}")
+                # write_log(f"[DEBUG] Found offline .kra file: {kra_path}")
 
                 # Skip if this file is already opened in Krita
                 if kra_path in opened_docs_path:
-                    write_log(f"[DEBUG] Skipping opened document: {kra_path}")
+                    # write_log(f"[DEBUG] Skipping opened document: {kra_path}")
                     continue
 
                 response_data = _get_offline_doc_svg_data(kra_path)

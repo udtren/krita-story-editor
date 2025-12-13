@@ -8,6 +8,7 @@ from ..utils import (
     get_comic_config_info,
 )
 from ..utils.logs import write_log
+from datetime import datetime
 
 
 def handle_get_all_docs_svg_data(client, request, docker_instance):
@@ -86,7 +87,9 @@ def handle_get_all_docs_svg_data(client, request, docker_instance):
 
 def get_latest_all_docs_svg_data(client, docker_instance, task_type, task_result):
 
-    write_log(f"Getting latest all docs svg data for task: {task_type}")
+    write_log(
+        f"{datetime.now()} Getting latest all docs svg data for task: {task_type}"
+    )
     opened_docs = Krita.instance().documents()
     all_svg_data = []
     opened_docs_path = []
@@ -137,7 +140,9 @@ def get_latest_all_docs_svg_data(client, docker_instance, task_type, task_result
             "comic_config_info": docker_instance.comic_config_info,
         }
         client.write(json.dumps(response).encode("utf-8"))
-        write_log(f"Sent latest all docs svg data with comic config info.")
+        write_log(
+            f"{datetime.now()} Sent latest all docs svg data with comic config info."
+        )
     else:
         response = {
             "success": True,
@@ -147,4 +152,6 @@ def get_latest_all_docs_svg_data(client, docker_instance, task_type, task_result
             "comic_config_info": None,
         }
         client.write(json.dumps(response).encode("utf-8"))
-        write_log(f"Sent latest all docs svg data without comic config info.")
+        write_log(
+            f"{datetime.now()} Sent latest all docs svg data without comic config info."
+        )
