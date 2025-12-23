@@ -11,6 +11,7 @@ from ..utils import (
 )
 from ..utils.logs import write_log
 from ..handlers.get_data_handler import get_latest_all_docs_svg_data
+from datetime import datetime
 
 
 def handle_docs_svg_update(client, request, docker_instance):
@@ -19,7 +20,9 @@ def handle_docs_svg_update(client, request, docker_instance):
         opened_docs = Krita.instance().documents()
         merged_requests = request.get("merged_requests", {})
 
-        write_log(f"Received merged requests: {merged_requests}")
+        write_log(
+            f"Start Time: {datetime.now()} - Received merged requests: {merged_requests}"
+        )
 
         # ===================================================================
         # Separate opened and offline requests
@@ -43,6 +46,7 @@ def handle_docs_svg_update(client, request, docker_instance):
         write_log(
             f"Offline documents: {[d.get('doc_name') for d in offline_docs_requests]}"
         )
+        write_log(f"List Created Time: {datetime.now()}")
         # ===================================================================
 
         # ===================================================================
@@ -88,6 +92,10 @@ def handle_docs_svg_update(client, request, docker_instance):
                                 f"{krita_file_name_safe(doc)}: Creating new texts failed."
                             )
                     online_progress_messages.append(result_message_base)
+                    write_log(
+                        f"[DEBUG] agent_docker updated Document name: {krita_file_name_safe(doc)} - Time: {datetime.now()}"
+                    )
+                    continue
 
         # ===================================================================
         # Update Offline Documents
@@ -97,7 +105,7 @@ def handle_docs_svg_update(client, request, docker_instance):
         if len(offline_docs_requests) > 0:
 
             write_log(
-                f"Updating offline .kra files: {[d.get('doc_path') for d in offline_docs_requests]}"
+                f"{datetime.now()} Updating offline .kra files: {[d.get('doc_path') for d in offline_docs_requests]}"
             )
 
             for doc_data in offline_docs_requests:
@@ -112,6 +120,9 @@ def handle_docs_svg_update(client, request, docker_instance):
 
                 result = update_offline_kra_file(doc_path, existing_texts_updated)
                 offline_progress_messages.append(result.get("result", ""))
+                write_log(
+                    f"[DEBUG] agent_docker updated Offline Document name: {doc_name} - Time: {datetime.now()}"
+                )
 
         ############################################################
         final_message = "Text update applied successfully"
@@ -119,6 +130,8 @@ def handle_docs_svg_update(client, request, docker_instance):
             final_message += "\n" + "\n".join(online_progress_messages) + "\n"
         if offline_progress_messages:
             final_message += "\n" + "\n".join(offline_progress_messages) + "\n"
+
+        write_log(f"End Time: {datetime.now()} - Completed docs_svg_update processing.")
 
         get_latest_all_docs_svg_data(
             client, docker_instance, "docs_svg_update", final_message

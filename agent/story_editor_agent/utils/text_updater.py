@@ -110,10 +110,6 @@ def update_offline_kra_file(doc_path, existing_texts_updated: [dict]):
         # Get the document name without extension
         doc_name = os.path.splitext(os.path.basename(doc_path))[0]
 
-        # Create a backup
-        backup_path = doc_path + ".backup"
-        shutil.copy2(doc_path, backup_path)
-
         # Create a mapping of file paths to new SVG data
         modified_files = {}
         for layer_data in existing_texts_updated:
@@ -132,7 +128,7 @@ def update_offline_kra_file(doc_path, existing_texts_updated: [dict]):
         temp_kra.close()
 
         # Read from original and write to temporary file
-        with zipfile.ZipFile(backup_path, "r") as original_kra:
+        with zipfile.ZipFile(doc_path, "r") as original_kra:
             with zipfile.ZipFile(temp_kra_path, "w", zipfile.ZIP_DEFLATED) as new_kra:
                 # Copy all files from original, replacing modified ones
                 for file_path in original_kra.namelist():
@@ -144,10 +140,7 @@ def update_offline_kra_file(doc_path, existing_texts_updated: [dict]):
                     "make "test2/layers/layer2.shapelayer/content.svg" to
                          "layers/layer2.shapelayer/content.svg"
                     """
-                    try:
-                        file_path_ = file_path.split("/", 1)[1]
-                    except:
-                        file_path_ = file_path
+                    file_path_ = file_path.split("/", 1)[1] if "/" in file_path else file_path
 
                     if file_path_ in modified_files:
                         # Write the modified SVG
@@ -173,10 +166,10 @@ def update_offline_kra_file(doc_path, existing_texts_updated: [dict]):
 
     except Exception as e:
         write_log(f"[ERROR] Failed to update offline .kra file: {e}")
-        # Try to restore from backup if something went wrong
-        if os.path.exists(backup_path):
+        # Clean up temporary file if it exists
+        if os.path.exists(temp_kra_path):
             try:
-                shutil.copy2(backup_path, doc_path)
+                os.remove(temp_kra_path)
             except:
                 pass
         return {
