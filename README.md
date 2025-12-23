@@ -7,15 +7,30 @@ A tool for editing text layers across multiple Krita documents, whether they are
 
 **Note:** This tool is designed for Krita 5.3.0, which features a refactored text tool. Currently, Krita 5.3.0 is only available as a pre-alpha version, and its text tool still contains bugs that need to be fixed. This tool may be updated in the future to accommodate changes in the text tool's behavior.
 
-## Demo Video
-[![Demo Video](https://img.youtube.com/vi/eIAFky6YHu4/maxresdefault.jpg)](https://youtu.be/eIAFky6YHu4)
-
-
 ## Support
 
 If you find this tool helpful, you can support its development:
 
 [![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/toma_omito)
+
+## Table of Contents
+- [Demo Video](#demo-video)
+- [Architecture](#architecture)
+- [Components](#components)
+  - [Story Editor](#story-editor)
+    - [Toolbar Buttons](#toolbar-buttons)
+    - [Thumbnail](#thumbnail)
+    - [Text Edit Box](#text-edit-box)
+  - [Story Editor Agent](#story-editor-agent)
+  - [Story Editor Control Tower](#story-editor-control-tower)
+  - [Templates](#templates)
+    - [Template Manager](#template-manager)
+- [Installation](#installation)
+  - [Option 1: Pre-built Releases](#option-1-pre-built-releases)
+  - [Option 2: Manual Build for Linux](#option-2-manual-build-for-linux)
+
+## Demo Video
+[![Demo Video](https://img.youtube.com/vi/eIAFky6YHu4/maxresdefault.jpg)](https://youtu.be/eIAFky6YHu4)
 
 ## Architecture
 ![alt text](images/architecture.png)
@@ -27,7 +42,7 @@ The tool has 3 main parts: the Story Editor for editing text, the Agent running 
 ### Story Editor
 The main editing window where you work with text content. It receives text data from the Agent and displays it in editable text boxes.
 
-**Toolbar buttons:**
+#### Toolbar buttons
 
  <img src="images/toolbar.png" alt="toolbar" width="500">
 
@@ -60,7 +75,7 @@ The main editing window where you work with text content. It receives text data 
 - **Pin Window on Top**  
   Pins the Story Editor window on top of all other windows. 
 
-**Thumbnail:**
+#### Thumbnail
 
 <img src="images/story_editor2.png" alt="Document Thumbnails" width="300">
 
@@ -70,7 +85,7 @@ Right-click a thumbnail to access document actions:
 - **Standard documents:** Activate, open, or close the document.
 - **Comic project documents:** Additional options to add new pages using templates, replicate existing pages, or delete pages.
 
-**Text Edit Box:**
+#### Text Edit Box
 
 In Krita, each text layer is a vector layer containing SVG data. A vector layer can contain one or more text shapes. For example, creating a text in a vector layer produces one shape, while adding another text to the same layer creates a second shape.
 

@@ -3,7 +3,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [v0.8.11-beta] - 2025-XX-XX
+## [v0.8.11-beta] - 2025-12-23
 ### Changed
 - Edit offline document no longer create backup file
 - Adjust code logic for offline document text update
