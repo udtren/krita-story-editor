@@ -8,6 +8,7 @@ from PyQt5.QtWidgets import (
     QTextEdit,
     QLabel,
     QFileDialog,
+    QDialog,
 )
 from PyQt5.QtNetwork import QLocalSocket, QLocalServer
 from PyQt5.QtCore import QTimer, Qt
@@ -16,6 +17,7 @@ from PyQt5.QtGui import QFont, QFontDatabase, QIcon
 from config.template_manager import show_template_manager
 from config.config_dialog import ConfigDialog
 from story_editor import StoryEditorWindow, StoryEditorParentWindow
+from story_editor.utils.reorder import reorder_krita_files
 import json
 import sys
 import os
@@ -42,6 +44,9 @@ class ControlTower(QMainWindow):
 
         # Create persistent parent window for Story Editor
         self.story_editor_parent_window = None
+
+        # Initialize krita files folder path
+        self.krita_files_folder = None
 
         # Set up socket
         self.socket = QLocalSocket(self)
@@ -165,12 +170,39 @@ class ControlTower(QMainWindow):
         # Krita Folder Path Input (aligned to the right)
         folder_layout = QHBoxLayout()
         folder_layout.addStretch()  # Push button to the right
+
+        # Reorder button (left of the path button)
+        self.reorder_btn = QPushButton()
+        reorder_icon_path = os.path.join(
+            os.path.dirname(__file__), "story_editor", "icons", "reorder.png"
+        )
+        self.reorder_btn.setIcon(QIcon(reorder_icon_path))
+        self.reorder_btn.setFixedSize(32, 32)
+        self.reorder_btn.setEnabled(False)  # Initially disabled
+        self.reorder_btn.setToolTip(
+            "Rename krita files which use non-sequential naming to sequential naming"
+        )
+        self.reorder_btn.clicked.connect(self.reorder_krita_files)
+        self.reorder_btn.setStyleSheet(
+            """
+            QPushButton {
+                background-color: #9e6658;
+                border-radius: 4px;
+                padding: 0px;
+            }
+            QPushButton:disabled {
+                background-color: #5a5a5a;
+            }
+            """
+        )
+        folder_layout.addWidget(self.reorder_btn)
+
         self.krita_files_path_btn = QPushButton("Set Krita Folder Path")
         self.krita_files_path_btn.clicked.connect(self.set_krita_files_folder_path)
         self.krita_files_path_btn.setFont(get_button_font())
         self.krita_files_path_btn.setStyleSheet(
             """
-            color: #4b281c; 
+            color: #4b281c;
             background-color: #9e6658;
             padding: 5px;
             border-radius: 8px;
@@ -408,11 +440,14 @@ class ControlTower(QMainWindow):
         self.krita_files_path_btn.setText(f"{folder_path}")
         self.krita_files_path_btn.setStyleSheet(
             """
-            font-size: 12px;  
-            color: #4b281c; 
+            font-size: 12px;
+            color: #4b281c;
             background-color: #9e6658;
             font-weight: bold;"""
         )
+
+        # Enable the reorder button now that a folder is set
+        self.update_reorder_button_state()
 
         # Refresh the Story Editor window if it exists
         if (
@@ -420,6 +455,113 @@ class ControlTower(QMainWindow):
             and self.story_editor_parent_window.isVisible()
         ):
             self.text_editor_handler.refresh_data()
+
+    def update_reorder_button_state(self):
+        """Update the reorder button enabled state based on krita_files_folder"""
+        if self.krita_files_folder and os.path.exists(self.krita_files_folder):
+            self.reorder_btn.setEnabled(True)
+        else:
+            self.reorder_btn.setEnabled(False)
+
+    def reorder_krita_files(self):
+        """Show reorder options dialog"""
+        if not self.krita_files_folder or not os.path.exists(self.krita_files_folder):
+            self.log("❌ No valid Krita folder path set")
+            return
+
+        # Show the reorder dialog
+        dialog = ReorderDialog(self)
+        result = dialog.exec_()
+
+        if result == QDialog.DialogCode.Accepted:
+            mode = dialog.selected_mode
+            self.execute_reorder_script(mode)
+
+    def execute_reorder_script(self, mode):
+        """Execute the reorder function with the specified mode"""
+        if mode == "full":
+            self.log("\n--- Starting Krita Files Reordering ---")
+        else:
+            self.log("\n--- Updating comicConfig.json ---")
+
+        try:
+            # Call the reorder function directly with a log callback
+            success, message = reorder_krita_files(
+                self.krita_files_folder,
+                mode=mode,
+                log_callback=self.log
+            )
+
+            if success:
+                if mode == "full":
+                    self.log("✅ Reordering completed successfully")
+                else:
+                    self.log("✅ comicConfig.json updated successfully")
+            else:
+                self.log(f"❌ Operation failed: {message}")
+
+        except Exception as e:
+            self.log(f"❌ Error running reorder: {str(e)}")
+
+
+class ReorderDialog(QDialog):
+    """Dialog for selecting reorder operation mode"""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Reorder Files")
+        self.setFixedSize(400, 200)
+        self.selected_mode = None
+
+        # Create layout
+        layout = QVBoxLayout(self)
+
+        # Warning message
+        warning_label = QLabel("Please close all krita files before reordering the file names.")
+        warning_label.setWordWrap(True)
+        warning_label.setStyleSheet("color: #ecbd30; font-size: 14px; padding: 10px;")
+        layout.addWidget(warning_label)
+
+        # Add spacing
+        layout.addSpacing(20)
+
+        # Reorder button
+        reorder_btn = QPushButton("Reorder")
+        reorder_btn.clicked.connect(self.on_reorder_clicked)
+        reorder_btn.setFont(get_button_font())
+        reorder_btn.setStyleSheet(
+            """
+            color: #4b281c;
+            background-color: #9e6658;
+            padding: 10px;
+            border-radius: 8px;
+            """
+        )
+        layout.addWidget(reorder_btn)
+
+        # Update comicConfig.json only button
+        update_config_btn = QPushButton("Update comicConfig.json only")
+        update_config_btn.clicked.connect(self.on_update_config_clicked)
+        update_config_btn.setFont(get_button_font())
+        update_config_btn.setStyleSheet(
+            """
+            color: #4b281c;
+            background-color: #9e6658;
+            padding: 10px;
+            border-radius: 8px;
+            """
+        )
+        layout.addWidget(update_config_btn)
+
+    def on_reorder_clicked(self):
+        """Handle Reorder button click"""
+        self.selected_mode = "full"
+        self.accept()
+
+    def on_update_config_clicked(self):
+        """Handle Update comicConfig.json only button click"""
+        self.selected_mode = "config_only"
+        self.accept()
 
 
 class SingleInstanceChecker:

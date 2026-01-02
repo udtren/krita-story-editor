@@ -3,6 +3,15 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [v0.8.12-beta] - 2026-1-2
+### Added
+- Reorder button in Control Tower for renaming Krita files to sequential naming
+- Dialog with two options: full reorder (with backup) or update comicConfig.json only
+- Automatic backup creation with timestamp (mmdd-hhmmss format) before renaming
+- Support for renaming both .kra and .kra~ files
+- Automatic comicConfig.json update to reflect renamed files
+- Visual feedback with emoji-based log messages
+
 ## [v0.8.11-beta] - 2025-12-23
 ### Changed
 - Edit offline document no longer create backup file
